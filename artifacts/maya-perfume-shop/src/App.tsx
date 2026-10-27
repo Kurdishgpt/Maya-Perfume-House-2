@@ -5,9 +5,14 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter, Link } from 'wouter';
-import { ArrowDown, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Instagram, Menu, Minus, Plus, ShoppingBag, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Instagram, MapPin, Menu, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react';
 
 const queryClient = new QueryClient();
+const storePhone = '+964 770 157 5609';
+const storePhoneLink = 'tel:+9647701575609';
+const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
+const storeMapLink = 'https://www.google.com/maps/search/?api=1&query=Kolak+Mall%2C+Mawlawi+Street%2C+Sulaymaniyah%2C+Iraq';
+const whatsappLink = 'https://wa.me/9647701575609';
 type Product = { id: number; name: string; family: string; notes: string; price: number; image: string; color: string; size: string; };
 const products: Product[] = [
   { id: 1, name: 'Rose No. 04', family: 'Floral · Powdery', notes: 'Damask rose, pink pepper, soft musk', price: 89, image: '/images/rose-noir.jpg', color: '#e9d2ce', size: '50 ml' },
@@ -106,19 +111,74 @@ function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const onSubmit = (event: FormEvent) => { event.preventDefault(); if (email.includes('@')) setSubscribed(true); };
-  return <footer className="bg-[#12383a] text-[#eff6f1]">
-    <div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-14 md:grid-cols-[1.15fr_.85fr] md:items-center md:px-12 md:py-16">
-      <div><p className="eyebrow text-[#b7cfca]">Notes from Maya</p><h2 className="serif mt-3 max-w-lg text-3xl leading-snug md:text-[38px]">Stay in the scent of something lovely.</h2><p className="mt-3 max-w-md text-sm leading-6 text-[#b7cfca]">New fragrances, thoughtful rituals and little things worth keeping close.</p></div>
-      <form onSubmit={onSubmit} className="flex border-b border-[#dce9e3]/40" aria-label="Newsletter signup"><label htmlFor="newsletter-email" className="sr-only">Email address</label><input required type="email" id="newsletter-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="min-w-0 flex-1 bg-transparent py-4 text-sm outline-none placeholder:text-[#9eb7b1]" data-testid="input-newsletter-email"/><button className="px-2 text-[10px] uppercase tracking-[.15em] text-[#d4c49d]" data-testid="button-newsletter">{subscribed ? <><Check size={16} className="inline mr-2"/>You’re on the list</> : <>Join us <ArrowRight className="ml-2 inline" size={14}/></>}</button></form>
+  return <>
+  <section className="story-marquee" aria-label="Our story">
+    <p className="sr-only">Our story: Maya Collection brings together thoughtful fragrances to make everyday moments feel personal.</p>
+    <div className="story-marquee-track" aria-hidden="true">
+      <span>OUR STORY&nbsp; · &nbsp;MAYA COLLECTION BRINGS TOGETHER THOUGHTFUL FRAGRANCES TO MAKE EVERYDAY MOMENTS FEEL PERSONAL&nbsp; · &nbsp;</span>
+      <span>OUR STORY&nbsp; · &nbsp;MAYA COLLECTION BRINGS TOGETHER THOUGHTFUL FRAGRANCES TO MAKE EVERYDAY MOMENTS FEEL PERSONAL&nbsp; · &nbsp;</span>
     </div>
-    <div className="border-t border-white/15"><div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-10 sm:grid-cols-2 md:grid-cols-[1.3fr_1fr_1fr_1fr] md:px-12">
-      <div><Link href="/" className="serif text-2xl tracking-[.1em]">MAYA<br/><span className="font-sans text-[9px] tracking-[.3em]">COLLECTION</span></Link><p className="mt-5 max-w-[230px] text-xs leading-6 text-[#b7cfca]">Fragrance for the moments that become part of you.</p><div className="mt-5 flex gap-4"><a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" className="footer-link text-xs" data-testid="link-facebook">Facebook</a><a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-link text-xs" data-testid="link-instagram"><Instagram size={15}/></a><a href="https://www.tiktok.com/" target="_blank" rel="noreferrer" aria-label="TikTok" className="footer-link text-xs" data-testid="link-tiktok">TikTok</a></div></div>
-      <div><p className="eyebrow text-[#d4c49d]">Discover</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]">{paths.slice(1,4).map((link) => <Link key={link.href} href={link.href} className="footer-link" data-testid={`footer-${link.label.toLowerCase().replace(' ', '-')}`}>{link.label}</Link>)}</div></div>
-      <div><p className="eyebrow text-[#d4c49d]">A little help</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]"><Link href="/contact" className="footer-link">Get in touch</Link><a href="tel:7701575609" className="footer-link" data-testid="link-footer-phone">770 157 5609</a><Link href="/raw-material" className="footer-link">Our ingredients</Link></div></div>
-      <div><p className="eyebrow text-[#d4c49d]">Find us</p><p className="mt-5 text-xs leading-6 text-[#c6d7d2]">Khan Saray<br/><span className="text-[10px]">Area name supplied by the brand; exact shop pin not verified.</span></p><a href="https://www.google.com/maps/search/?api=1&query=Khan+Saray" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#d4c49d]" data-testid="link-map-search">Search area on Maps <ArrowRight size={12}/></a></div>
-    </div></div>
-    <div className="border-t border-white/15 px-6 py-5 text-center text-[9px] tracking-[.1em] text-[#a8c1bb]">© {new Date().getFullYear()} Maya Collection. A scent, a story, a signature.</div>
-  </footer>;
+  </section>
+  <footer className="bg-[#12383a] text-[#eff6f1]">
+    <div className="hidden md:block">
+      <div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-14 md:grid-cols-[1.15fr_.85fr] md:items-center md:px-12 md:py-16">
+        <div><p className="eyebrow text-[#b7cfca]">Notes from Maya</p><h2 className="serif mt-3 max-w-lg text-3xl leading-snug md:text-[38px]">Stay in the scent of something lovely.</h2><p className="mt-3 max-w-md text-sm leading-6 text-[#b7cfca]">New fragrances, thoughtful rituals and little things worth keeping close.</p></div>
+        <form onSubmit={onSubmit} className="flex border-b border-[#dce9e3]/40" aria-label="Newsletter signup"><label htmlFor="newsletter-email" className="sr-only">Email address</label><input required type="email" id="newsletter-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="min-w-0 flex-1 bg-transparent py-4 text-sm outline-none placeholder:text-[#9eb7b1]" data-testid="input-newsletter-email"/><button className="px-2 text-[10px] uppercase tracking-[.15em] text-[#d4c49d]" data-testid="button-newsletter">{subscribed ? <><Check size={16} className="inline mr-2"/>You’re on the list</> : <>Join us <ArrowRight className="ml-2 inline" size={14}/></>}</button></form>
+      </div>
+      <div className="border-t border-white/15"><div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-10 sm:grid-cols-2 md:grid-cols-[1.3fr_1fr_1fr_1fr] md:px-12">
+        <div><Link href="/" className="serif text-2xl tracking-[.1em]">MAYA<br/><span className="font-sans text-[9px] tracking-[.3em]">COLLECTION</span></Link><p className="mt-5 max-w-[230px] text-xs leading-6 text-[#b7cfca]">Fragrance for the moments that become part of you.</p><div className="mt-5 flex gap-4"><a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" className="footer-link text-xs" data-testid="link-facebook">Facebook</a><a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-link text-xs" data-testid="link-instagram"><Instagram size={15}/></a><a href="https://www.tiktok.com/" target="_blank" rel="noreferrer" aria-label="TikTok" className="footer-link text-xs" data-testid="link-tiktok">TikTok</a></div></div>
+        <div><p className="eyebrow text-[#d4c49d]">Discover</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]">{paths.slice(1,4).map((link) => <Link key={link.href} href={link.href} className="footer-link" data-testid={`footer-${link.label.toLowerCase().replace(' ', '-')}`}>{link.label}</Link>)}</div></div>
+        <div><p className="eyebrow text-[#d4c49d]">A little help</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]"><Link href="/contact" className="footer-link">Get in touch</Link><a href={storePhoneLink} className="footer-link" data-testid="link-footer-phone">{storePhone}</a><Link href="/raw-material" className="footer-link">Our ingredients</Link></div></div>
+        <div><p className="eyebrow text-[#d4c49d]">Visit Maya Collection</p><p className="mt-5 text-xs leading-6 text-[#c6d7d2]">Maya Collection perfumes<br/>{storeAddress}</p><a href={storeMapLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#d4c49d]" data-testid="link-map-search">Find us on Maps <ArrowRight size={12}/></a></div>
+      </div></div>
+      <div className="border-t border-white/15 px-6 py-5 text-center text-[9px] tracking-[.1em] text-[#a8c1bb]">© {new Date().getFullYear()} Maya Collection. A scent, a story, a signature.</div>
+    </div>
+    <div className="md:hidden"><MobileFooter/></div>
+  </footer>
+  </>;
+}
+function MobileFooter() {
+  return <div className="mobile-footer px-7 pb-8 pt-9 text-white">
+    <div className="mx-auto max-w-[500px]">
+      <Link href="/" className="mx-auto mb-7 block w-fit" aria-label="Maya Collection home" data-testid="mobile-footer-logo">
+        <img src="/images/maya-monogram.jpg" alt="Maya Collection Fashion House" className="h-[132px] w-[122px] object-contain"/>
+      </Link>
+      <div className="mobile-footer-groups border-y border-white/20">
+        <details className="mobile-footer-details group border-b border-white/20">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Language</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
+          <div className="pb-5 text-sm text-white/75">English <span className="ml-2 text-xs uppercase tracking-widest text-white/50">Current</span></div>
+        </details>
+        <details className="mobile-footer-details group border-b border-white/20">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Pages</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
+          <nav className="grid gap-4 pb-5 text-sm text-white/75" aria-label="Footer pages">
+            {paths.map((link) => <Link key={link.href} href={link.href} className="footer-link" data-testid={`mobile-footer-${link.label.toLowerCase().replace(' ', '-')}`}>{link.label}</Link>)}
+          </nav>
+        </details>
+        <details className="mobile-footer-details group">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Customer Support</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
+          <div className="grid gap-4 pb-5 text-sm text-white/75">
+            <a href={storePhoneLink} className="footer-link">{storePhone}</a>
+            <a href={whatsappLink} target="_blank" rel="noreferrer" className="footer-link">Message us on WhatsApp</a>
+            <Link href="/contact" className="footer-link">Contact Maya Collection</Link>
+          </div>
+        </details>
+      </div>
+      <div className="grid gap-8 py-8">
+        <a href={storePhoneLink} className="flex items-center gap-5 text-[21px] leading-tight" data-testid="mobile-footer-phone"><Phone size={22} strokeWidth={1.7}/><span>{storePhone}</span></a>
+        <a href={storeMapLink} target="_blank" rel="noreferrer" className="flex items-start gap-5 text-[19px] leading-[1.5]" data-testid="mobile-footer-address">
+          <MapPin size={23} className="mt-1 shrink-0" fill="currentColor" strokeWidth={1.5}/>
+          <span><span className="mb-1 block text-[21px]">Maya Collection perfumes</span>{storeAddress}</span>
+        </a>
+      </div>
+      <div className="flex items-center justify-between border-t border-white/30 pt-6">
+        <span className="text-[17px]">Follow us on</span>
+        <div className="flex items-center gap-6">
+          <a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="footer-link" data-testid="mobile-footer-whatsapp"><MessageCircle size={24}/></a>
+          <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-link" data-testid="mobile-footer-instagram"><Instagram size={24}/></a>
+        </div>
+      </div>
+    </div>
+  </div>;
 }
 function Home() {
   return <><Meta title="Home" description="Discover Maya Collection: personal, elegant fragrances made to become your signature scent."/>
@@ -175,13 +235,62 @@ function RawMaterial() {
 function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); if (!String(data.get('email')).includes('@')) { setError('Please add a valid email so we can reply.'); return; } setError(''); setSubmitted(true); form.reset(); };
-  return <><Meta title="Contact" description="Get in touch with Maya Collection for fragrance questions and personal recommendations."/>
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    if (!String(data.get('email')).includes('@')) {
+      setError('Please add a valid email so we can reply.');
+      return;
+    }
+    setError('');
+    setSubmitted(true);
+    form.reset();
+  };
+  return <>
+    <Meta title="Contact" description="Get in touch with Maya Collection for fragrance questions and personal recommendations."/>
     <PageIntro eyebrow="We would love to hear from you" title="Let’s find your next favourite." body="A question about a scent, a note you can’t stop thinking about, or simply looking for a little guidance? We’re here to help."/>
     <section className="mx-auto grid max-w-[1200px] gap-16 px-6 py-20 md:grid-cols-[.8fr_1.2fr] md:px-12 md:py-28">
-      <div><p className="eyebrow text-[#6c8984]">A personal note</p><h2 className="serif mt-4 text-4xl">Start a conversation.</h2><p className="mt-5 max-w-[380px] text-sm leading-7 text-[#557472]">Tell us what you love in a fragrance, what you’re curious about, or what you’d like to know. We’ll be glad to help you find your way.</p><div className="mt-10 space-y-7"><div className="border-t border-[#17494a]/20 pt-5"><p className="eyebrow text-[#78948f]">Call or message</p><a href="tel:7701575609" className="serif mt-2 inline-block text-xl hover:opacity-70" data-testid="link-contact-phone">770 157 5609</a></div><div className="border-t border-[#17494a]/20 pt-5"><p className="eyebrow text-[#78948f]">Area</p><p className="serif mt-2 text-xl">Khan Saray</p><p className="mt-2 max-w-[350px] text-xs leading-5 text-[#66807d]">Area name supplied by the brand. We do not have a verified shop pin or address.</p><a href="https://www.google.com/maps/search/?api=1&query=Khan+Saray" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest" data-testid="link-contact-map">Search Khan Saray on Maps <ArrowRight size={13}/></a></div></div>
+      <div>
+        <p className="eyebrow text-[#6c8984]">A personal note</p>
+        <h2 className="serif mt-4 text-4xl">Start a conversation.</h2>
+        <p className="mt-5 max-w-[380px] text-sm leading-7 text-[#557472]">Tell us what you love in a fragrance, what you’re curious about, or what you’d like to know. We’ll be glad to help you find your way.</p>
+        <div className="mt-10 space-y-7">
+          <div className="border-t border-[#17494a]/20 pt-5">
+            <p className="eyebrow text-[#78948f]">Call or message</p>
+            <a href={storePhoneLink} className="serif mt-2 inline-block text-xl hover:opacity-70" data-testid="link-contact-phone">{storePhone}</a>
+            <a href={whatsappLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest" data-testid="link-contact-whatsapp"><MessageCircle size={14}/> Message on WhatsApp</a>
+          </div>
+          <div className="border-t border-[#17494a]/20 pt-5">
+            <p className="eyebrow text-[#78948f]">Store address</p>
+            <p className="serif mt-2 text-xl">Maya Collection perfumes</p>
+            <p className="mt-2 max-w-[350px] text-sm leading-6 text-[#66807d]">{storeAddress}</p>
+            <a href={storeMapLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest" data-testid="link-contact-map">Open address in Maps <ArrowRight size={13}/></a>
+          </div>
+        </div>
       </div>
-      <div className="bg-[#e4f0ec] p-6 md:p-10"><p className="eyebrow text-[#6c8984]">Write to us</p><h2 className="serif mt-3 text-3xl">What’s on your mind?</h2>{submitted ? <div className="mt-8 border border-[#9fbeb7] bg-[#edf6f1] p-6" role="status"><Check size={20}/><p className="serif mt-4 text-2xl">Your note is ready.</p><p className="mt-2 text-sm leading-6 text-[#557472]">Thanks for reaching out. This demo form does not send messages yet—please call us directly at <a href="tel:7701575609" className="underline">770 157 5609</a>.</p><button onClick={() => setSubmitted(false)} className="mt-5 text-[10px] uppercase tracking-widest underline" data-testid="button-send-another">Write another note</button></div> : <form onSubmit={onSubmit} className="mt-7 grid gap-5"><label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your name<input required name="name" placeholder="How shall we call you?" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-name"/></label><label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Email address<input required type="email" name="email" placeholder="you@example.com" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-contact-email"/></label><label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">I’m curious about<select name="topic" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-[#17494a]" data-testid="select-topic"><option>Finding my signature scent</option><option>A particular fragrance</option><option>Ingredients and notes</option><option>Something else</option></select></label><label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your message<textarea required name="message" rows={4} placeholder="A little more about what you're looking for..." className="resize-y border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-message"/></label>{error && <p className="text-xs text-[#a94f43]" role="alert">{error}</p>}<button className="mt-2 flex items-center justify-center gap-3 bg-[#17494a] px-6 py-4 text-[10px] uppercase tracking-[.17em] text-white transition-colors hover:bg-[#246668]" data-testid="button-send-message">Send your note <ArrowRight size={14}/></button><p className="text-[10px] leading-5 text-[#66807d]">This form is a front-end preview and does not send or store messages.</p></form>}</div>
+      <div className="bg-[#e4f0ec] p-6 md:p-10">
+        <p className="eyebrow text-[#6c8984]">Write to us</p>
+        <h2 className="serif mt-3 text-3xl">What’s on your mind?</h2>
+        {submitted ? (
+          <div className="mt-8 border border-[#9fbeb7] bg-[#edf6f1] p-6" role="status">
+            <Check size={20}/>
+            <p className="serif mt-4 text-2xl">Your note is ready.</p>
+            <p className="mt-2 text-sm leading-6 text-[#557472]">Thanks for reaching out. This demo form does not send messages yet—please call us directly at <a href={storePhoneLink} className="underline">{storePhone}</a>.</p>
+            <button onClick={() => setSubmitted(false)} className="mt-5 text-[10px] uppercase tracking-widest underline" data-testid="button-send-another">Write another note</button>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="mt-7 grid gap-5">
+            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your name<input required name="name" placeholder="How shall we call you?" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-name"/></label>
+            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Email address<input required type="email" name="email" placeholder="you@example.com" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-contact-email"/></label>
+            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">I’m curious about<select name="topic" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-[#17494a]" data-testid="select-topic"><option>Finding my signature scent</option><option>A particular fragrance</option><option>Ingredients and notes</option><option>Something else</option></select></label>
+            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your message<textarea required name="message" rows={4} placeholder="A little more about what you're looking for..." className="resize-y border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-message"/></label>
+            {error && <p className="text-xs text-[#a94f43]" role="alert">{error}</p>}
+            <button className="mt-2 flex items-center justify-center gap-3 bg-[#17494a] px-6 py-4 text-[10px] uppercase tracking-[.17em] text-white transition-colors hover:bg-[#246668]" data-testid="button-send-message">Send your note <ArrowRight size={14}/></button>
+            <p className="text-[10px] leading-5 text-[#66807d]">This form is a front-end preview and does not send or store messages.</p>
+          </form>
+        )}
+      </div>
     </section>
   </>;
 }
