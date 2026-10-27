@@ -1,13 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
+import { useGetAdminAccess, getGetAdminAccessQueryKey, useListProducts, type Product as ApiProduct } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Route, Switch, useLocation, Router as WouterRouter, Link } from 'wouter';
+import AdminPanel from '@/pages/admin-panel';
+import { Redirect, Route, Switch, useLocation, Router as WouterRouter, Link } from 'wouter';
 import { ArrowDown, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Instagram, MapPin, Menu, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react';
 
 const queryClient = new QueryClient();
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const storePhone = '+964 770 157 5609';
 const storePhoneLink = 'tel:+9647701575609';
 const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
@@ -25,10 +33,37 @@ const products: Product[] = [
 const paths = [{ href: '/', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/collection', label: 'Collection' }, { href: '/raw-material', label: 'Raw Material' }, { href: '/contact', label: 'Contact' }];
 type CartLine = { product: Product; quantity: number };
 
+function toStoreProduct(product: ApiProduct): Product {
+  return {
+    id: product.id,
+    name: product.title,
+    family: product.category,
+    notes: [...product.top_notes, ...product.heart_notes, ...product.base_notes].join(', '),
+    price: product.price,
+    image: product.image_url || '/images/hero-fragrance.png',
+    color: '#e4efea',
+    size: '50 ml',
+  };
+}
+
+const StoreProductsContext = createContext<{ products: Product[]; hasError: boolean }>({
+  products,
+  hasError: false,
+});
+
 function AppShell({ children }: { children: ReactNode }) {
   const [path] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const catalogQuery = useListProducts({
+    query: {
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    },
+  });
+  const catalogProducts = catalogQuery.data?.map(toStoreProduct) ?? (catalogQuery.isError ? [] : products);
   const [cart, setCart] = useState<CartLine[]>(() => {
     try { return JSON.parse(localStorage.getItem('maya-cart') || '[]') as CartLine[]; } catch { return []; }
   });
@@ -42,6 +77,7 @@ function AppShell({ children }: { children: ReactNode }) {
   const adjust = (id: number, amount: number) => setCart((current) => current.map((line) => line.product.id === id ? { ...line, quantity: line.quantity + amount } : line).filter((line) => line.quantity > 0));
   return <div className="min-h-[100dvh]">
     <div className="bg-[#17494a] px-4 py-2 text-center text-[10px] tracking-[.16em] text-[#e8f3ef]">A little ritual, delivered with care · Discover your signature</div>
+    {catalogQuery.isError && <div role="alert" className="bg-[#fbf0e2] px-4 py-2 text-center text-xs text-[#74552e]">The live collection could not be refreshed. Please try again shortly.</div>}
     <header className="sticky top-0 z-40 border-b border-[#17494a]/10 bg-[#f3f8f4]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[78px] max-w-[1440px] items-center justify-between px-5 md:px-10">
         <button aria-label="Open menu" onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-[#17494a] md:hidden" data-testid="button-menu"><Menu size={20}/></button>
@@ -53,7 +89,9 @@ function AppShell({ children }: { children: ReactNode }) {
       </div>
       {mobileOpen && <nav className="absolute left-0 right-0 top-full grid border-t border-[#17494a]/10 bg-[#f3f8f4] px-6 py-3 shadow-lg md:hidden" aria-label="Mobile navigation">{paths.map((item) => <Link key={item.href} href={item.href} className="border-b border-[#17494a]/10 py-4 text-[11px] uppercase tracking-[.18em]" data-testid={`link-mobile-${item.label.toLowerCase().replace(' ', '-')}`}>{item.label}</Link>)}</nav>}
     </header>
+    <StoreProductsContext.Provider value={{ products: catalogProducts, hasError: catalogQuery.isError }}>
     <AddContext.Provider value={addToCart}>{children}</AddContext.Provider>
+    </StoreProductsContext.Provider>
     <Footer/>
     {cartOpen && <div className="fixed inset-0 z-50 flex justify-end bg-[#0b2627]/45" onClick={() => setCartOpen(false)}><aside onClick={(event) => event.stopPropagation()} className="flex h-full w-full max-w-[430px] flex-col bg-[#f3f8f4] p-6 shadow-2xl sm:p-8" aria-label="Shopping bag">
       <div className="flex items-center justify-between border-b border-[#17494a]/15 pb-5"><div><p className="eyebrow">Your edit</p><h2 className="serif mt-1 text-2xl">The fragrance bag <span className="text-base">({count})</span></h2></div><button onClick={() => setCartOpen(false)} className="p-2" aria-label="Close bag" data-testid="button-close-cart"><X size={20}/></button></div>
@@ -62,7 +100,6 @@ function AppShell({ children }: { children: ReactNode }) {
     </aside></div>}
   </div>;
 }
-import { createContext, useContext } from 'react';
 const AddContext = createContext<(product: Product) => void>(() => {});
 function useAddToCart() { return useContext(AddContext); }
 
@@ -181,6 +218,7 @@ function MobileFooter() {
   </div>;
 }
 function Home() {
+  const catalog = useContext(StoreProductsContext);
   return <><Meta title="Home" description="Discover Maya Collection: personal, elegant fragrances made to become your signature scent."/>
     <section className="relative min-h-[610px] overflow-hidden bg-[#c8e4df] md:min-h-[650px]">
       <img src="/images/hero-bottle.jpg" alt="Maya Collection perfume among blue botanicals" className="absolute inset-0 h-full w-full object-cover object-center"/>
@@ -191,7 +229,7 @@ function Home() {
     </section>
     <section id="signature" className="mx-auto max-w-[1300px] px-6 py-20 md:px-12 md:py-28">
       <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[#6c8984]">The Maya edit · 01—06</p><h2 className="serif mt-3 text-4xl md:text-5xl">Find your signature.</h2><p className="mt-3 text-sm text-[#557472]">Six moods. One that feels unmistakably yours.</p></div><ButtonLink href="/collection" light>View all fragrances</ButtonLink></div>
-       <ProductRail products={products.slice(0,5)} id="home-fragrance-rail"/>
+        <ProductRail products={catalog.products.slice(0,5)} id="home-fragrance-rail"/>
     </section>
     <section className="grid bg-[#dcece7] md:min-h-[450px] md:grid-cols-2">
       <div className="image-wash min-h-[320px] md:min-h-full"><img src="/images/story-bottle.jpg" alt="Amber perfume oil surrounded by jasmine and botanicals" className="h-full w-full object-cover"/></div>
@@ -203,9 +241,10 @@ function Home() {
 }
 
 function Collection() {
+  const catalog = useContext(StoreProductsContext);
   const [filter, setFilter] = useState('All scents');
   const filters = ['All scents', 'Floral', 'Woody', 'Fresh', 'Soft'];
-  const filtered = useMemo(() => filter === 'All scents' ? products : products.filter((p) => p.family.toLowerCase().includes(filter.toLowerCase())), [filter]);
+  const filtered = useMemo(() => filter === 'All scents' ? catalog.products : catalog.products.filter((p) => p.family.toLowerCase().includes(filter.toLowerCase())), [filter, catalog.products]);
   return <><Meta title="Collection" description="Explore Maya Collection's signature fragrances, each composed to express a different mood."/>
     <PageIntro eyebrow="The Maya collection" title="A scent for every version of you." body="Meet the fragrances that make a moment yours. Follow what draws you in—light, depth, softness, surprise."/>
     <section className="mx-auto max-w-[1300px] px-6 pb-24 md:px-12"><div className="mb-9 flex flex-wrap items-center justify-between gap-4 border-b border-[#17494a]/20 pb-5"><div className="flex flex-wrap gap-2">{filters.map((item) => <button onClick={() => setFilter(item)} key={item} className={`rounded-full border px-4 py-2 text-[10px] tracking-wide transition-colors ${filter === item ? 'border-[#17494a] bg-[#17494a] text-white' : 'border-[#17494a]/25 hover:bg-[#e2efea]'}`} data-testid={`button-filter-${item.toLowerCase().replace(' ', '-')}`}>{item}</button>)}</div><p className="text-[10px] uppercase tracking-[.15em] text-[#66807d]">{filtered.length} fragrances</p></div>
@@ -294,14 +333,168 @@ function Contact() {
     </section>
   </>;
 }
+function SignInPage() {
+  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-4 py-10">
+    <div className="w-full max-w-[460px]">
+      <p className="mb-6 text-center font-serif text-2xl tracking-[.14em] text-[#d8c89f]">MAYA COLLECTION</p>
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`}/>
+    </div>
+  </div>;
+}
+
+function SignUpPage() {
+  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-4 py-10">
+    <div className="w-full max-w-[460px]">
+      <p className="mb-6 text-center font-serif text-2xl tracking-[.14em] text-[#d8c89f]">MAYA COLLECTION</p>
+      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`}/>
+    </div>
+  </div>;
+}
+
+function AdminRoute() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const { signOut } = useClerk();
+  const access = useGetAdminAccess({
+    query: {
+      enabled: isLoaded && Boolean(isSignedIn),
+      queryKey: getGetAdminAccessQueryKey(),
+      retry: false,
+    },
+  });
+
+  if (!isLoaded) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] text-[#d9d4c9]">Loading secure admin access…</div>;
+  if (!isSignedIn) return <Redirect to="/sign-in"/>;
+  if (access.isLoading) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] text-[#d9d4c9]">Verifying administrator access…</div>;
+  if (access.data?.allowed) return <AdminPanel/>;
+
+  const status = (access.error as { status?: number } | null)?.status;
+  const denied = status === 403;
+  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-6 text-[#eee9df]">
+    <div className="max-w-md text-center">
+      <p className="text-[10px] uppercase tracking-[.2em] text-[#bba679]">Maya Collection · Private area</p>
+      <h1 className="serif mt-4 text-3xl">{denied ? "This account is not an administrator." : "We could not verify your access."}</h1>
+      <p className="mt-3 text-sm leading-6 text-[#9ca5a2]">{denied ? "Sign in using the email address approved for catalog management." : "Please try again. Your catalog remains protected while access is checked."}</p>
+      <div className="mt-6 flex justify-center gap-3">
+        {!denied && <button onClick={() => access.refetch()} className="rounded border border-white/15 px-4 py-2.5 text-xs text-[#dedbd1]" data-testid="button-retry-admin-access">Try again</button>}
+        <button onClick={() => signOut({ redirectUrl: basePath || "/" })} className="rounded bg-[#d0bd91] px-4 py-2.5 text-xs font-medium text-[#1b201f]" data-testid="button-admin-sign-out">Sign out</button>
+      </div>
+    </div>
+  </div>;
+}
+
+function PublicRoutes() {
+  return <AppShell><Switch><Route path="/" component={Home}/><Route path="/about" component={About}/><Route path="/collection" component={Collection}/><Route path="/raw-material" component={RawMaterial}/><Route path="/contact" component={Contact}/><Route component={NotFound}/></Switch></AppShell>;
+}
+
+function stripBase(path: string): string {
+  return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
+}
+
+const clerkAppearance = {
+  theme: shadcn,
+  cssLayerName: "clerk",
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath || "/",
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: "#b59b66",
+    colorForeground: "#eee9df",
+    colorMutedForeground: "#a3aaa5",
+    colorDanger: "#d78b7e",
+    colorBackground: "#171d1f",
+    colorInput: "#111719",
+    colorInputForeground: "#e8e5dd",
+    colorNeutral: "#46504c",
+    fontFamily: "'DM Sans', sans-serif",
+    borderRadius: "0.5rem",
+  },
+  elements: {
+    rootBox: "w-full flex justify-center",
+    cardBox: "bg-[#171d1f] rounded-xl w-[440px] max-w-full overflow-hidden border border-white/10",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    headerTitle: "text-[#eee9df] font-serif",
+    headerSubtitle: "text-[#a3aaa5]",
+    socialButtonsBlockButtonText: "text-[#e8e5dd]",
+    formFieldLabel: "text-[#c9ccc5]",
+    footerActionLink: "text-[#d2bd8e]",
+    footerActionText: "text-[#a3aaa5]",
+    dividerText: "text-[#8c9691]",
+    identityPreviewEditButton: "text-[#d2bd8e]",
+    formFieldSuccessText: "text-[#9fb59d]",
+    alertText: "text-[#efd9d3]",
+    logoBox: "flex justify-center",
+    logoImage: "max-h-12",
+    socialButtonsBlockButton: "border-white/10 bg-[#202729] hover:bg-[#252e30]",
+    formButtonPrimary: "bg-[#b59b66] text-[#171b1a] hover:bg-[#c5ad78]",
+    formFieldInput: "border-white/10 bg-[#111719] text-[#e8e5dd]",
+    footerAction: "bg-transparent",
+    dividerLine: "bg-white/10",
+    alert: "border-[#d78b7e]/30 bg-[#2a211f]",
+    otpCodeFieldInput: "border-white/20 bg-[#111719] text-[#e8e5dd]",
+    formFieldRow: "text-[#c9ccc5]",
+    main: "text-[#e8e5dd]",
+  },
+};
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const currentUserId = user?.id ?? null;
+      if (previousUserId.current !== undefined && previousUserId.current !== currentUserId) {
+        queryClient.clear();
+      }
+      previousUserId.current = currentUserId;
+    });
+    return unsubscribe;
+  }, [addListener]);
+
+  return null;
+}
+
+function ClerkApp() {
+  const [, setLocation] = useLocation();
+  if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY.");
+
+  return <ClerkProvider
+    publishableKey={clerkPubKey}
+    proxyUrl={clerkProxyUrl}
+    appearance={clerkAppearance}
+    signInUrl={`${basePath}/sign-in`}
+    signUpUrl={`${basePath}/sign-up`}
+    localization={{
+      signIn: { start: { title: "Welcome back", subtitle: "Sign in to manage your collection" } },
+      signUp: { start: { title: "Join Maya Collection", subtitle: "Create your administrator account" } },
+    }}
+    routerPush={(to) => setLocation(stripBase(to))}
+    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+  >
+    <QueryClientProvider client={queryClient}>
+      <ClerkQueryClientCacheInvalidator/>
+      <Switch>
+        <Route path="/sign-in/*?" component={SignInPage}/>
+        <Route path="/sign-up/*?" component={SignUpPage}/>
+        <Route path="/admin" component={AdminRoute}/>
+        <Route component={PublicRoutes}/>
+      </Switch>
+      <Toaster/>
+    </QueryClientProvider>
+  </ClerkProvider>;
+}
+
 function Router() {
-  return <RoutedErrorBoundary><AppShell><Switch><Route path="/" component={Home}/><Route path="/about" component={About}/><Route path="/collection" component={Collection}/><Route path="/raw-material" component={RawMaterial}/><Route path="/contact" component={Contact}/><Route component={NotFound}/></Switch></AppShell></RoutedErrorBoundary>;
+  return <RoutedErrorBoundary><ClerkApp/></RoutedErrorBoundary>;
 }
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><Router/></WouterRouter><Toaster/></TooltipProvider></QueryClientProvider>;
+  return <TooltipProvider><WouterRouter base={basePath}><Router/></WouterRouter></TooltipProvider>;
 }
 export default App;

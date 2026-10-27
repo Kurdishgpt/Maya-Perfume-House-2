@@ -1,0 +1,83 @@
+import { RequestUploadUrlBody, RequestUploadUrlResponse } from "@workspace/api-zod";
+import { Router, type IRouter, type Request, type Response } from "express";
+import { Readable } from "node:stream";
+import {
+  ObjectNotFoundError,
+  ObjectStorageService,
+} from "../lib/objectStorage";
+import { requireAdmin } from "../middlewares/requireAdmin";
+
+const router: IRouter = Router();
+const objectStorage = new ObjectStorageService();
+const acceptedImageTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+const maxImageBytes = 5 * 1024 * 1024;
+
+router.post(
+  "/storage/uploads/request-url",
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = RequestUploadUrlBody.safeParse(req.body);
+    if (
+      !parsed.success ||
+      parsed.data.size > maxImageBytes ||
+      !acceptedImageTypes.has(parsed.data.contentType)
+    ) {
+      res.status(400).json({
+        error: "Use a JPEG, PNG, WebP, or AVIF image up to 5 MB.",
+      });
+      return;
+    }
+
+    try {
+      const { name, size, contentType } = parsed.data;
+      const uploadURL = await objectStorage.getObjectEntityUploadURL();
+      const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
+      res.json(
+        RequestUploadUrlResponse.parse({
+          uploadURL,
+          objectPath,
+          metadata: { name, size, contentType },
+        }),
+      );
+    } catch (error) {
+      req.log.error({ err: error }, "Product image upload URL creation failed");
+      res.status(500).json({ error: "Could not prepare the image upload." });
+    }
+  },
+);
+
+router.get(
+  "/storage/objects/*path",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const rawPath = req.params.path;
+      const path = Array.isArray(rawPath) ? rawPath.join("/") : rawPath;
+      const objectFile = await objectStorage.getObjectEntityFile(`/objects/${path}`);
+      const response = await objectStorage.downloadObject(objectFile);
+      res.status(response.status);
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+
+      if (response.body) {
+        Readable.fromWeb(
+          response.body as ReadableStream<Uint8Array>,
+        ).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        res.status(404).json({ error: "Image not found." });
+        return;
+      }
+      req.log.error({ err: error }, "Product image delivery failed");
+      res.status(500).json({ error: "Could not serve the product image." });
+    }
+  },
+);
+
+export default router;
