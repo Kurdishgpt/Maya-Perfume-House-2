@@ -333,6 +333,8 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .image-wash { position: relative; overflow:hidden; }
 .image-wash img { transition: transform 900ms cubic-bezier(.2,.7,.2,1); }
 .image-wash:hover img { transform: scale(1.035); }
+.product-rail { scrollbar-width: none; overscroll-behavior-x: contain; }
+.product-rail::-webkit-scrollbar { display: none; }
 .nav-link { position:relative; }
 .nav-link::after { content:''; position:absolute; left:0; right:100%; bottom:-7px; height:1px; background:currentColor; transition:right .3s ease; }
 .nav-link:hover::after,.nav-link.active::after { right:0; }
