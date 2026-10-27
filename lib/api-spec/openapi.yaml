@@ -56,6 +56,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /admin/passcode:
+    get:
+      operationId: getAdminPasscodeStatus
+      tags: [admin]
+      summary: Check whether the administrator passcode is unlocked
+      responses:
+        "200":
+          description: Passcode unlock status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPasscodeStatus"
+        "401":
+          description: Sign-in required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Administrator access required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: unlockAdminPasscode
+      tags: [admin]
+      summary: Verify the administrator passcode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPasscodeInput"
+      responses:
+        "200":
+          description: Passcode accepted and a short-lived unlock cookie was set.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPasscodeStatus"
+        "400":
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Sign-in required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Passcode was not accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: Too many passcode attempts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Passcode verification is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: lockAdminPasscode
+      tags: [admin]
+      summary: Clear the administrator passcode unlock
+      responses:
+        "204":
+          description: The passcode unlock was cleared.
+        "401":
+          description: Sign-in required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Administrator access required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /products:
     get:
       operationId: listProducts
@@ -477,6 +567,20 @@ components:
       required: [allowed]
       properties:
         allowed:
+          type: boolean
+    AdminPasscodeInput:
+      type: object
+      required: [passcode]
+      properties:
+        passcode:
+          type: string
+          minLength: 1
+          maxLength: 256
+    AdminPasscodeStatus:
+      type: object
+      required: [unlocked]
+      properties:
+        unlocked:
           type: boolean
     AutofillFragranceInput:
       type: object

@@ -26,6 +26,8 @@ import type {
 
 import type {
   AdminAccess,
+  AdminPasscodeInput,
+  AdminPasscodeStatus,
   AutofillFragranceInput,
   ErrorEnvelope,
   FragranceSuggestion,
@@ -266,6 +268,269 @@ export function useGetAdminAccess<TData = Awaited<ReturnType<typeof getAdminAcce
 
 
 
+
+export const getGetAdminPasscodeStatusUrl = () => {
+
+
+
+
+  return `/api/admin/passcode`
+}
+
+/**
+ * @summary Check whether the administrator passcode is unlocked
+ */
+export const getAdminPasscodeStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminPasscodeStatus> => {
+
+  return customFetch<AdminPasscodeStatus>(getGetAdminPasscodeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPasscodeStatusQueryKey = () => {
+    return [
+    `/api/admin/passcode`
+    ] as const;
+    }
+
+
+export const getGetAdminPasscodeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPasscodeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPasscodeStatus>>> = ({ signal }) => getAdminPasscodeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminPasscodeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPasscodeStatus>>>
+export type GetAdminPasscodeStatusQueryError = ErrorType<ErrorEnvelope>
+
+
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPasscodeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPasscodeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPasscodeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPasscodeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Check whether the administrator passcode is unlocked
+ */
+
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminPasscodeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUnlockAdminPasscodeUrl = () => {
+
+
+
+
+  return `/api/admin/passcode`
+}
+
+/**
+ * @summary Verify the administrator passcode
+ */
+export const unlockAdminPasscode = async (adminPasscodeInput: AdminPasscodeInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminPasscodeStatus> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminPasscodeStatus>(getUnlockAdminPasscodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminPasscodeInput)
+  }
+);}
+
+
+
+
+
+export const getUnlockAdminPasscodeMutationKey = () => ['unlockAdminPasscode'] as const;
+
+export const getUnlockAdminPasscodeMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlockAdminPasscode>>, TError,UnlockAdminPasscodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlockAdminPasscode>>, TError,UnlockAdminPasscodeMutationVariables, TContext> => {
+
+const mutationKey = getUnlockAdminPasscodeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlockAdminPasscode>>, UnlockAdminPasscodeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  unlockAdminPasscode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlockAdminPasscodeMutationResult = NonNullable<Awaited<ReturnType<typeof unlockAdminPasscode>>>
+    export type UnlockAdminPasscodeMutationBody = BodyType<AdminPasscodeInput>
+    export type UnlockAdminPasscodeMutationError = ErrorType<ErrorEnvelope>
+    export type UnlockAdminPasscodeMutationVariables = {data: BodyType<AdminPasscodeInput>}
+
+    /**
+ * @summary Verify the administrator passcode
+ */
+export const useUnlockAdminPasscode = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlockAdminPasscode>>, TError,UnlockAdminPasscodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlockAdminPasscode>>,
+        TError,
+        UnlockAdminPasscodeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlockAdminPasscodeMutationOptions(options), queryClient);
+    }
+
+export const getLockAdminPasscodeUrl = () => {
+
+
+
+
+  return `/api/admin/passcode`
+}
+
+/**
+ * @summary Clear the administrator passcode unlock
+ */
+export const lockAdminPasscode = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLockAdminPasscodeUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getLockAdminPasscodeMutationKey = () => ['lockAdminPasscode'] as const;
+
+export const getLockAdminPasscodeMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext> => {
+
+const mutationKey = getLockAdminPasscodeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof lockAdminPasscode>>, void> = () => {
+
+
+          return  lockAdminPasscode(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LockAdminPasscodeMutationResult = NonNullable<Awaited<ReturnType<typeof lockAdminPasscode>>>
+
+    export type LockAdminPasscodeMutationError = ErrorType<ErrorEnvelope>
+
+
+    /**
+ * @summary Clear the administrator passcode unlock
+ */
+export const useLockAdminPasscode = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof lockAdminPasscode>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLockAdminPasscodeMutationOptions(options), queryClient);
+    }
 
 export const getListProductsUrl = () => {
 

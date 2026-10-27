@@ -26,6 +26,36 @@ export const GetAdminAccessResponse = zod.object({
 
 
 /**
+ * @summary Check whether the administrator passcode is unlocked
+ */
+export const GetAdminPasscodeStatusResponse = zod.object({
+  "unlocked": zod.boolean()
+})
+
+
+/**
+ * @summary Verify the administrator passcode
+ */
+export const unlockAdminPasscodeBodyPasscodeMax = 256;
+
+
+
+export const UnlockAdminPasscodeBody = zod.object({
+  "passcode": zod.string().min(1).max(unlockAdminPasscodeBodyPasscodeMax)
+})
+
+export const UnlockAdminPasscodeResponse = zod.object({
+  "unlocked": zod.boolean()
+})
+
+
+/**
+ * @summary Clear the administrator passcode unlock
+ */
+export const LockAdminPasscodeResponse = zod.void()
+
+
+/**
  * @summary List the live storefront catalog
  */
 export const ListProductsResponseItem = zod.object({

@@ -72,6 +72,18 @@ export interface AdminAccess {
   allowed: boolean;
 }
 
+export interface AdminPasscodeInput {
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  passcode: string;
+}
+
+export interface AdminPasscodeStatus {
+  unlocked: boolean;
+}
+
 export interface AutofillFragranceInput {
   /**
      * @minLength 2
