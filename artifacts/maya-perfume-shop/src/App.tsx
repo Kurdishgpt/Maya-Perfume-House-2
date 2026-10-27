@@ -30,7 +30,7 @@ const products: Product[] = [
   { id: 5, name: 'Éternel Blanc', family: 'Soft · Gourmand', notes: 'Vanilla orchid, almond, cashmere wood', price: 98, image: '/images/eternel-blanc.jpg', color: '#eee4d8', size: '50 ml' },
   { id: 6, name: 'Jardin Secret', family: 'Green · Floral', notes: 'Fig leaf, jasmine, wild gardenia', price: 92, image: '/images/story-bottle.jpg', color: '#d9e5d6', size: '50 ml' },
 ];
-const paths = [{ href: '/', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/collection', label: 'Collection' }, { href: '/raw-material', label: 'Raw Material' }, { href: '/contact', label: 'Contact' }];
+const paths = [{ href: '/', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/collection', label: 'Collection' }, { href: '/raw-material', label: 'Raw Material' }, { href: '/contact', label: 'Contact' }, { href: '/admin', label: 'Admin' }];
 type CartLine = { product: Product; quantity: number };
 
 function toStoreProduct(product: ApiProduct): Product {
