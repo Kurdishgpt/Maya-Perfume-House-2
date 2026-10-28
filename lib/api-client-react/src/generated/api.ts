@@ -25,7 +25,6 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  AdminAccess,
   AdminPasscodeInput,
   AdminPasscodeStatus,
   AutofillFragranceInput,
@@ -168,107 +167,6 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getGetAdminAccessUrl = () => {
-
-
-
-
-  return `/api/admin/access`
-}
-
-/**
- * @summary Check whether the signed-in user is the catalog administrator
- */
-export const getAdminAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminAccess> => {
-
-  return customFetch<AdminAccess>(getGetAdminAccessUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetAdminAccessQueryKey = () => {
-    return [
-    `/api/admin/access`
-    ] as const;
-    }
-
-
-export const getGetAdminAccessQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAccess>>, TError = ErrorType<ErrorEnvelope>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetAdminAccessQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAccess>>> = ({ signal }) => getAdminAccess({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetAdminAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAccess>>>
-export type GetAdminAccessQueryError = ErrorType<ErrorEnvelope>
-
-
-export function useGetAdminAccess<TData = Awaited<ReturnType<typeof getAdminAccess>>, TError = ErrorType<ErrorEnvelope>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAdminAccess>>,
-          TError,
-          Awaited<ReturnType<typeof getAdminAccess>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminAccess<TData = Awaited<ReturnType<typeof getAdminAccess>>, TError = ErrorType<ErrorEnvelope>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAdminAccess>>,
-          TError,
-          Awaited<ReturnType<typeof getAdminAccess>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminAccess<TData = Awaited<ReturnType<typeof getAdminAccess>>, TError = ErrorType<ErrorEnvelope>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Check whether the signed-in user is the catalog administrator
- */
-
-export function useGetAdminAccess<TData = Awaited<ReturnType<typeof getAdminAccess>>, TError = ErrorType<ErrorEnvelope>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetAdminAccessQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
 export const getGetAdminPasscodeStatusUrl = () => {
 
 
@@ -302,7 +200,7 @@ export const getGetAdminPasscodeStatusQueryKey = () => {
     }
 
 
-export const getGetAdminPasscodeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminPasscodeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -321,10 +219,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetAdminPasscodeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPasscodeStatus>>>
-export type GetAdminPasscodeStatusQueryError = ErrorType<ErrorEnvelope>
+export type GetAdminPasscodeStatusQueryError = ErrorType<unknown>
 
 
-export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<unknown>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAdminPasscodeStatus>>,
@@ -334,7 +232,7 @@ export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getA
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<unknown>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAdminPasscodeStatus>>,
@@ -344,7 +242,7 @@ export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getA
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<unknown>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
@@ -352,7 +250,7 @@ export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getA
  * @summary Check whether the administrator passcode is unlocked
  */
 
-export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<ErrorEnvelope>>(
+export function useGetAdminPasscodeStatus<TData = Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError = ErrorType<unknown>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPasscodeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -486,7 +384,7 @@ export const lockAdminPasscode = async ( options?: Parameters<typeof customFetch
 
 export const getLockAdminPasscodeMutationKey = () => ['lockAdminPasscode'] as const;
 
-export const getLockAdminPasscodeMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+export const getLockAdminPasscodeMutationOptions = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext> => {
 
@@ -515,13 +413,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type LockAdminPasscodeMutationResult = NonNullable<Awaited<ReturnType<typeof lockAdminPasscode>>>
 
-    export type LockAdminPasscodeMutationError = ErrorType<ErrorEnvelope>
+    export type LockAdminPasscodeMutationError = ErrorType<unknown>
 
 
     /**
  * @summary Clear the administrator passcode unlock
  */
-export const useLockAdminPasscode = <TError = ErrorType<ErrorEnvelope>,
+export const useLockAdminPasscode = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lockAdminPasscode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof lockAdminPasscode>>,

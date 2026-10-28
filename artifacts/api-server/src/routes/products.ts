@@ -28,6 +28,7 @@ function toApiProduct(product: DbProduct) {
     base_notes: product.baseNotes,
     ingredients: product.ingredients,
     image_url: product.imageUrl,
+    gallery_images: product.galleryImages,
     created_at: product.createdAt.toISOString(),
   };
 }
@@ -73,6 +74,7 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
         baseNotes: data.base_notes,
         ingredients: data.ingredients,
         imageUrl: data.image_url,
+        galleryImages: data.gallery_images,
       })
       .returning();
 
@@ -122,6 +124,7 @@ router.patch(
     if (data.base_notes !== undefined) values.baseNotes = data.base_notes;
     if (data.ingredients !== undefined) values.ingredients = data.ingredients;
     if (data.image_url !== undefined) values.imageUrl = data.image_url;
+    if (data.gallery_images !== undefined) values.galleryImages = data.gallery_images;
 
     if (Object.keys(values).length === 0) {
       res.status(400).json({ error: "Add at least one field to update." });

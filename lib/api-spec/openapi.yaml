@@ -32,30 +32,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-  /admin/access:
-    get:
-      operationId: getAdminAccess
-      tags: [admin]
-      summary: Check whether the signed-in user is the catalog administrator
-      responses:
-        "200":
-          description: The signed-in user is an administrator.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminAccess"
-        "401":
-          description: Sign-in required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "403":
-          description: The signed-in user is not the administrator.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
   /admin/passcode:
     get:
       operationId: getAdminPasscodeStatus
@@ -68,18 +44,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminPasscodeStatus"
-        "401":
-          description: Sign-in required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "403":
-          description: Administrator access required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
     post:
       operationId: unlockAdminPasscode
       tags: [admin]
@@ -99,12 +63,6 @@ paths:
                 $ref: "#/components/schemas/AdminPasscodeStatus"
         "400":
           description: Invalid request.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "401":
-          description: Sign-in required.
           content:
             application/json:
               schema:
@@ -134,18 +92,6 @@ paths:
       responses:
         "204":
           description: The passcode unlock was cleared.
-        "401":
-          description: Sign-in required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "403":
-          description: Administrator access required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
   /products:
     get:
       operationId: listProducts
@@ -428,6 +374,7 @@ components:
         - base_notes
         - ingredients
         - image_url
+        - gallery_images
         - created_at
       properties:
         id:
@@ -464,6 +411,10 @@ components:
             type: string
         image_url:
           type: string
+        gallery_images:
+          type: array
+          items:
+            type: string
         created_at:
           type: string
           format: date-time
@@ -482,6 +433,7 @@ components:
         - base_notes
         - ingredients
         - image_url
+        - gallery_images
       properties:
         title:
           type: string
@@ -521,6 +473,10 @@ components:
             type: string
         image_url:
           type: string
+        gallery_images:
+          type: array
+          items:
+            type: string
     ProductUpdate:
       type: object
       properties:
@@ -562,12 +518,10 @@ components:
             type: string
         image_url:
           type: string
-    AdminAccess:
-      type: object
-      required: [allowed]
-      properties:
-        allowed:
-          type: boolean
+        gallery_images:
+          type: array
+          items:
+            type: string
     AdminPasscodeInput:
       type: object
       required: [passcode]
@@ -603,6 +557,7 @@ components:
         - base_notes
         - ingredients
         - image_url
+        - gallery_images
       properties:
         title:
           type: string
@@ -632,6 +587,10 @@ components:
             type: string
         image_url:
           type: string
+        gallery_images:
+          type: array
+          items:
+            type: string
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]

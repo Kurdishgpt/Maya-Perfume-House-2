@@ -18,6 +18,7 @@ export const productsTable = pgTable(
     baseNotes: text("base_notes").array().notNull().default([]),
     ingredients: text("ingredients").array().notNull().default([]),
     imageUrl: text("image_url").notNull().default(""),
+    galleryImages: text("gallery_images").array().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("products_sku_unique").on(table.sku)],

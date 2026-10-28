@@ -20,5 +20,6 @@ export interface Product {
   base_notes: string[];
   ingredients: string[];
   image_url: string;
+  gallery_images: string[];
   created_at: Date;
 }

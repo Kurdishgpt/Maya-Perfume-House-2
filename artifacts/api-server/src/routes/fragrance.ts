@@ -3,7 +3,6 @@ import {
   AutofillFragranceResponse,
 } from "@workspace/api-zod";
 import { Router, type IRouter } from "express";
-import { getAuth } from "@clerk/express";
 import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -18,11 +17,11 @@ type GeminiResponse = {
   }>;
 };
 
-function takeRateLimitToken(userId: string): boolean {
+function takeRateLimitToken(clientIp: string): boolean {
   const now = Date.now();
-  const current = requestCounts.get(userId);
+  const current = requestCounts.get(clientIp);
   if (!current || now - current.startedAt >= RATE_WINDOW_MS) {
-    requestCounts.set(userId, { startedAt: now, count: 1 });
+    requestCounts.set(clientIp, { startedAt: now, count: 1 });
     return true;
   }
   if (current.count >= RATE_LIMIT) return false;
@@ -40,8 +39,7 @@ router.post(
       return;
     }
 
-    const userId = getAuth(req).userId;
-    if (!userId || !takeRateLimitToken(userId)) {
+    if (!takeRateLimitToken(req.ip || "unknown")) {
       res.status(429).json({ error: "Please wait before requesting more suggestions." });
       return;
     }

@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './adminAccess';
 export * from './adminPasscodeInput';
 export * from './adminPasscodeStatus';
 export * from './autofillFragranceInput';

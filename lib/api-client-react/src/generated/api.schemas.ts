@@ -23,6 +23,7 @@ export interface Product {
   base_notes: string[];
   ingredients: string[];
   image_url: string;
+  gallery_images: string[];
   created_at: string;
 }
 
@@ -45,6 +46,7 @@ export interface ProductInput {
   base_notes: string[];
   ingredients: string[];
   image_url: string;
+  gallery_images: string[];
 }
 
 export interface ProductUpdate {
@@ -66,10 +68,7 @@ export interface ProductUpdate {
   base_notes?: string[];
   ingredients?: string[];
   image_url?: string;
-}
-
-export interface AdminAccess {
-  allowed: boolean;
+  gallery_images?: string[];
 }
 
 export interface AdminPasscodeInput {
@@ -103,6 +102,7 @@ export interface FragranceSuggestion {
   base_notes: string[];
   ingredients: string[];
   image_url: string;
+  gallery_images: string[];
 }
 
 export interface UploadUrlRequest {

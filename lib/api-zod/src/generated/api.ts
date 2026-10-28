@@ -18,14 +18,6 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Check whether the signed-in user is the catalog administrator
- */
-export const GetAdminAccessResponse = zod.object({
-  "allowed": zod.boolean()
-})
-
-
-/**
  * @summary Check whether the administrator passcode is unlocked
  */
 export const GetAdminPasscodeStatusResponse = zod.object({
@@ -72,6 +64,7 @@ export const ListProductsResponseItem = zod.object({
   "base_notes": zod.array(zod.string()),
   "ingredients": zod.array(zod.string()),
   "image_url": zod.string(),
+  "gallery_images": zod.array(zod.string()),
   "created_at": zod.coerce.date()
 })
 export const ListProductsResponse = zod.array(ListProductsResponseItem)
@@ -102,7 +95,8 @@ export const CreateProductBody = zod.object({
   "heart_notes": zod.array(zod.string()),
   "base_notes": zod.array(zod.string()),
   "ingredients": zod.array(zod.string()),
-  "image_url": zod.string()
+  "image_url": zod.string(),
+  "gallery_images": zod.array(zod.string())
 })
 
 export const CreateProductResponse = zod.object({
@@ -119,6 +113,7 @@ export const CreateProductResponse = zod.object({
   "base_notes": zod.array(zod.string()),
   "ingredients": zod.array(zod.string()),
   "image_url": zod.string(),
+  "gallery_images": zod.array(zod.string()),
   "created_at": zod.coerce.date()
 })
 
@@ -155,7 +150,8 @@ export const UpdateProductBody = zod.object({
   "heart_notes": zod.array(zod.string()).optional(),
   "base_notes": zod.array(zod.string()).optional(),
   "ingredients": zod.array(zod.string()).optional(),
-  "image_url": zod.string().optional()
+  "image_url": zod.string().optional(),
+  "gallery_images": zod.array(zod.string()).optional()
 })
 
 export const UpdateProductResponse = zod.object({
@@ -172,6 +168,7 @@ export const UpdateProductResponse = zod.object({
   "base_notes": zod.array(zod.string()),
   "ingredients": zod.array(zod.string()),
   "image_url": zod.string(),
+  "gallery_images": zod.array(zod.string()),
   "created_at": zod.coerce.date()
 })
 
@@ -211,7 +208,8 @@ export const AutofillFragranceResponse = zod.object({
   "heart_notes": zod.array(zod.string()),
   "base_notes": zod.array(zod.string()),
   "ingredients": zod.array(zod.string()),
-  "image_url": zod.string()
+  "image_url": zod.string(),
+  "gallery_images": zod.array(zod.string())
 })
 
 

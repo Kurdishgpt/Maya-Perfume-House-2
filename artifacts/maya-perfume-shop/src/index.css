@@ -351,6 +351,243 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .nav-link:hover::after,.nav-link.active::after { right:0; }
 .footer-link { transition: opacity .2s ease; }
 .footer-link:hover { opacity:.64; }
+
+/* Maya Collection storefront — refined editorial retail with a mobile-first rhythm */
+.maya-store { --maya-ink:#35234c; --maya-deep:#142f3c; --maya-paper:#fbfaf7; --maya-soft:#f1efeb; --maya-gold:#b59b66; color:var(--maya-ink); background:var(--maya-paper); min-height:100dvh; }
+.maya-store a { color:inherit; text-decoration:none; }
+.maya-announcement { background:var(--maya-deep); color:#f7f3e9; text-align:center; padding:10px 14px; font-size:11px; letter-spacing:.09em; }
+.maya-header { position:sticky; top:0; z-index:40; background:rgba(251,250,247,.97); border-bottom:1px solid #e8e3dc; backdrop-filter:blur(14px); }
+.maya-header-social { min-height:34px; display:flex; justify-content:flex-end; align-items:center; gap:22px; max-width:1440px; margin:auto; padding:3px 5vw 0; }
+.maya-header-social a,.maya-footer-social a { display:grid; place-items:center; width:24px; height:24px; }
+.maya-header-social svg { width:17px; height:17px; stroke-width:1.7; }
+.maya-header-main { min-height:82px; max-width:1440px; margin:auto; padding:8px 5vw 14px; display:flex; justify-content:space-between; align-items:center; gap:24px; }
+.maya-wordmark { display:flex; flex-direction:column; flex:none; align-items:center; color:#35234c!important; line-height:1; }
+.maya-wordmark span { font-family:'Playfair Display',serif; font-size:34px; letter-spacing:.075em; }
+.maya-wordmark small { font-family:'DM Sans',sans-serif; margin-top:5px; font-size:10px; letter-spacing:.22em; }
+.maya-language { display:flex; align-items:center; gap:8px; font-size:13px; white-space:nowrap; }
+.maya-language select,.maya-footer-language select { background:transparent; border:0; color:inherit; outline:none; padding:5px 2px; cursor:pointer; }
+.maya-language select { appearance:none; }
+.maya-desktop-nav { display:flex; align-items:center; gap:25px; }
+.maya-desktop-nav a { font-size:10px; text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
+.maya-desktop-nav a:hover,.maya-footer-grid a:hover { opacity:.65; }
+.maya-actions { display:flex; align-items:center; gap:12px; }
+.maya-icon-button { position:relative; width:39px; height:39px; display:grid; place-items:center; border:0; background:transparent; color:var(--maya-ink); cursor:pointer; }
+.maya-icon-button svg { width:23px; height:23px; stroke-width:1.55; }
+.maya-count { position:absolute; top:0; inset-inline-end:-2px; min-width:16px; height:16px; display:grid; place-items:center; border-radius:50%; background:var(--maya-gold); color:white; font-size:9px; }
+.maya-mobile-menu,.maya-mobile-nav,.maya-actions .maya-icon-button:first-child { display:none; }
+.maya-mobile-nav { padding:8px 7vw 18px; border-top:1px solid #ece6de; background:var(--maya-paper); }
+.maya-mobile-nav a { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #ece6de; font-size:13px; }
+.maya-error { padding:10px; text-align:center; background:#f5e8d8; color:#694d33; font-size:12px; }
+.maya-hero { min-height:590px; position:relative; overflow:hidden; display:flex; align-items:center; background:#dce6e1; }
+.maya-hero-image,.maya-hero-overlay { position:absolute; inset:0; width:100%; height:100%; }
+.maya-hero-image { object-fit:cover; object-position:center; }
+.maya-hero-overlay { background:linear-gradient(90deg,rgba(246,246,239,.94) 0%,rgba(242,242,234,.77) 42%,rgba(242,242,234,.04) 100%); }
+.maya-hero-content { position:relative; max-width:610px; padding:86px 8vw 90px; }
+.maya-kicker { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#837553; font-weight:600; }
+.maya-hero h1,.maya-page-intro h1 { font-family:'Playfair Display',serif; font-size:clamp(46px,7.2vw,82px); font-weight:400; line-height:1.04; margin:22px 0; color:#35234c; }
+.maya-hero-content p,.maya-page-intro>p { max-width:430px; color:#554d59; font-size:15px; line-height:1.9; }
+.maya-primary-link { background:#35234c; color:#fbfaf7!important; display:inline-flex; align-items:center; justify-content:center; gap:14px; min-height:52px; padding:0 25px; border:0; font-size:10px; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; transition:background .2s ease,transform .2s ease; }
+.maya-primary-link:hover { background:#533a6b; transform:translateY(-2px); }
+.maya-hero-content .maya-primary-link { margin-top:18px; }
+.maya-scroll { position:absolute; bottom:26px; inset-inline-start:8vw; display:flex; align-items:center; gap:9px; font-size:9px; letter-spacing:.15em; text-transform:uppercase; }
+.maya-section { max-width:1440px; margin:0 auto; padding:90px 6vw 105px; }
+.maya-section-heading { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:38px; }
+.maya-section-heading h2,.maya-story-copy h2,.maya-footer-top h2 { margin:10px 0; font:400 clamp(34px,4.2vw,52px)/1.12 'Playfair Display',serif; }
+.maya-section-heading p { margin:10px 0 0; color:#776f74; font-size:13px; }
+.maya-underlink { display:inline-flex; gap:9px; align-items:center; border-bottom:1px solid #9a8c76; padding:8px 0; font-size:10px; letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; }
+.maya-product-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:27px; }
+.maya-product-card { min-width:0; }
+.maya-product-photo { position:relative; display:block; aspect-ratio:.84; overflow:hidden; background:#eeece7; }
+.maya-product-photo img { width:100%; height:100%; object-fit:cover; mix-blend-mode:multiply; transition:transform .7s cubic-bezier(.2,.7,.2,1); }
+.maya-product-photo:hover img { transform:scale(1.035); }
+.maya-product-photo>span { position:absolute; top:13px; inset-inline-start:13px; background:rgba(251,250,247,.88); padding:7px 10px; font-size:9px; text-transform:uppercase; letter-spacing:.09em; }
+.maya-card-info { display:flex; justify-content:space-between; align-items:start; gap:8px; padding-top:15px; }
+.maya-card-info h3 { margin:0; font:400 20px 'Playfair Display',serif; }
+.maya-card-info p { margin:5px 0 0; color:#827c7e; font-size:10px; letter-spacing:.08em; }
+.maya-card-info strong { padding-top:4px; font-size:11px; white-space:nowrap; }
+.maya-card-notes { min-height:35px; color:#766f71; font-size:11px; line-height:1.6; }
+.maya-card-cta { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-top:1px solid #ddd6ce; font-size:9px; text-transform:uppercase; letter-spacing:.13em; }
+.maya-story { display:grid; grid-template-columns:1fr 1fr; background:#efeee8; }
+.maya-story-image { min-height:410px; max-height:560px; overflow:hidden; }
+.maya-story-image img { width:100%; height:100%; object-fit:cover; }
+.maya-story-copy { padding:70px clamp(35px,9vw,140px); align-self:center; }
+.maya-story-copy p { color:#665d63; font-size:14px; line-height:1.9; }
+.maya-story-copy .maya-underlink { margin-top:16px; }
+.maya-page-intro { padding:75px 8vw; background:#efeee8; }
+.maya-page-intro h1 { max-width:850px; font-size:clamp(42px,6vw,70px); }
+.maya-page-intro>p { font-size:15px; }
+.maya-text-page { min-height:390px; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; }
+.maya-text-page .maya-primary-link { margin-top:24px; }
+.maya-collection-grid { padding-top:58px; }
+.maya-card-wrap { position:relative; }
+.maya-card-heart,.maya-detail-heart { z-index:2; position:absolute; inset-block-start:13px; inset-inline-end:13px; display:grid; place-items:center; width:40px; height:40px; border:1px solid #d9d2cb; border-radius:50%; background:rgba(251,250,247,.92); cursor:pointer; }
+.maya-card-heart svg,.maya-detail-heart svg { width:20px; stroke-width:1.5; }
+.maya-card-heart.is-saved,.maya-detail-heart.is-saved { color:#914d59; }
+.maya-card-heart.is-saved svg,.maya-detail-heart.is-saved svg { fill:#914d59; }
+.maya-detail { max-width:1360px; margin:0 auto; padding:42px 6vw 100px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(360px,.85fr); align-items:start; gap:7vw; }
+.maya-gallery { position:sticky; top:148px; }
+.maya-gallery-main { position:relative; width:100%; height:min(66vw,720px); min-height:460px; background:#f0efeb; overflow:hidden; }
+.maya-gallery-main img { width:100%; height:100%; object-fit:cover; mix-blend-mode:multiply; }
+.maya-gallery-main.maya-alt-crop img { object-position:50% 38%; transform:scale(1.24); }
+.maya-detail-heart { width:46px; height:46px; }
+.maya-gallery-dots { display:flex; justify-content:center; gap:15px; padding-top:17px; }
+.maya-gallery-dots button { width:10px; height:10px; padding:0; border:1px solid #897b91; border-radius:50%; background:transparent; cursor:pointer; }
+.maya-gallery-dots button.active { background:#67527d; box-shadow:0 0 0 5px #e6e0ea; }
+.maya-detail-info { padding-top:25px; }
+.maya-detail-info h1 { margin:13px 0 18px; font:400 clamp(34px,4vw,49px)/1.12 'Playfair Display',serif; }
+.maya-price { font-size:24px; font-weight:600; color:#322341; }
+.maya-currency-note { font-size:10px; color:#898082; line-height:1.65; }
+.maya-stock { margin:23px 0 8px; font-size:13px; }
+.maya-stock:before { content:''; display:inline-block; width:7px; height:7px; margin-inline-end:9px; border-radius:50%; background:#78977c; }
+.maya-stock.is-out:before { background:#a75d50; }
+.maya-sku { font-size:11px; color:#777174; }
+.maya-detail-rule { height:1px; background:#e3ddd6; margin:28px 0; }
+.maya-detail-info h2 { margin:0 0 16px; font:400 22px 'Playfair Display',serif; }
+.maya-size-options { display:flex; flex-wrap:wrap; gap:10px; }
+.maya-size-options button { min-width:84px; padding:12px 15px; border:1px solid #d8d4d6; background:transparent; color:#3c3440; font-size:13px; cursor:pointer; }
+.maya-size-options button.selected { border-color:#35234c; background:#eee8f1; box-shadow:inset 0 0 0 1px #35234c; }
+.maya-detail-label { margin-top:28px!important; }
+.maya-quantity { display:grid; grid-template-columns:1fr 1fr 1fr; max-width:300px; border:1px solid #d9d3d9; }
+.maya-quantity button { border:0; background:transparent; height:46px; cursor:pointer; }
+.maya-quantity svg { width:16px; }
+.maya-quantity span { display:grid; place-items:center; border-inline:1px solid #d9d3d9; }
+.maya-add-button { width:100%; display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:17px 20px; border:0; background:#35234c; color:white; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; }
+.maya-add-button:disabled { opacity:.5; cursor:not-allowed; }
+.maya-description { margin:28px 0; color:#6f666b; font-size:13px; line-height:1.8; }
+.maya-notes { border-top:1px solid #e3ddd6; padding-top:24px; }
+.maya-note-row { display:grid; grid-template-columns:120px 1fr; gap:12px; padding:14px 0; border-bottom:1px solid #e9e4de; font-size:12px; }
+.maya-note-row>span { color:#85785f; text-transform:uppercase; letter-spacing:.08em; font-size:9px; }
+.maya-note-row p { margin:0; color:#625a60; line-height:1.6; }
+.maya-footer { background:#142f3c; color:#f2eee4; padding:60px 6vw 22px; }
+.maya-footer-top { max-width:1320px; margin:0 auto; display:flex; justify-content:space-between; gap:50px; align-items:center; padding-bottom:45px; border-bottom:1px solid #ffffff2a; }
+.maya-footer-top h2 { max-width:480px; color:#eee7d9; }
+.maya-footer-top p { color:#b8c4c4; font-size:12px; }
+.maya-footer-top .maya-kicker { color:#d2bd8d; }
+.maya-newsletter { max-width:440px; width:100%; display:flex; border-bottom:1px solid #ffffff7a; }
+.maya-newsletter input { min-width:0; flex:1; padding:14px 5px; border:0; background:transparent; color:white; outline:none; font-size:12px; }
+.maya-newsletter button { display:flex; align-items:center; gap:9px; border:0; background:transparent; color:#e3ce9f; font-size:10px; text-transform:uppercase; cursor:pointer; }
+.maya-footer-grid { max-width:1320px; margin:auto; padding:42px 0; display:grid; grid-template-columns:1.35fr 1fr 1fr 1.15fr; gap:35px; }
+.maya-footer-grid h3 { margin:3px 0 19px; color:#d6c398; font-size:10px; letter-spacing:.15em; text-transform:uppercase; }
+.maya-footer-grid>div:not(.maya-footer-brand) { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+.maya-footer-grid a,.maya-footer-grid p { color:#c5cfcb; font-size:11px; line-height:1.7; }
+.maya-footer-brand .maya-wordmark { align-items:flex-start; color:#e2d0a4!important; }
+.maya-footer-brand .maya-wordmark span { font-size:29px; }
+.maya-footer-brand>p { margin-top:18px; color:#b4c3c0; font-size:11px; }
+.maya-footer-social { display:flex; gap:15px; margin-top:15px; }
+.maya-footer-social svg { width:18px; height:18px; }
+.maya-footer-language { display:flex; align-items:center; gap:10px; color:#bfc9c5; font-size:11px; }
+.maya-footer-language select { color:inherit; border:1px solid #ffffff30; }
+.maya-footer-bottom { max-width:1320px; margin:auto; border-top:1px solid #ffffff25; padding-top:18px; display:flex; justify-content:space-between; color:#aebbb7; font-size:9px; letter-spacing:.06em; }
+.maya-admin-link { opacity:.65; }
+.maya-overlay { position:fixed; z-index:80; inset:0; display:flex; justify-content:flex-end; background:#1328329c; }
+.maya-drawer { width:min(520px,100%); height:100%; overflow:auto; display:flex; flex-direction:column; padding:25px; background:var(--maya-paper); box-shadow:-10px 0 40px #142f3c26; }
+.maya-drawer-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:22px; border-bottom:1px solid #e5dfd7; }
+.maya-drawer-head h2 { margin:5px 0 0; font:400 28px 'Playfair Display',serif; }
+.maya-drawer-items { flex:1; }
+.maya-cart-line { display:flex; gap:15px; padding:18px 0; border-bottom:1px solid #e8e2dc; }
+.maya-cart-image { width:82px; height:96px; flex:none; background:#eeece7; }
+.maya-cart-image img { width:100%; height:100%; object-fit:cover; mix-blend-mode:multiply; }
+.maya-cart-copy { flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:7px; font-size:12px; }
+.maya-cart-copy>span { color:#857d7e; font-size:10px; }
+.maya-cart-qty { display:flex; align-items:center; gap:12px; margin-top:auto; }
+.maya-cart-qty button { display:grid; place-items:center; width:25px; height:25px; border:1px solid #ded8d1; background:transparent; cursor:pointer; }
+.maya-line-total { align-self:flex-start; font-size:10px; white-space:nowrap; }
+.maya-subtotal { padding-top:20px; border-top:1px solid #dcd5cd; }
+.maya-subtotal>div { display:flex; justify-content:space-between; font-size:13px; }
+.maya-subtotal>small,.maya-checkout-form>small { display:block; margin:10px 0 16px; color:#837b7d; font-size:9px; }
+.maya-subtotal .maya-primary-link { width:100%; }
+.maya-empty-panel { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; color:#6e606d; }
+.maya-empty-panel>svg { width:28px; height:28px; stroke-width:1; }
+.maya-empty-panel p { max-width:240px; font:400 22px 'Playfair Display',serif; }
+.maya-checkout-toggle { padding-top:16px; border-top:1px solid #e2dcd5; }
+.maya-checkout-toggle p { color:#847a7c; font-size:11px; line-height:1.6; }
+.maya-outline-button { width:100%; border:1px solid #35234c; color:#35234c; background:transparent; padding:15px; font-size:10px; text-transform:uppercase; letter-spacing:.12em; cursor:pointer; }
+.maya-checkout-form { padding-top:22px; border-top:1px solid #e2dcd5; }
+.maya-checkout-form h3 { font:400 24px 'Playfair Display',serif; }
+.maya-checkout-form label { display:grid; gap:7px; margin:14px 0; color:#776a74; font-size:10px; }
+.maya-checkout-form input,.maya-checkout-form textarea { width:100%; min-height:42px; border:1px solid #ded7d1; background:#fffdfa; padding:10px; color:#35234c; font:12px 'DM Sans',sans-serif; }
+.maya-checkout-form textarea { min-height:70px; resize:vertical; }
+.maya-checkout-form .maya-primary-link { width:100%; }
+.maya-empty { padding:65px 20px; color:#766c70; text-align:center; }
+.maya-skeleton-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:25px; }
+.maya-skeleton { aspect-ratio:.84; background:linear-gradient(110deg,#eeeae5 8%,#f8f6f2 18%,#eeeae5 33%); background-size:200% 100%; animation:mayaShimmer 1.4s linear infinite; }
+@keyframes mayaShimmer { to { background-position-x:-200%; } }
+.maya-admin-gate { min-height:100dvh; display:grid; place-items:center; padding:24px; background:#f4f1ec; color:#35234c; }
+.maya-admin-gate form { width:min(420px,100%); padding:42px; background:#fbfaf7; border:1px solid #e4ded6; box-shadow:0 20px 60px #35234c12; display:flex; flex-direction:column; align-items:stretch; }
+.maya-admin-gate form>svg { width:25px; margin-bottom:22px; }
+.maya-admin-gate h1 { margin:10px 0; font:400 34px 'Playfair Display',serif; }
+.maya-admin-gate p { font-size:12px; color:#776f74; line-height:1.6; }
+.maya-admin-gate label { margin:18px 0 7px; font-size:10px; text-transform:uppercase; letter-spacing:.12em; }
+.maya-admin-gate input { padding:12px; border:1px solid #d9d1ca; background:#fff; }
+.maya-admin-gate button { margin-top:18px; padding:14px; border:0; background:#35234c; color:white; cursor:pointer; }
+.maya-admin-gate a { margin-top:18px; text-align:center; font-size:11px; }
+@media(max-width:950px) {
+ .maya-desktop-nav { gap:13px; }
+ .maya-header-main { gap:15px; }
+ .maya-wordmark span { font-size:29px; }
+ .maya-product-grid,.maya-skeleton-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 18px; }
+ .maya-detail { gap:4vw; }
+}
+@media(max-width:700px) {
+ .maya-announcement { padding:9px 8px; font-size:9px; letter-spacing:.035em; }
+ .maya-header-social { min-height:0; position:absolute; inset-inline-end:5vw; top:10px; gap:13px; }
+ .maya-header-social svg { width:16px; height:16px; }
+ .maya-header-main { min-height:92px; padding:32px 5vw 8px; display:grid; grid-template-columns:42px 1fr auto; gap:5px; }
+ .maya-mobile-menu { display:grid; }
+ .maya-header-main>.maya-wordmark { grid-column:2; grid-row:1; }
+ .maya-wordmark span { font-size:30px; }
+ .maya-wordmark small { font-size:8px; }
+ .maya-language { position:absolute; top:8px; inset-inline-start:5vw; gap:3px; font-size:10px; }
+ .maya-language>svg:first-child { display:none; }
+ .maya-actions { grid-column:3; grid-row:1; gap:1px; }
+ .maya-actions .maya-icon-button:first-child { display:none; }
+ .maya-icon-button { width:35px; height:36px; }
+ .maya-icon-button svg { width:21px; height:21px; }
+ .maya-mobile-nav { display:block; }
+ .maya-hero { min-height:590px; align-items:flex-end; }
+ .maya-hero-image { object-position:62% center; }
+ .maya-hero-overlay { background:linear-gradient(0deg,rgba(246,246,239,.97) 0%,rgba(242,242,234,.87) 45%,rgba(242,242,234,.03) 100%); }
+ .maya-hero-content { padding:80px 7vw 95px; }
+ .maya-hero h1 { font-size:49px; }
+ .maya-hero-content p { font-size:13px; }
+ .maya-scroll { inset-inline-start:7vw; bottom:23px; }
+ .maya-section { padding:57px 6vw 68px; }
+ .maya-section-heading { align-items:flex-start; flex-direction:column; gap:8px; margin-bottom:24px; }
+ .maya-section-heading h2 { font-size:36px; }
+ .maya-section-heading .maya-underlink { align-self:flex-end; margin-top:-10px; }
+ .maya-product-grid,.maya-skeleton-grid { gap:24px 12px; }
+ .maya-product-photo { aspect-ratio:.78; }
+ .maya-card-info { flex-direction:column; gap:4px; }
+ .maya-card-info h3 { font-size:17px; }
+ .maya-card-info strong { padding:0; }
+ .maya-card-notes { font-size:10px; }
+ .maya-story { grid-template-columns:1fr; }
+ .maya-story-image { min-height:320px; height:78vw; }
+ .maya-story-copy { padding:45px 7vw 55px; }
+ .maya-page-intro { padding:53px 7vw; }
+ .maya-page-intro h1 { font-size:43px; }
+ .maya-collection-grid { padding-top:32px; }
+ .maya-detail { display:flex; flex-direction:column; padding:0 0 65px; gap:28px; }
+ .maya-gallery { position:relative; top:auto; width:100%; }
+ .maya-gallery-main { height:112vw; min-height:390px; max-height:570px; }
+ .maya-gallery-dots { padding-top:15px; }
+ .maya-detail-info { padding:0 6vw; width:100%; }
+ .maya-detail-info h1 { font-size:34px; }
+ .maya-price { font-size:22px; }
+ .maya-size-options { gap:8px; }
+ .maya-size-options button { min-width:calc(33.333% - 6px); padding:12px 7px; }
+ .maya-footer { padding:45px 7vw 18px; }
+ .maya-footer-top { flex-direction:column; align-items:stretch; gap:20px; padding-bottom:32px; }
+ .maya-footer-top h2 { font-size:34px; }
+ .maya-footer-grid { grid-template-columns:1fr 1fr; gap:30px 20px; padding:32px 0; }
+ .maya-footer-brand { grid-column:1/-1; }
+ .maya-footer-grid h3 { margin-bottom:12px; }
+ .maya-footer-bottom { gap:15px; align-items:flex-start; font-size:8px; }
+ .maya-drawer { padding:20px 17px; }
+ .maya-line-total { display:none; }
+ .maya-admin-gate form { padding:30px 23px; }
+}
+@media(prefers-reduced-motion:reduce) { .maya-skeleton { animation:none; } }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; }
   .story-marquee-track { display:block; width:auto; animation:none; }

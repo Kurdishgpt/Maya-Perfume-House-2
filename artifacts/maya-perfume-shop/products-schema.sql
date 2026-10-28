@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS products (
   base_notes TEXT[] NOT NULL DEFAULT '{}',
   ingredients TEXT[] NOT NULL DEFAULT '{}',
   image_url TEXT NOT NULL DEFAULT '',
+  gallery_images TEXT[] NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

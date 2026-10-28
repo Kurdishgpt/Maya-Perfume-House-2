@@ -1,500 +1,198 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
-import { shadcn } from '@clerk/themes';
-import { useGetAdminAccess, getGetAdminAccessQueryKey, useListProducts, type Product as ApiProduct } from '@workspace/api-client-react';
+import { useGetAdminPasscodeStatus, useListProducts, useUnlockAdminPasscode, type Product as ApiProduct } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import AdminPanel from '@/pages/admin-panel';
-import { Redirect, Route, Switch, useLocation, Router as WouterRouter, Link } from 'wouter';
-import { ArrowDown, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Instagram, MapPin, Menu, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react';
+import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
+import { ArrowDown, ArrowRight, ChevronDown, Heart, Instagram, Menu, MessageCircle, Minus, Plus, ShoppingBag, X, Facebook, Languages, LockKeyhole } from 'lucide-react';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const IQD_PER_USD = 1500;
 const storePhone = '+964 770 157 5609';
-const storePhoneLink = 'tel:+9647701575609';
 const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
 const storeMapLink = 'https://www.google.com/maps/search/?api=1&query=Kolak+Mall%2C+Mawlawi+Street%2C+Sulaymaniyah%2C+Iraq';
 const whatsappLink = 'https://wa.me/9647701575609';
-type Product = { id: number; name: string; family: string; notes: string; price: number; image: string; color: string; size: string; };
-const products: Product[] = [
-  { id: 1, name: 'Rose No. 04', family: 'Floral · Powdery', notes: 'Damask rose, pink pepper, soft musk', price: 89, image: '/images/rose-noir.jpg', color: '#e9d2ce', size: '50 ml' },
-  { id: 2, name: 'Oud Étoile', family: 'Woody · Amber', notes: 'Black oud, saffron, warm cedar', price: 112, image: '/images/oud-supreme.jpg', color: '#d3ded4', size: '50 ml' },
-  { id: 3, name: 'Belle Éclat', family: 'Citrus · Floral', notes: 'Bergamot, orange blossom, white tea', price: 94, image: '/images/belle-eclat.jpg', color: '#d0e8e3', size: '50 ml' },
-  { id: 4, name: 'Lumière', family: 'Fresh · Musk', notes: 'Neroli, clean linen, skin musk', price: 86, image: '/images/lumiere.jpg', color: '#e8ddbd', size: '50 ml' },
-  { id: 5, name: 'Éternel Blanc', family: 'Soft · Gourmand', notes: 'Vanilla orchid, almond, cashmere wood', price: 98, image: '/images/eternel-blanc.jpg', color: '#eee4d8', size: '50 ml' },
-  { id: 6, name: 'Jardin Secret', family: 'Green · Floral', notes: 'Fig leaf, jasmine, wild gardenia', price: 92, image: '/images/story-bottle.jpg', color: '#d9e5d6', size: '50 ml' },
-];
-const paths = [{ href: '/', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/collection', label: 'Collection' }, { href: '/raw-material', label: 'Raw Material' }, { href: '/contact', label: 'Contact' }, { href: '/admin', label: 'Admin' }];
-type CartLine = { product: Product; quantity: number };
-
-function toStoreProduct(product: ApiProduct): Product {
-  return {
-    id: product.id,
-    name: product.title,
-    family: product.category,
-    notes: [...product.top_notes, ...product.heart_notes, ...product.base_notes].join(', '),
-    price: product.price,
-    image: product.image_url || '/images/hero-fragrance.png',
-    color: '#e4efea',
-    size: '50 ml',
-  };
-}
-
-const StoreProductsContext = createContext<{ products: Product[]; hasError: boolean }>({
-  products,
-  hasError: false,
-});
-
-function AppShell({ children }: { children: ReactNode }) {
-  const [path] = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
-  const catalogQuery = useListProducts({
-    query: {
-      staleTime: 0,
-      refetchOnMount: 'always',
-      refetchOnWindowFocus: true,
-      refetchInterval: 60_000,
-    },
-  });
-  const catalogProducts = catalogQuery.data?.map(toStoreProduct) ?? (catalogQuery.isError ? [] : products);
-  const [cart, setCart] = useState<CartLine[]>(() => {
-    try { return JSON.parse(localStorage.getItem('maya-cart') || '[]') as CartLine[]; } catch { return []; }
-  });
-  useEffect(() => { localStorage.setItem('maya-cart', JSON.stringify(cart)); }, [cart]);
-  useEffect(() => { setMobileOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }, [path]);
-  const count = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const addToCart = (product: Product) => setCart((current) => {
-    const found = current.find((line) => line.product.id === product.id);
-    return found ? current.map((line) => line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line) : [...current, { product, quantity: 1 }];
-  });
-  const adjust = (id: number, amount: number) => setCart((current) => current.map((line) => line.product.id === id ? { ...line, quantity: line.quantity + amount } : line).filter((line) => line.quantity > 0));
-  return <div className="min-h-[100dvh]">
-    <div className="bg-[#17494a] px-4 py-2 text-center text-[10px] tracking-[.16em] text-[#e8f3ef]">A little ritual, delivered with care · Discover your signature</div>
-    {catalogQuery.isError && <div role="alert" className="bg-[#fbf0e2] px-4 py-2 text-center text-xs text-[#74552e]">The live collection could not be refreshed. Please try again shortly.</div>}
-    <header className="sticky top-0 z-40 border-b border-[#17494a]/10 bg-[#f3f8f4]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[78px] max-w-[1440px] items-center justify-between px-5 md:px-10">
-        <button aria-label="Open menu" onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-[#17494a] md:hidden" data-testid="button-menu"><Menu size={20}/></button>
-        <Link href="/" className="flex min-w-[174px] flex-col items-center text-[#17494a]" data-testid="link-brand">
-          <span className="serif text-[23px] leading-6 tracking-[.12em]">MAYA</span><span className="text-[9px] font-medium tracking-[.31em]">COLLECTION</span>
-        </Link>
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">{paths.map((item) => <Link key={item.href} href={item.href} className={`nav-link text-[10px] font-medium uppercase tracking-[.14em] ${path === item.href ? 'active' : ''}`} data-testid={`link-nav-${item.label.toLowerCase().replace(' ', '-')}`}>{item.label}</Link>)}</nav>
-        <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-2 p-2 text-[#17494a]" aria-label={`Open bag, ${count} items`} data-testid="button-cart"><ShoppingBag size={19} strokeWidth={1.5}/><span className="hidden text-[10px] uppercase tracking-widest sm:inline">Bag</span><span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#b59b66] px-1 text-[9px] text-white" data-testid="text-cart-count">{count}</span></button>
-      </div>
-      {mobileOpen && <nav className="absolute left-0 right-0 top-full grid border-t border-[#17494a]/10 bg-[#f3f8f4] px-6 py-3 shadow-lg md:hidden" aria-label="Mobile navigation">{paths.map((item) => <Link key={item.href} href={item.href} className="border-b border-[#17494a]/10 py-4 text-[11px] uppercase tracking-[.18em]" data-testid={`link-mobile-${item.label.toLowerCase().replace(' ', '-')}`}>{item.label}</Link>)}</nav>}
-    </header>
-    <StoreProductsContext.Provider value={{ products: catalogProducts, hasError: catalogQuery.isError }}>
-    <AddContext.Provider value={addToCart}>{children}</AddContext.Provider>
-    </StoreProductsContext.Provider>
-    <Footer/>
-    {cartOpen && <div className="fixed inset-0 z-50 flex justify-end bg-[#0b2627]/45" onClick={() => setCartOpen(false)}><aside onClick={(event) => event.stopPropagation()} className="flex h-full w-full max-w-[430px] flex-col bg-[#f3f8f4] p-6 shadow-2xl sm:p-8" aria-label="Shopping bag">
-      <div className="flex items-center justify-between border-b border-[#17494a]/15 pb-5"><div><p className="eyebrow">Your edit</p><h2 className="serif mt-1 text-2xl">The fragrance bag <span className="text-base">({count})</span></h2></div><button onClick={() => setCartOpen(false)} className="p-2" aria-label="Close bag" data-testid="button-close-cart"><X size={20}/></button></div>
-      {cart.length === 0 ? <div className="flex flex-1 flex-col items-center justify-center text-center"><ShoppingBag className="mb-5 text-[#8caeaa]" size={34} strokeWidth={1}/><p className="serif text-2xl">A beautiful beginning.</p><p className="mt-2 max-w-[240px] text-sm leading-6 text-[#557170]">Your bag is waiting for a scent that feels like you.</p><Link href="/collection" onClick={() => setCartOpen(false)} className="mt-7 border-b border-[#17494a] pb-1 text-[10px] uppercase tracking-[.15em]">Explore the collection</Link></div> :
-        <><div className="flex-1 divide-y divide-[#17494a]/15 overflow-y-auto">{cart.map(({ product, quantity }) => <div key={product.id} className="flex gap-4 py-5"><div className="image-wash h-24 w-20 shrink-0 bg-[#e4efea]"><img src={product.image} alt={product.name} className="h-full w-full object-cover mix-blend-multiply"/></div><div className="flex flex-1 flex-col justify-between"><div className="flex justify-between gap-3"><div><p className="serif text-lg">{product.name}</p><p className="mt-1 text-[10px] tracking-wider text-[#66807d]">{product.size}</p></div><span className="text-sm">${product.price}</span></div><div className="flex items-center gap-3"><button onClick={() => adjust(product.id, -1)} aria-label={`Remove one ${product.name}`} className="p-1" data-testid={`button-minus-${product.id}`}><Minus size={13}/></button><span className="text-xs">{quantity}</span><button onClick={() => adjust(product.id, 1)} aria-label={`Add one ${product.name}`} className="p-1" data-testid={`button-plus-${product.id}`}><Plus size={13}/></button></div></div></div>)}</div><div className="border-t border-[#17494a]/20 pt-5"><div className="flex justify-between text-sm"><span>Subtotal</span><span>${cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0)}.00</span></div><p className="mt-3 text-xs leading-5 text-[#66807d]">This is a browsing bag only. Reach out to us to arrange your order.</p><Link href="/contact" onClick={() => setCartOpen(false)} className="mt-5 block bg-[#17494a] px-6 py-4 text-center text-[10px] uppercase tracking-[.18em] text-white transition-colors hover:bg-[#226466]" data-testid="link-bag-contact">Enquire about your edit <ArrowRight className="ml-2 inline" size={14}/></Link></div></>}
-    </aside></div>}
-  </div>;
-}
-const AddContext = createContext<(product: Product) => void>(() => {});
-function useAddToCart() { return useContext(AddContext); }
-
-function Meta({ title, description }: { title: string; description: string }) {
-  useEffect(() => {
-    document.title = `${title} | Maya Collection`;
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) { meta = document.createElement('meta'); meta.setAttribute('name', 'description'); document.head.appendChild(meta); }
-    meta.setAttribute('content', description);
-  }, [title, description]);
-  return null;
-}
-function ButtonLink({ href, children, light = false }: { href: string; children: ReactNode; light?: boolean }) {
-  return <Link href={href} className={`group inline-flex items-center gap-3 px-6 py-4 text-[10px] uppercase tracking-[.17em] transition-colors ${light ? 'border border-[#17494a]/45 text-[#17494a] hover:bg-[#17494a] hover:text-[#f3f8f4]' : 'bg-[#17494a] text-[#f3f8f4] hover:bg-[#246668]'}`} data-testid={`link-cta-${href.replace('/', '') || 'home'}`}>{children}<ArrowRight size={15} className="transition-transform group-hover:translate-x-1"/></Link>;
-}
-function ProductCard({ product }: { product: Product }) {
-  const add = useAddToCart();
-  return <article className="group" data-testid={`card-product-${product.id}`}>
-    <div className="image-wash relative aspect-[.85] bg-[#e5f0eb]">
-      <img src={product.image} alt={`${product.name} fragrance`} className="h-full w-full object-contain mix-blend-multiply"/>
-      <span className="absolute left-4 top-4 bg-[#f3f8f4]/80 px-3 py-2 text-[9px] uppercase tracking-[.13em]">{product.family.split(' · ')[0]}</span>
-      <button onClick={() => add(product)} className="absolute bottom-0 left-0 right-0 translate-y-full bg-[#17494a] py-4 text-[10px] uppercase tracking-[.17em] text-white transition-transform duration-300 group-hover:translate-y-0 focus:translate-y-0" data-testid={`button-add-${product.id}`}>Add to bag · ${product.price}</button>
-    </div>
-    <div className="flex items-start justify-between pt-4"><div><h3 className="serif text-xl">{product.name}</h3><p className="mt-1 text-[10px] tracking-wide text-[#66807d]">{product.family}</p></div><span className="pt-1 text-xs">${product.price}</span></div>
-    <p className="mt-2 text-xs leading-5 text-[#587472]">{product.notes}</p>
-  </article>;
-}
-function ProductRail({ products: items, id }: { products: Product[]; id: string }) {
-  const railRef = useRef<HTMLDivElement>(null);
-  const scrollRail = (direction: -1 | 1) => {
-    const rail = railRef.current;
-    if (!rail) return;
-    rail.scrollBy({ left: direction * Math.max(rail.clientWidth * 0.82, 280), behavior: 'smooth' });
-  };
-  return <div>
-    <div className="mb-4 flex justify-end gap-2">
-      <button onClick={() => scrollRail(-1)} aria-label="Scroll fragrances left" aria-controls={id} className="grid h-10 w-10 place-items-center border border-[#17494a]/30 text-[#17494a] transition-colors hover:bg-[#17494a] hover:text-white" data-testid={`button-scroll-left-${id}`}><ChevronLeft size={17}/></button>
-      <button onClick={() => scrollRail(1)} aria-label="Scroll fragrances right" aria-controls={id} className="grid h-10 w-10 place-items-center border border-[#17494a]/30 text-[#17494a] transition-colors hover:bg-[#17494a] hover:text-white" data-testid={`button-scroll-right-${id}`}><ChevronRight size={17}/></button>
-    </div>
-    <div ref={railRef} id={id} className="product-rail flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-5 md:gap-7" aria-label="Fragrances, scroll horizontally">
-      {items.map((product) => <div key={product.id} className="w-[78vw] max-w-[320px] shrink-0 snap-start sm:w-[43vw] md:w-[31vw] lg:w-[24%]"><ProductCard product={product}/></div>)}
-    </div>
-  </div>;
-}
-function Footer() {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const onSubmit = (event: FormEvent) => { event.preventDefault(); if (email.includes('@')) setSubscribed(true); };
-  return <>
-  <section className="story-marquee" aria-label="Our story">
-    <p className="sr-only">Our story: Maya Collection brings together thoughtful fragrances to make everyday moments feel personal.</p>
-    <div className="story-marquee-track" aria-hidden="true">
-      <span>OUR STORY&nbsp; · &nbsp;MAYA COLLECTION BRINGS TOGETHER THOUGHTFUL FRAGRANCES TO MAKE EVERYDAY MOMENTS FEEL PERSONAL&nbsp; · &nbsp;</span>
-      <span>OUR STORY&nbsp; · &nbsp;MAYA COLLECTION BRINGS TOGETHER THOUGHTFUL FRAGRANCES TO MAKE EVERYDAY MOMENTS FEEL PERSONAL&nbsp; · &nbsp;</span>
-    </div>
-  </section>
-  <footer className="bg-[#12383a] text-[#eff6f1]">
-    <div className="hidden md:block">
-      <div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-14 md:grid-cols-[1.15fr_.85fr] md:items-center md:px-12 md:py-16">
-        <div><p className="eyebrow text-[#b7cfca]">Notes from Maya</p><h2 className="serif mt-3 max-w-lg text-3xl leading-snug md:text-[38px]">Stay in the scent of something lovely.</h2><p className="mt-3 max-w-md text-sm leading-6 text-[#b7cfca]">New fragrances, thoughtful rituals and little things worth keeping close.</p></div>
-        <form onSubmit={onSubmit} className="flex border-b border-[#dce9e3]/40" aria-label="Newsletter signup"><label htmlFor="newsletter-email" className="sr-only">Email address</label><input required type="email" id="newsletter-email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="min-w-0 flex-1 bg-transparent py-4 text-sm outline-none placeholder:text-[#9eb7b1]" data-testid="input-newsletter-email"/><button className="px-2 text-[10px] uppercase tracking-[.15em] text-[#d4c49d]" data-testid="button-newsletter">{subscribed ? <><Check size={16} className="inline mr-2"/>You’re on the list</> : <>Join us <ArrowRight className="ml-2 inline" size={14}/></>}</button></form>
-      </div>
-      <div className="border-t border-white/15"><div className="mx-auto grid max-w-[1300px] gap-10 px-6 py-10 sm:grid-cols-2 md:grid-cols-[1.3fr_1fr_1fr_1fr] md:px-12">
-        <div><Link href="/" className="serif text-2xl tracking-[.1em]">MAYA<br/><span className="font-sans text-[9px] tracking-[.3em]">COLLECTION</span></Link><p className="mt-5 max-w-[230px] text-xs leading-6 text-[#b7cfca]">Fragrance for the moments that become part of you.</p><div className="mt-5 flex gap-4"><a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" className="footer-link text-xs" data-testid="link-facebook">Facebook</a><a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-link text-xs" data-testid="link-instagram"><Instagram size={15}/></a><a href="https://www.tiktok.com/" target="_blank" rel="noreferrer" aria-label="TikTok" className="footer-link text-xs" data-testid="link-tiktok">TikTok</a></div></div>
-        <div><p className="eyebrow text-[#d4c49d]">Discover</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]">{paths.slice(1,4).map((link) => <Link key={link.href} href={link.href} className="footer-link" data-testid={`footer-${link.label.toLowerCase().replace(' ', '-')}`}>{link.label}</Link>)}</div></div>
-        <div><p className="eyebrow text-[#d4c49d]">A little help</p><div className="mt-5 grid gap-3 text-xs text-[#c6d7d2]"><Link href="/contact" className="footer-link">Get in touch</Link><a href={storePhoneLink} className="footer-link" data-testid="link-footer-phone">{storePhone}</a><Link href="/raw-material" className="footer-link">Our ingredients</Link></div></div>
-        <div><p className="eyebrow text-[#d4c49d]">Visit Maya Collection</p><p className="mt-5 text-xs leading-6 text-[#c6d7d2]">Maya Collection perfumes<br/>{storeAddress}</p><a href={storeMapLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#d4c49d]" data-testid="link-map-search">Find us on Maps <ArrowRight size={12}/></a></div>
-      </div></div>
-      <div className="border-t border-white/15 px-6 py-5 text-center text-[9px] tracking-[.1em] text-[#a8c1bb]">© {new Date().getFullYear()} Maya Collection. A scent, a story, a signature.</div>
-    </div>
-    <div className="md:hidden"><MobileFooter/></div>
-  </footer>
-  </>;
-}
-function MobileFooter() {
-  return <div className="mobile-footer px-7 pb-8 pt-9 text-white">
-    <div className="mx-auto max-w-[500px]">
-      <Link href="/" className="mx-auto mb-7 block w-fit" aria-label="Maya Collection home" data-testid="mobile-footer-logo">
-        <img src="/images/maya-monogram.jpg" alt="Maya Collection Fashion House" className="h-[132px] w-[122px] object-contain"/>
-      </Link>
-      <div className="mobile-footer-groups border-y border-white/20">
-        <details className="mobile-footer-details group border-b border-white/20">
-          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Language</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
-          <div className="pb-5 text-sm text-white/75">English <span className="ml-2 text-xs uppercase tracking-widest text-white/50">Current</span></div>
-        </details>
-        <details className="mobile-footer-details group border-b border-white/20">
-          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Pages</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
-          <nav className="grid gap-4 pb-5 text-sm text-white/75" aria-label="Footer pages">
-            {paths.map((link) => <Link key={link.href} href={link.href} className="footer-link" data-testid={`mobile-footer-${link.label.toLowerCase().replace(' ', '-')}`}>{link.label}</Link>)}
-          </nav>
-        </details>
-        <details className="mobile-footer-details group">
-          <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-[17px]"><span>Customer Support</span><ChevronDown size={18} className="transition-transform group-open:rotate-180"/></summary>
-          <div className="grid gap-4 pb-5 text-sm text-white/75">
-            <a href={storePhoneLink} className="footer-link">{storePhone}</a>
-            <a href={whatsappLink} target="_blank" rel="noreferrer" className="footer-link">Message us on WhatsApp</a>
-            <Link href="/contact" className="footer-link">Contact Maya Collection</Link>
-          </div>
-        </details>
-      </div>
-      <div className="grid gap-8 py-8">
-        <a href={storePhoneLink} className="flex items-center gap-5 text-[21px] leading-tight" data-testid="mobile-footer-phone"><Phone size={22} strokeWidth={1.7}/><span>{storePhone}</span></a>
-        <a href={storeMapLink} target="_blank" rel="noreferrer" className="flex items-start gap-5 text-[19px] leading-[1.5]" data-testid="mobile-footer-address">
-          <MapPin size={23} className="mt-1 shrink-0" fill="currentColor" strokeWidth={1.5}/>
-          <span><span className="mb-1 block text-[21px]">Maya Collection perfumes</span>{storeAddress}</span>
-        </a>
-      </div>
-      <div className="flex items-center justify-between border-t border-white/30 pt-6">
-        <span className="text-[17px]">Follow us on</span>
-        <div className="flex items-center gap-6">
-          <a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="footer-link" data-testid="mobile-footer-whatsapp"><MessageCircle size={24}/></a>
-          <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className="footer-link" data-testid="mobile-footer-instagram"><Instagram size={24}/></a>
-        </div>
-      </div>
-    </div>
-  </div>;
-}
-function Home() {
-  const catalog = useContext(StoreProductsContext);
-  return <><Meta title="Home" description="Discover Maya Collection: personal, elegant fragrances made to become your signature scent."/>
-    <section className="relative min-h-[610px] overflow-hidden bg-[#c8e4df] md:min-h-[650px]">
-      <img src="/images/hero-bottle.jpg" alt="Maya Collection perfume among blue botanicals" className="absolute inset-0 h-full w-full object-cover object-center"/>
-      <div className="absolute inset-0 bg-gradient-to-r from-[#dcefeb]/95 via-[#dcefeb]/78 to-transparent md:from-[#dcefeb]/95 md:via-[#dcefeb]/55 md:to-transparent"/>
-      <div className="relative mx-auto flex min-h-[610px] max-w-[1300px] items-center px-6 py-16 md:min-h-[650px] md:px-12">
-        <div className="fade-up max-w-[510px]"><p className="eyebrow text-[#416b68]">A fragrance house for your own kind of beautiful</p><h1 className="serif mt-6 text-[52px] leading-[1.04] text-[#17494a] md:text-[72px]">Scents that<br/>stay with you.</h1><p className="mt-6 max-w-[370px] text-sm leading-7 text-[#315e5b] md:text-base">An intimate world of considered fragrances, made to feel like you—and linger long after you leave.</p><div className="mt-8"><ButtonLink href="/collection">Discover the collection</ButtonLink></div><a href="#signature" className="mt-10 flex items-center gap-3 text-[9px] uppercase tracking-[.18em] text-[#315e5b]"><ArrowDown size={14}/> Scroll to explore</a></div>
-      </div><span className="absolute bottom-7 right-8 hidden text-[9px] uppercase tracking-[.2em] text-[#315e5b] md:block">01 — Fragrance, made personal</span>
-    </section>
-    <section id="signature" className="mx-auto max-w-[1300px] px-6 py-20 md:px-12 md:py-28">
-      <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[#6c8984]">The Maya edit · 01—06</p><h2 className="serif mt-3 text-4xl md:text-5xl">Find your signature.</h2><p className="mt-3 text-sm text-[#557472]">Six moods. One that feels unmistakably yours.</p></div><ButtonLink href="/collection" light>View all fragrances</ButtonLink></div>
-        <ProductRail products={catalog.products.slice(0,5)} id="home-fragrance-rail"/>
-    </section>
-    <section className="grid bg-[#dcece7] md:min-h-[450px] md:grid-cols-2">
-      <div className="image-wash min-h-[320px] md:min-h-full"><img src="/images/story-bottle.jpg" alt="Amber perfume oil surrounded by jasmine and botanicals" className="h-full w-full object-cover"/></div>
-      <div className="flex items-center px-8 py-16 md:px-[12%] md:py-20"><div className="max-w-[470px]"><p className="eyebrow text-[#6c8984]">Our point of view</p><h2 className="serif mt-4 text-4xl leading-tight md:text-5xl">The art of feeling like yourself.</h2><p className="mt-5 text-sm leading-7 text-[#426663]">We believe a fragrance is more than a scent. It is a quiet expression of who you are: the memory you carry, the mood you choose, the presence you leave behind.</p><p className="mt-3 text-sm leading-7 text-[#426663]">Maya Collection brings together thoughtful compositions with a simple purpose—to make the everyday feel a little more yours.</p><div className="mt-8"><ButtonLink href="/about" light>Meet Maya Collection</ButtonLink></div></div></div>
-    </section>
-    <section className="mx-auto max-w-[1300px] px-6 py-20 md:px-12 md:py-28"><div className="text-center"><p className="eyebrow text-[#6c8984]">Made to mean something</p><h2 className="serif mt-3 text-4xl md:text-5xl">A considered kind of luxury.</h2></div><div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">{[{n:'01',title:'Thoughtful ingredients',text:'Each note has a place in the composition—chosen for character, balance and the way it unfolds.'},{n:'02',title:'Wear it your way',text:'From close-to-skin softness to a memorable trail, find the presence that feels right for you.'},{n:'03',title:'A sensory ritual',text:'Beautifully considered from first spray to final note, each scent invites a moment of pause.'},{n:'04',title:'Kind by design',text:'We believe care belongs in every detail, from the way we create to the way we connect.'}].map((item)=><div key={item.n} className="border-t border-[#17494a]/20 pt-5"><span className="serif text-3xl text-[#88a9a3]">{item.n}</span><h3 className="serif mt-5 text-xl">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[#5c7774]">{item.text}</p></div>)}</div></section>
-    <section className="relative overflow-hidden bg-[#e4f0ec] px-6 py-20 text-center md:py-24"><div className="pointer-events-none absolute -left-24 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full border border-[#a9c9c2]/40"/><div className="pointer-events-none absolute -right-24 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full border border-[#a9c9c2]/40"/><p className="eyebrow text-[#6c8984]">A note from us</p><h2 className="serif mx-auto mt-4 max-w-[650px] text-4xl leading-tight md:text-5xl">“The best fragrance is the one that feels like it was always yours.”</h2><p className="mt-5 text-[10px] uppercase tracking-[.17em] text-[#66817d]">Maya Collection</p></section>
-  </>;
-}
-
-function Collection() {
-  const catalog = useContext(StoreProductsContext);
-  const [filter, setFilter] = useState('All scents');
-  const filters = ['All scents', 'Floral', 'Woody', 'Fresh', 'Soft'];
-  const filtered = useMemo(() => filter === 'All scents' ? catalog.products : catalog.products.filter((p) => p.family.toLowerCase().includes(filter.toLowerCase())), [filter, catalog.products]);
-  return <><Meta title="Collection" description="Explore Maya Collection's signature fragrances, each composed to express a different mood."/>
-    <PageIntro eyebrow="The Maya collection" title="A scent for every version of you." body="Meet the fragrances that make a moment yours. Follow what draws you in—light, depth, softness, surprise."/>
-    <section className="mx-auto max-w-[1300px] px-6 pb-24 md:px-12"><div className="mb-9 flex flex-wrap items-center justify-between gap-4 border-b border-[#17494a]/20 pb-5"><div className="flex flex-wrap gap-2">{filters.map((item) => <button onClick={() => setFilter(item)} key={item} className={`rounded-full border px-4 py-2 text-[10px] tracking-wide transition-colors ${filter === item ? 'border-[#17494a] bg-[#17494a] text-white' : 'border-[#17494a]/25 hover:bg-[#e2efea]'}`} data-testid={`button-filter-${item.toLowerCase().replace(' ', '-')}`}>{item}</button>)}</div><p className="text-[10px] uppercase tracking-[.15em] text-[#66807d]">{filtered.length} fragrances</p></div>
-       {filtered.length ? <ProductRail products={filtered} id="collection-fragrance-rail"/> : <div className="py-20 text-center"><p className="serif text-2xl">A new note is on its way.</p><p className="mt-3 text-sm text-[#66807d]">Try another fragrance family.</p></div>}
-    </section>
-  </>;
-}
-function PageIntro({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
-  return <section className="relative overflow-hidden bg-[#dcece7] px-6 py-20 md:py-28"><div className="pointer-events-none absolute -right-20 -top-32 h-[420px] w-[420px] rounded-full border border-[#a9c9c2]/60"/><div className="pointer-events-none absolute -right-8 -top-20 h-[330px] w-[330px] rounded-full border border-[#a9c9c2]/60"/><div className="relative mx-auto max-w-[1100px]"><p className="eyebrow text-[#64817d]">{eyebrow}</p><h1 className="serif mt-5 max-w-[760px] text-[46px] leading-[1.08] md:text-[66px]">{title}</h1><p className="mt-6 max-w-[540px] text-sm leading-7 text-[#466966] md:text-base">{body}</p></div></section>;
-}
-function About() {
-  return <><Meta title="About" description="Discover Maya Collection's approach to fragrance, personal expression and everyday rituals."/>
-    <PageIntro eyebrow="A little about us" title="A fragrance should feel like a memory in the making." body="Maya Collection is an invitation to make scent your own: to follow what moves you, and find a fragrance that feels beautifully, unmistakably personal."/>
-     <section className="mx-auto grid max-w-[1250px] gap-12 px-6 py-20 md:grid-cols-[.9fr_1.1fr] md:items-center md:px-12 md:py-28"><div className="image-wash min-h-[380px] bg-[#dcece7] md:min-h-[550px]"><img src="/images/story-bottle.jpg" alt="Amber perfume oil, jasmine and botanical ingredients" className="h-full w-full object-cover"/></div><div className="max-w-[520px]"><p className="eyebrow text-[#6c8984]">Our philosophy</p><h2 className="serif mt-4 text-4xl leading-tight md:text-5xl">Not just what you wear. What you remember.</h2><p className="mt-6 text-sm leading-7 text-[#557472]">Scent has a way of holding a moment. A first impression, an old place, the feeling of a day that went just right. We create for those moments—and for the many ways a person can feel like themselves.</p><p className="mt-4 text-sm leading-7 text-[#557472]">Our collection is an invitation, never a rulebook. Choose by feeling. Wear it close, wear it boldly, layer it your way. The most beautiful thing a fragrance can be is personal.</p><div className="mt-8"><ButtonLink href="/collection" light>Explore the fragrances</ButtonLink></div></div></section>
-    <section className="bg-[#17494a] px-6 py-20 text-[#edf5f1] md:py-24"><div className="mx-auto grid max-w-[1200px] gap-12 md:grid-cols-[.75fr_1.25fr]"><div><p className="eyebrow text-[#b7cfca]">Our promise</p><h2 className="serif mt-4 text-4xl leading-tight md:text-5xl">Considered in every note.</h2></div><div className="grid gap-8 sm:grid-cols-2">{[['Curiosity first','We invite exploration. Follow a note that surprises you or a feeling you already know.'],['A personal signature','The best fragrance isn’t the loudest. It’s the one that feels entirely your own.'],['Care in the details','From first impression to the last trace, every stage of a scent should feel thoughtful.'],['Beauty with meaning','An object of beauty should offer more than a pretty surface. It should make you feel something.']].map(([title,text],i)=><div key={title} className="border-t border-white/25 pt-5"><span className="text-[10px] text-[#d4c49d]">0{i+1}</span><h3 className="serif mt-3 text-xl">{title}</h3><p className="mt-3 text-sm leading-6 text-[#c6d7d2]">{text}</p></div>)}</div></div></section>
-    <section className="px-6 py-20 text-center md:py-28"><p className="eyebrow text-[#6c8984]">Begin with a feeling</p><h2 className="serif mx-auto mt-4 max-w-[640px] text-4xl md:text-5xl">Your next favourite scent is already waiting to be found.</h2><div className="mt-8"><ButtonLink href="/collection">Find your fragrance</ButtonLink></div></section>
-  </>;
-}
-function RawMaterial() {
-  return <><Meta title="Raw Material" description="Explore the notes and raw materials that shape Maya Collection fragrances."/>
-    <PageIntro eyebrow="From nature to nuance" title="Every note has a reason to be here." body="The raw materials in a fragrance are its first language. They tell you whether to lean in, wander, remember—or begin again."/>
-     <section className="mx-auto grid max-w-[1250px] gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:px-12 md:py-28"><div className="order-2 max-w-[520px] md:order-1"><p className="eyebrow text-[#6c8984]">The palette of a perfume</p><h2 className="serif mt-4 text-4xl leading-tight md:text-5xl">A meeting of nature and imagination.</h2><p className="mt-6 text-sm leading-7 text-[#557472]">Perfume is composed in layers. The opening notes greet you first; the heart reveals the character; the base lingers close to the skin. Together, these shifting impressions make a fragrance feel alive.</p><p className="mt-4 text-sm leading-7 text-[#557472]">We choose notes for the way they play together—not simply for how they smell alone. A bright citrus can lift a soft floral. A warm wood can give a clean musk a sense of depth.</p><Link href="/collection" className="mt-7 inline-flex items-center gap-2 border-b border-[#17494a] pb-2 text-[10px] uppercase tracking-[.16em]" data-testid="link-material-collection">Meet the fragrances <ArrowRight size={14}/></Link></div><div className="image-wash order-1 min-h-[360px] md:order-2 md:min-h-[530px]"><img src="/images/story-bottle.jpg" alt="Amber perfume oil with jasmine and botanicals" className="h-full w-full object-cover"/></div></section>
-    <section className="bg-[#e4f0ec] px-6 py-20 md:py-24"><div className="mx-auto max-w-[1200px]"><p className="eyebrow text-center text-[#6c8984]">A fragrance, in three movements</p><h2 className="serif mt-3 text-center text-4xl md:text-5xl">The life of a scent.</h2><div className="mt-14 grid gap-0 md:grid-cols-3">{[['01 · The opening','Top notes','A first impression that brightens the air: citrus, aromatic leaves, and delicate spices.'],['02 · The heart','Heart notes','The personality beneath the first hello: florals, fruits, and the unexpected harmony between them.'],['03 · The lasting note','Base notes','The warmth that stays close: woods, resins, musks and the softest trace of sweetness.']].map(([num,title,text],i)=><article key={title} className={`border-t border-[#17494a]/25 px-2 py-7 md:px-8 md:py-8 ${i<2?'md:border-r':''}`}><p className="eyebrow text-[#829f99]">{num}</p><h3 className="serif mt-5 text-2xl">{title}</h3><p className="mt-4 max-w-[290px] text-sm leading-6 text-[#587472]">{text}</p></article>)}</div></div></section>
-    <section className="mx-auto max-w-[1200px] px-6 py-20 md:px-12 md:py-28"><div className="grid gap-8 md:grid-cols-[.8fr_1.2fr]"><div><p className="eyebrow text-[#6c8984]">A few familiar notes</p><h2 className="serif mt-4 text-4xl leading-tight">A small field guide.</h2></div><div className="divide-y divide-[#17494a]/20">{[['Bergamot','Bright, green citrus with a polished, almost floral edge.'],['Jasmine','Luminous white petals, rich with a soft, velvety warmth.'],['Cedarwood','Dry, clean wood with a quiet sense of structure.'],['Musk','A soft, close-to-skin finish that gives a fragrance its lasting embrace.']].map(([name,desc])=><details key={name} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between"><span className="serif text-xl">{name}</span><ChevronDown size={16} className="transition-transform group-open:rotate-180"/></summary><p className="mt-3 max-w-[520px] text-sm leading-6 text-[#5b7774]">{desc}</p></details>)}</div></div></section>
-  </>;
-}
-function Contact() {
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    if (!String(data.get('email')).includes('@')) {
-      setError('Please add a valid email so we can reply.');
-      return;
-    }
-    setError('');
-    setSubmitted(true);
-    form.reset();
-  };
-  return <>
-    <Meta title="Contact" description="Get in touch with Maya Collection for fragrance questions and personal recommendations."/>
-    <PageIntro eyebrow="We would love to hear from you" title="Let’s find your next favourite." body="A question about a scent, a note you can’t stop thinking about, or simply looking for a little guidance? We’re here to help."/>
-    <section className="mx-auto grid max-w-[1200px] gap-16 px-6 py-20 md:grid-cols-[.8fr_1.2fr] md:px-12 md:py-28">
-      <div>
-        <p className="eyebrow text-[#6c8984]">A personal note</p>
-        <h2 className="serif mt-4 text-4xl">Start a conversation.</h2>
-        <p className="mt-5 max-w-[380px] text-sm leading-7 text-[#557472]">Tell us what you love in a fragrance, what you’re curious about, or what you’d like to know. We’ll be glad to help you find your way.</p>
-        <div className="mt-10 space-y-7">
-          <div className="border-t border-[#17494a]/20 pt-5">
-            <p className="eyebrow text-[#78948f]">Call or message</p>
-            <a href={storePhoneLink} className="serif mt-2 inline-block text-xl hover:opacity-70" data-testid="link-contact-phone">{storePhone}</a>
-            <a href={whatsappLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest" data-testid="link-contact-whatsapp"><MessageCircle size={14}/> Message on WhatsApp</a>
-          </div>
-          <div className="border-t border-[#17494a]/20 pt-5">
-            <p className="eyebrow text-[#78948f]">Store address</p>
-            <p className="serif mt-2 text-xl">Maya Collection perfumes</p>
-            <p className="mt-2 max-w-[350px] text-sm leading-6 text-[#66807d]">{storeAddress}</p>
-            <a href={storeMapLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest" data-testid="link-contact-map">Open address in Maps <ArrowRight size={13}/></a>
-          </div>
-        </div>
-      </div>
-      <div className="bg-[#e4f0ec] p-6 md:p-10">
-        <p className="eyebrow text-[#6c8984]">Write to us</p>
-        <h2 className="serif mt-3 text-3xl">What’s on your mind?</h2>
-        {submitted ? (
-          <div className="mt-8 border border-[#9fbeb7] bg-[#edf6f1] p-6" role="status">
-            <Check size={20}/>
-            <p className="serif mt-4 text-2xl">Your note is ready.</p>
-            <p className="mt-2 text-sm leading-6 text-[#557472]">Thanks for reaching out. This demo form does not send messages yet—please call us directly at <a href={storePhoneLink} className="underline">{storePhone}</a>.</p>
-            <button onClick={() => setSubmitted(false)} className="mt-5 text-[10px] uppercase tracking-widest underline" data-testid="button-send-another">Write another note</button>
-          </div>
-        ) : (
-          <form onSubmit={onSubmit} className="mt-7 grid gap-5">
-            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your name<input required name="name" placeholder="How shall we call you?" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-name"/></label>
-            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Email address<input required type="email" name="email" placeholder="you@example.com" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-contact-email"/></label>
-            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">I’m curious about<select name="topic" className="border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-[#17494a]" data-testid="select-topic"><option>Finding my signature scent</option><option>A particular fragrance</option><option>Ingredients and notes</option><option>Something else</option></select></label>
-            <label className="grid gap-2 text-[10px] uppercase tracking-[.14em]">Your message<textarea required name="message" rows={4} placeholder="A little more about what you're looking for..." className="resize-y border-b border-[#17494a]/30 bg-transparent py-3 text-sm normal-case tracking-normal outline-none placeholder:text-[#8da7a2] focus:border-[#17494a]" data-testid="input-message"/></label>
-            {error && <p className="text-xs text-[#a94f43]" role="alert">{error}</p>}
-            <button className="mt-2 flex items-center justify-center gap-3 bg-[#17494a] px-6 py-4 text-[10px] uppercase tracking-[.17em] text-white transition-colors hover:bg-[#246668]" data-testid="button-send-message">Send your note <ArrowRight size={14}/></button>
-            <p className="text-[10px] leading-5 text-[#66807d]">This form is a front-end preview and does not send or store messages.</p>
-          </form>
-        )}
-      </div>
-    </section>
-  </>;
-}
-function SignInPage() {
-  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-4 py-10">
-    <div className="w-full max-w-[460px]">
-      <p className="mb-6 text-center font-serif text-2xl tracking-[.14em] text-[#d8c89f]">MAYA COLLECTION</p>
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`}/>
-    </div>
-  </div>;
-}
-
-function SignUpPage() {
-  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-4 py-10">
-    <div className="w-full max-w-[460px]">
-      <p className="mb-6 text-center font-serif text-2xl tracking-[.14em] text-[#d8c89f]">MAYA COLLECTION</p>
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`}/>
-    </div>
-  </div>;
-}
-
-function AdminRoute() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const { signOut } = useClerk();
-  const access = useGetAdminAccess({
-    query: {
-      enabled: isLoaded && Boolean(isSignedIn),
-      queryKey: getGetAdminAccessQueryKey(),
-      retry: false,
-    },
-  });
-
-  if (!isLoaded) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] text-[#d9d4c9]">Loading secure admin access…</div>;
-  if (!isSignedIn) return <Redirect to="/sign-in"/>;
-  if (access.isLoading) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] text-[#d9d4c9]">Verifying administrator access…</div>;
-  if (access.data?.allowed) return <AdminPanel/>;
-
-  const status = (access.error as { status?: number } | null)?.status;
-  const denied = status === 403;
-  return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-6 text-[#eee9df]">
-    <div className="max-w-md text-center">
-      <p className="text-[10px] uppercase tracking-[.2em] text-[#bba679]">Maya Collection · Private area</p>
-      <h1 className="serif mt-4 text-3xl">{denied ? "This account is not an administrator." : "We could not verify your access."}</h1>
-      <p className="mt-3 text-sm leading-6 text-[#9ca5a2]">{denied ? "Sign in using the email address approved for catalog management." : "Please try again. Your catalog remains protected while access is checked."}</p>
-      <div className="mt-6 flex justify-center gap-3">
-        {!denied && <button onClick={() => access.refetch()} className="rounded border border-white/15 px-4 py-2.5 text-xs text-[#dedbd1]" data-testid="button-retry-admin-access">Try again</button>}
-        <button onClick={() => signOut({ redirectUrl: basePath || "/" })} className="rounded bg-[#d0bd91] px-4 py-2.5 text-xs font-medium text-[#1b201f]" data-testid="button-admin-sign-out">Sign out</button>
-      </div>
-    </div>
-  </div>;
-}
-
-function PublicRoutes() {
-  return <AppShell><Switch><Route path="/" component={Home}/><Route path="/about" component={About}/><Route path="/collection" component={Collection}/><Route path="/raw-material" component={RawMaterial}/><Route path="/contact" component={Contact}/><Route component={NotFound}/></Switch></AppShell>;
-}
-
-function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
-}
-
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: "clerk",
-  options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+type Language = 'en' | 'ku' | 'ar';
+type StoreProduct = ApiProduct & { image_url: string; gallery_images: string[] };
+type CartLine = { product: StoreProduct; quantity: number; size: number };
+const sizes = [25, 50, 100, 150, 200];
+const navLinks = [{ href: '/', key: 'home' }, { href: '/about', key: 'about' }, { href: '/collection', key: 'collection' }, { href: '/raw-material', key: 'ingredients' }, { href: '/contact', key: 'contact' }] as const;
+const copy: Record<Language, Record<string, string>> = {
+  en: {
+    home:'Home', about:'Our story', collection:'Collection', ingredients:'Ingredients', contact:'Contact', bag:'Bag', wishlist:'Wishlist', language:'Language',
+    banner:'We deliver to all cities and towns in Kurdistan! 📦✨', heroEyebrow:'Maya Collection · Sulaymaniyah', heroTitle:'Find the scent that feels like you.', heroBody:'A personal fragrance journey, curated close to home. Choose your next signature and order directly with us on WhatsApp.',
+    shop:'Explore fragrances', signature:'A scent, your own way', edit:'The Maya collection', subtitle:'Thoughtful compositions for every mood, memory and moment.', noProducts:'Our collection is being refreshed. Please visit again shortly.',
+    discover:'Discover your next favorite', add:'Add to bag', view:'View fragrance', stock:'Available', sku:'Code', volume:'Pick a volume', quantity:'Quantity', notes:'Scent notes', top:'Top notes', heart:'Heart notes', base:'Base notes', ingredientsTitle:'Ingredients', description:'The story of this scent', inStock:'In stock', soldOut:'Currently unavailable', saved:'Saved fragrances', emptyWish:'Your wishlist is a little quiet.', emptyBag:'Your bag is waiting for a scent that feels like you.',
+    subtotal:'Subtotal', checkout:'Continue to checkout', checkoutTitle:'Your delivery details', name:'Full name', phone:'Phone number', address:'Delivery address', prepare:'Prepare WhatsApp order', receiptNote:'Your itemized receipt will open in WhatsApp, ready for you to review and send.', order:'Maya Collection order', size:'Size', total:'Total', customer:'Customer', delivery:'Delivery address', close:'Close', remove:'Remove', browse:'Browse the collection',
+    footerStory:'A scent, a story, a signature.', explore:'Explore', support:'Customer care', follow:'Follow us', newsletter:'A little note from Maya', newsletterBody:'New arrivals and thoughtful scent stories, from Sulaymaniyah.', email:'Email address', join:'Join the list', subscribed:'You’re on the list', pages:'Pages', visit:'Visit Maya Collection', map:'Find us on Maps', admin:'Admin Panel', menu:'Open menu', closeMenu:'Close menu', loading:'Finding your collection…',
+    aboutTitle:'Fragrance, made personal.', aboutBody:'Maya Collection is a Sulaymaniyah fragrance house built around a simple idea: the right scent should feel like it has always belonged to you.',
+    rawTitle:'The notes behind the feeling.', rawBody:'From the first bright impression to the warmth that stays close, every fragrance is a small composition with a story.',
+    contactTitle:'Let’s find your scent.', contactBody:'Tell us what you love and our team in Sulaymaniyah will help you choose. We are always happy to talk fragrance.',
+    currencyNote:'Approximate local price · 1 USD = 1,500 IQD', exchange:'Approximate conversion only. Not a live exchange rate.', productLabel:'Fragrance'
   },
-  variables: {
-    colorPrimary: "#b59b66",
-    colorForeground: "#eee9df",
-    colorMutedForeground: "#a3aaa5",
-    colorDanger: "#d78b7e",
-    colorBackground: "#171d1f",
-    colorInput: "#111719",
-    colorInputForeground: "#e8e5dd",
-    colorNeutral: "#46504c",
-    fontFamily: "'DM Sans', sans-serif",
-    borderRadius: "0.5rem",
+  ku: {
+    home:'ماڵەوە', about:'چیرۆکمان', collection:'کۆمەڵە', ingredients:'پێکهاتەکان', contact:'پەیوەندی', bag:'سەبەتە', wishlist:'دڵخوازەکان', language:'زمان',
+    banner:'We deliver to all cities and towns in Kurdistan! 📦✨', heroEyebrow:'کۆڵێکشنی مایا · سلێمانی', heroTitle:'بۆنی تایبەت بە خۆت بدۆزەوە.', heroBody:'گەشتێکی کەسی بۆ دۆزینەوەی بۆنێک کە لە ماڵەوەتەوە نزیکە. هەڵبژێرە و ڕاستەوخۆ لە واتسئاپ داوا بکە.',
+    shop:'گەڕان لە بۆنەکان', signature:'بۆنێک بە شێوازی خۆت', edit:'کۆمەڵەی مایا', subtitle:'پێکهاتەی ورد بۆ هەموو هەست و ساتێک.', noProducts:'کۆمەڵەکەمان نوێ دەکرێتەوە. تکایە دواتر سەردانمان بکە.',
+    discover:'بۆنی داهاتووت بدۆزەوە', add:'زیادکردن بۆ سەبەتە', view:'بینینی بۆن', stock:'بەردەستە', sku:'کۆد', volume:'قەبارە هەڵبژێرە', quantity:'ژمارە', notes:'تێبینییەکانی بۆن', top:'تێبینیی سەرەتا', heart:'تێبینیی ناوەڕاست', base:'تێبینیی بنەڕەت', ingredientsTitle:'پێکهاتەکان', description:'چیرۆکی ئەم بۆنە', inStock:'بەردەستە', soldOut:'ئێستا بەردەست نییە', saved:'بۆنە دڵخوازەکان', emptyWish:'هێشتا هیچ بۆنێکت پاشەکەوت نەکردووە.', emptyBag:'سەبەتەکەت چاوەڕێی بۆنێکی تایبەتە.',
+    subtotal:'کۆی لاوەکی', checkout:'بەردەوامبوون بۆ داواکردن', checkoutTitle:'زانیاری گەیاندن', name:'ناوی تەواو', phone:'ژمارەی تەلەفۆن', address:'ناونیشانی گەیاندن', prepare:'ئامادەکردنی داوا لە واتسئاپ', receiptNote:'وەسڵی وردەکاری لە واتسئاپ دەکرێتەوە بۆ پێداچوونەوە و ناردنی خۆت.', order:'داواکاری کۆڵێکشنی مایا', size:'قەبارە', total:'کۆی گشتی', customer:'کڕیار', delivery:'ناونیشانی گەیاندن', close:'داخستن', remove:'لابردن', browse:'گەڕان لە کۆمەڵەکە',
+    footerStory:'بۆنێک، چیرۆکێک، واژۆیەک.', explore:'گەڕان', support:'یارمەتی کڕیار', follow:'شوێنمان بکە', newsletter:'پەیامێکی بچووک لە مایا', newsletterBody:'بۆنە نوێکان و چیرۆکی بۆن لە سلێمانی.', email:'ئیمەیڵ', join:'بەشداربە', subscribed:'ناوت تۆمارکرا', pages:'پەڕەکان', visit:'سەردانی کۆڵێکشنی مایا', map:'شوێنمان لە نەخشە', admin:'بەشی بەڕێوەبەر', menu:'کردنەوەی لیست', closeMenu:'داخستنی لیست', loading:'کۆمەڵەکەت دەدۆزینەوە…',
+    aboutTitle:'بۆن، بە شێوازی کەسی.', aboutBody:'کۆڵێکشنی مایا لە سلێمانی لەسەر بیرۆکەیەکی سادە دامەزراوە: بۆنی دروست وەک ئەوەیە هەمیشە هی تۆ بووبێت.',
+    rawTitle:'تێبینییەکانی پشت هەستەکە.', rawBody:'لە یەکەم بۆنی ڕوونەوە تا گەرمییەکەی کە دەمێنێتەوە، هەر بۆنێک پێکهاتەیەکی بچووکە لەگەڵ چیرۆکێک.',
+    contactTitle:'با بۆنەکەت بدۆزینەوە.', contactBody:'پێمان بڵێ چیت خۆشدەوێت و تیمەکەمان لە سلێمانی یارمەتیت دەدات. بە خۆشحاڵییەوە قسە لەسەر بۆن دەکەین.',
+    currencyNote:'نرخی نزیکەیی بە دینار · ١ دۆلار = ١٬٥٠٠ دینار', exchange:'گۆڕینی نزیکەییە، نرخی ڕاستەوخۆی بازاڕ نییە.', productLabel:'بۆن'
   },
-  elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#171d1f] rounded-xl w-[440px] max-w-full overflow-hidden border border-white/10",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-[#eee9df] font-serif",
-    headerSubtitle: "text-[#a3aaa5]",
-    socialButtonsBlockButtonText: "text-[#e8e5dd]",
-    formFieldLabel: "text-[#c9ccc5]",
-    footerActionLink: "text-[#d2bd8e]",
-    footerActionText: "text-[#a3aaa5]",
-    dividerText: "text-[#8c9691]",
-    identityPreviewEditButton: "text-[#d2bd8e]",
-    formFieldSuccessText: "text-[#9fb59d]",
-    alertText: "text-[#efd9d3]",
-    logoBox: "flex justify-center",
-    logoImage: "max-h-12",
-    socialButtonsBlockButton: "border-white/10 bg-[#202729] hover:bg-[#252e30]",
-    formButtonPrimary: "bg-[#b59b66] text-[#171b1a] hover:bg-[#c5ad78]",
-    formFieldInput: "border-white/10 bg-[#111719] text-[#e8e5dd]",
-    footerAction: "bg-transparent",
-    dividerLine: "bg-white/10",
-    alert: "border-[#d78b7e]/30 bg-[#2a211f]",
-    otpCodeFieldInput: "border-white/20 bg-[#111719] text-[#e8e5dd]",
-    formFieldRow: "text-[#c9ccc5]",
-    main: "text-[#e8e5dd]",
-  },
+  ar: {
+    home:'الرئيسية', about:'قصتنا', collection:'المجموعة', ingredients:'المكونات', contact:'اتصل بنا', bag:'الحقيبة', wishlist:'المفضلة', language:'اللغة',
+    banner:'We deliver to all cities and towns in Kurdistan! 📦✨', heroEyebrow:'مايا كوليكشن · السليمانية', heroTitle:'اكتشف عطرك الذي يشبهك.', heroBody:'رحلة عطرية شخصية من قلب مدينتنا. اختر عطرك المميز واطلبه مباشرة عبر واتساب.',
+    shop:'اكتشف العطور', signature:'عطر بطريقتك', edit:'مجموعة مايا', subtitle:'تركيبات مدروسة لكل مزاج وذكرى ولحظة.', noProducts:'نعمل على تحديث مجموعتنا. يرجى زيارتنا قريباً.',
+    discover:'اكتشف عطرك القادم', add:'أضف إلى الحقيبة', view:'عرض العطر', stock:'متوفر', sku:'الرمز', volume:'اختر الحجم', quantity:'الكمية', notes:'ملاحظات العطر', top:'المقدمة', heart:'القلب', base:'القاعدة', ingredientsTitle:'المكونات', description:'حكاية هذا العطر', inStock:'متوفر', soldOut:'غير متوفر حالياً', saved:'العطور المفضلة', emptyWish:'قائمة المفضلة فارغة حالياً.', emptyBag:'حقيبتك بانتظار عطر يشبهك.',
+    subtotal:'المجموع الفرعي', checkout:'متابعة الطلب', checkoutTitle:'بيانات التوصيل', name:'الاسم الكامل', phone:'رقم الهاتف', address:'عنوان التوصيل', prepare:'تجهيز الطلب عبر واتساب', receiptNote:'سيُفتح إيصالك المفصل في واتساب لتراجعه وترسله بنفسك.', order:'طلب مايا كوليكشن', size:'الحجم', total:'الإجمالي', customer:'العميل', delivery:'عنوان التوصيل', close:'إغلاق', remove:'إزالة', browse:'تصفح المجموعة',
+    footerStory:'عطر، حكاية، توقيع.', explore:'اكتشف', support:'خدمة العملاء', follow:'تابعنا', newsletter:'رسالة صغيرة من مايا', newsletterBody:'عطور جديدة وحكايات جميلة من السليمانية.', email:'البريد الإلكتروني', join:'اشترك', subscribed:'تم تسجيلك', pages:'الصفحات', visit:'زر مايا كوليكشن', map:'موقعنا على الخريطة', admin:'لوحة الإدارة', menu:'فتح القائمة', closeMenu:'إغلاق القائمة', loading:'نجهز مجموعتك…',
+    aboutTitle:'العطر، بأسلوب شخصي.', aboutBody:'مايا كوليكشن دار عطور من السليمانية، تنطلق من فكرة بسيطة: يجب أن تشعر أن عطرك المناسب كان دائماً جزءاً منك.',
+    rawTitle:'ملاحظات تصنع الإحساس.', rawBody:'من الانطباع الأول المشرق إلى الدفء الذي يبقى قريباً، كل عطر تركيبة صغيرة تحمل حكاية.',
+    contactTitle:'لنجد عطرك معاً.', contactBody:'أخبرنا بما تحب وسيساعدك فريقنا في السليمانية على الاختيار. يسعدنا دائماً الحديث عن العطور.',
+    currencyNote:'سعر تقريبي بالدينار · 1 دولار = 1,500 دينار', exchange:'تحويل تقريبي وليس سعر صرف مباشر.', productLabel:'عطر'
+  }
 };
+const formatIQD = (usd: number) => `${new Intl.NumberFormat('en-US').format(Math.round(usd * IQD_PER_USD))} IQD`;
 
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const previousUserId = useRef<string | null | undefined>(undefined);
-
+function useStore() {
+  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('maya-language') as Language) || 'en');
+  const t = (key: string) => copy[language][key] || copy.en[key] || key;
   useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const currentUserId = user?.id ?? null;
-      if (previousUserId.current !== undefined && previousUserId.current !== currentUserId) {
-        queryClient.clear();
-      }
-      previousUserId.current = currentUserId;
-    });
-    return unsubscribe;
-  }, [addListener]);
-
-  return null;
+    localStorage.setItem('maya-language', language);
+    document.documentElement.lang = language === 'ku' ? 'ckb' : language;
+    document.documentElement.dir = language === 'en' ? 'ltr' : 'rtl';
+  }, [language]);
+  return { language, setLanguage, t };
 }
 
-function ClerkApp() {
-  const [, setLocation] = useLocation();
-  if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY.");
-
-  return <ClerkProvider
-    publishableKey={clerkPubKey}
-    proxyUrl={clerkProxyUrl}
-    appearance={clerkAppearance}
-    signInUrl={`${basePath}/sign-in`}
-    signUpUrl={`${basePath}/sign-up`}
-    localization={{
-      signIn: { start: { title: "Welcome back", subtitle: "Sign in to manage your collection" } },
-      signUp: { start: { title: "Join Maya Collection", subtitle: "Create your administrator account" } },
-    }}
-    routerPush={(to) => setLocation(stripBase(to))}
-    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-  >
-    <QueryClientProvider client={queryClient}>
-      <ClerkQueryClientCacheInvalidator/>
-      <Switch>
-        <Route path="/sign-in/*?" component={SignInPage}/>
-        <Route path="/sign-up/*?" component={SignUpPage}/>
-        <Route path="/admin" component={AdminRoute}/>
-        <Route component={PublicRoutes}/>
-      </Switch>
-      <Toaster/>
-    </QueryClientProvider>
-  </ClerkProvider>;
+function StoreApp() {
+  const [path, setPath] = useLocation();
+  const { language, setLanguage, t } = useStore();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [drawer, setDrawer] = useState<'bag' | 'wishlist' | null>(null);
+  const catalog = useListProducts({ query: { staleTime: 0, refetchOnMount: 'always', refetchOnWindowFocus: true, refetchInterval: 60000 } });
+  const items = catalog.data ?? [];
+  const [wishlist, setWishlist] = useState<number[]>(() => { try { return JSON.parse(localStorage.getItem('maya-wishlist') || '[]') as number[]; } catch { return []; } });
+  const [cart, setCart] = useState<CartLine[]>(() => { try { return JSON.parse(localStorage.getItem('maya-cart') || '[]') as CartLine[]; } catch { return []; } });
+  useEffect(() => { localStorage.setItem('maya-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
+  useEffect(() => { localStorage.setItem('maya-cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }, [path]);
+  const count = cart.reduce((n, line) => n + line.quantity, 0);
+  const toggleWish = (id: number) => setWishlist((old) => old.includes(id) ? old.filter((x) => x !== id) : [...old, id]);
+  const add = (product: ApiProduct, size: number, quantity = 1) => setCart((old) => {
+    const item = product as StoreProduct;
+    const found = old.find((line) => line.product.id === item.id && line.size === size);
+    return found ? old.map((line) => line.product.id === item.id && line.size === size ? { ...line, quantity: line.quantity + quantity } : line) : [...old, { product: item, quantity, size }];
+  });
+  const changeQty = (id: number, size: number, delta: number) => setCart((old) => old.map((line) => line.product.id === id && line.size === size ? { ...line, quantity: line.quantity + delta } : line).filter((line) => line.quantity > 0));
+  const subtotal = cart.reduce((n, line) => n + line.product.price * line.quantity, 0);
+  const productMatch = path.match(/^\/product\/(\d+)$/);
+  const detailProduct = productMatch ? items.find((p) => p.id === Number(productMatch[1])) : undefined;
+  return <main className="maya-store" dir={language === 'en' ? 'ltr' : 'rtl'}>
+    <div className="maya-announcement" data-testid="announcement-delivery">{t('banner')}</div>
+    <header className="maya-header">
+      <div className="maya-header-social"><a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" data-testid="header-whatsapp"><MessageCircle/></a><a href="https://facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" data-testid="header-facebook"><Facebook/></a><a href="https://instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" data-testid="header-instagram"><Instagram/></a></div>
+      <div className="maya-header-main">
+        <button className="maya-icon-button maya-mobile-menu" onClick={() => setMenuOpen((v) => !v)} aria-label={menuOpen ? t('closeMenu') : t('menu')} data-testid="button-menu"><Menu/></button>
+        <Link href="/" className="maya-wordmark" data-testid="link-brand"><span>MAYA</span><small>COLLECTION</small></Link>
+        <label className="maya-language"><Languages size={16}/><span className="sr-only">{t('language')}</span><select value={language} onChange={(e) => setLanguage(e.target.value as Language)} aria-label={t('language')} data-testid="select-language"><option value="en">English</option><option value="ku">کوردی</option><option value="ar">العربية</option></select><ChevronDown size={15}/></label>
+        <nav className="maya-desktop-nav" aria-label="Main navigation">{navLinks.map((link) => <Link href={link.href} key={link.href} data-testid={`nav-${link.key}`}>{t(link.key)}</Link>)}</nav>
+        <div className="maya-actions">
+          <button className="maya-icon-button" onClick={() => setMenuOpen((v) => !v)} aria-label={t('menu')} data-testid="button-header-menu"><Menu/></button>
+          <button className="maya-icon-button bag-trigger" onClick={() => setDrawer('bag')} aria-label={`${t('bag')} ${count}`} data-testid="button-cart"><ShoppingBag/><span className="maya-count" data-testid="text-cart-count">{count}</span></button>
+          <button className="maya-icon-button" onClick={() => setDrawer('wishlist')} aria-label={`${t('wishlist')} ${wishlist.length}`} data-testid="button-wishlist"><Heart/><span className="maya-count" data-testid="text-wishlist-count">{wishlist.length}</span></button>
+        </div>
+      </div>
+      {menuOpen && <nav className="maya-mobile-nav" aria-label="Mobile navigation">{navLinks.map((link) => <Link href={link.href} key={link.href} data-testid={`mobile-nav-${link.key}`}>{t(link.key)}<ArrowRight size={15}/></Link>)}</nav>}
+    </header>
+    {catalog.isError && <div className="maya-error" role="alert">We could not refresh the live collection. Please try again shortly.</div>}
+    <Switch>
+      <Route path="/"><Home products={items} loading={catalog.isLoading} t={t}/></Route>
+      <Route path="/collection"><Collection products={items} loading={catalog.isLoading} t={t} wishlist={wishlist} toggleWish={toggleWish}/></Route>
+      <Route path="/product/:id">{detailProduct ? <ProductDetail product={detailProduct} t={t} wished={wishlist.includes(detailProduct.id)} toggleWish={() => toggleWish(detailProduct.id)} onAdd={(size, qty) => { add(detailProduct, size, qty); setDrawer('bag'); }}/>: <div className="maya-empty">{catalog.isLoading ? t('loading') : t('noProducts')}</div>}</Route>
+      <Route path="/about"><TextPage title={t('aboutTitle')} body={t('aboutBody')} t={t}/></Route>
+      <Route path="/raw-material"><TextPage title={t('rawTitle')} body={t('rawBody')} t={t}/></Route>
+      <Route path="/contact"><TextPage title={t('contactTitle')} body={t('contactBody')} t={t}/></Route>
+      <Route><NotFound/></Route>
+    </Switch>
+    <Footer t={t} language={language} setLanguage={setLanguage}/>
+    {drawer && <div className="maya-overlay" onClick={() => setDrawer(null)} role="presentation"><aside className="maya-drawer" onClick={(e) => e.stopPropagation()} aria-label={drawer === 'bag' ? t('bag') : t('wishlist')}><div className="maya-drawer-head"><div><span className="maya-kicker">MAYA COLLECTION</span><h2>{drawer === 'bag' ? `${t('bag')} · ${count}` : t('saved')}</h2></div><button onClick={() => setDrawer(null)} className="maya-icon-button" aria-label={t('close')} data-testid="button-close-drawer"><X/></button></div>
+      {drawer === 'bag' ? <BagContents cart={cart} t={t} changeQty={changeQty} subtotal={subtotal} onCheckout={() => setDrawer('bag')}/> : <div className="maya-drawer-items">{items.filter((p) => wishlist.includes(p.id)).map((p) => <div className="maya-cart-line" key={p.id}><Link href={`/product/${p.id}`} className="maya-cart-image"><img src={p.image_url} alt={p.title}/></Link><div className="maya-cart-copy"><Link href={`/product/${p.id}`}><strong>{p.title}</strong></Link><span>{formatIQD(p.price)}</span><button onClick={() => toggleWish(p.id)} className="maya-text-button" data-testid={`button-remove-wishlist-${p.id}`}>{t('remove')}</button></div></div>)}{!wishlist.length && <EmptyPanel text={t('emptyWish')} action={t('browse')} href="/collection"/>}</div>}
+      {drawer === 'bag' && cart.length > 0 && <Checkout cart={cart} subtotal={subtotal} t={t}/>}
+    </aside></div>}
+  </main>;
 }
 
-function Router() {
-  return <RoutedErrorBoundary><ClerkApp/></RoutedErrorBoundary>;
+function Home({ products, loading, t }: { products: ApiProduct[]; loading: boolean; t: (key: string) => string }) {
+  return <><section className="maya-hero"><img src={products[0]?.image_url || '/images/hero-bottle.jpg'} alt="" className="maya-hero-image"/><div className="maya-hero-overlay"/><div className="maya-hero-content"><span className="maya-kicker">{t('heroEyebrow')}</span><h1>{t('heroTitle')}</h1><p>{t('heroBody')}</p><Link href="/collection" className="maya-primary-link" data-testid="link-hero-collection">{t('shop')} <ArrowRight size={16}/></Link></div><a href="#maya-edit" className="maya-scroll"><ArrowDown size={15}/>{t('discover')}</a></section>
+  <section className="maya-section" id="maya-edit"><div className="maya-section-heading"><div><span className="maya-kicker">{t('signature')}</span><h2>{t('edit')}</h2><p>{t('subtitle')}</p></div><Link href="/collection" className="maya-underlink">{t('shop')} <ArrowRight size={15}/></Link></div>{loading ? <div className="maya-skeleton-grid">{[1,2,3,4].map((n)=><div className="maya-skeleton" key={n}/>)}</div> : products.length ? <div className="maya-product-grid">{products.slice(0,4).map((p) => <ProductCard key={p.id} product={p} t={t}/>)}</div> : <p className="maya-empty">{t('noProducts')}</p>}</section>
+  <section className="maya-story"><div className="maya-story-image"><img src={products[1]?.image_url || '/images/story-bottle.jpg'} alt="Perfume from Maya Collection"/></div><div className="maya-story-copy"><span className="maya-kicker">{t('about')}</span><h2>{t('aboutTitle')}</h2><p>{t('aboutBody')}</p><Link href="/about" className="maya-underlink">{t('about')} <ArrowRight size={15}/></Link></div></section></>;
 }
-function RoutedErrorBoundary({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+
+function ProductCard({ product, t }: { product: ApiProduct; t: (key: string) => string }) {
+  return <article className="maya-product-card" data-testid={`card-product-${product.id}`}><Link href={`/product/${product.id}`} className="maya-product-photo" data-testid={`link-product-${product.id}`}><img src={product.image_url || '/images/hero-fragrance.png'} alt={product.title}/><span>{product.category}</span></Link><div className="maya-card-info"><div><Link href={`/product/${product.id}`}><h3>{product.title}</h3></Link><p>{product.brand}</p></div><strong>{formatIQD(product.price)}</strong></div><p className="maya-card-notes">{[...product.top_notes, ...product.heart_notes, ...product.base_notes].slice(0,3).join(' · ')}</p><Link href={`/product/${product.id}`} className="maya-card-cta" data-testid={`button-view-${product.id}`}>{t('view')} <ArrowRight size={14}/></Link></article>;
+}
+function Collection({ products, loading, t, wishlist, toggleWish }: { products: ApiProduct[]; loading: boolean; t: (key: string) => string; wishlist: number[]; toggleWish: (id: number) => void }) {
+  return <><section className="maya-page-intro"><span className="maya-kicker">MAYA COLLECTION · SULAYMANIYAH</span><h1>{t('edit')}</h1><p>{t('subtitle')}</p></section><section className="maya-section maya-collection-grid">{loading ? <div className="maya-skeleton-grid">{[1,2,3,4].map((n)=><div className="maya-skeleton" key={n}/>)}</div> : products.length ? <div className="maya-product-grid">{products.map((p) => <div className="maya-card-wrap" key={p.id}><button onClick={() => toggleWish(p.id)} className={`maya-card-heart ${wishlist.includes(p.id) ? 'is-saved' : ''}`} aria-label={t('wishlist')} data-testid={`button-wishlist-${p.id}`}><Heart/></button><ProductCard product={p} t={t}/></div>)}</div> : <div className="maya-empty">{t('noProducts')}</div>}</section></>;
+}
+function ProductDetail({ product, t, wished, toggleWish, onAdd }: { product: ApiProduct; t: (key: string) => string; wished: boolean; toggleWish: () => void; onAdd: (size: number, quantity: number) => void }) {
+  const images = [product.image_url, ...(product.gallery_images || [])].filter(Boolean).slice(0,2);
+  const [activeImage, setActiveImage] = useState(0);
+  const [size, setSize] = useState(50);
+  const [quantity, setQuantity] = useState(1);
+  return <section className="maya-detail"><div className="maya-gallery"><div className={`maya-gallery-main ${images.length < 2 ? 'maya-alt-crop' : ''}`}><img src={images[activeImage] || product.image_url || '/images/hero-fragrance.png'} alt={product.title}/><button onClick={toggleWish} className={`maya-detail-heart ${wished ? 'is-saved' : ''}`} aria-label={t('wishlist')} data-testid="button-detail-wishlist"><Heart/></button></div><div className="maya-gallery-dots">{[0,1].map((n)=><button key={n} onClick={() => setActiveImage(n)} className={activeImage === n ? 'active' : ''} aria-label={`View image ${n + 1}`} data-testid={`button-gallery-${n+1}`}/>)}</div></div>
+    <div className="maya-detail-info"><span className="maya-kicker">{product.brand} · {product.category}</span><h1>{product.title}</h1><div className="maya-price">{formatIQD(product.price)}</div><p className="maya-currency-note">{t('currencyNote')}<br/>{t('exchange')}</p><p className={`maya-stock ${product.stock > 0 ? '' : 'is-out'}`}>{product.stock > 0 ? `${t('stock')}: ${product.stock}` : t('soldOut')}</p><p className="maya-sku">{t('sku')}: {product.sku}</p>
+    <div className="maya-detail-rule"/><h2>{t('volume')}</h2><div className="maya-size-options">{sizes.map((amount)=><button key={amount} onClick={() => setSize(amount)} className={size === amount ? 'selected' : ''} data-testid={`button-size-${amount}`}>{amount} ml</button>)}</div>
+    <h2 className="maya-detail-label">{t('quantity')}</h2><div className="maya-quantity"><button onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Decrease quantity" data-testid="button-quantity-minus"><Minus/></button><span data-testid="text-quantity">{quantity}</span><button onClick={() => setQuantity(Math.min(Math.max(1, product.stock), quantity + 1))} aria-label="Increase quantity" data-testid="button-quantity-plus"><Plus/></button></div>
+    <button disabled={!product.stock} onClick={() => onAdd(size, quantity)} className="maya-add-button" data-testid="button-add-to-bag">{t('add')} · {formatIQD(product.price)} <ShoppingBag size={17}/></button>
+    <p className="maya-description">{product.description}</p>
+    <div className="maya-notes"><h2>{t('notes')}</h2>{[['top',product.top_notes],['heart',product.heart_notes],['base',product.base_notes],['ingredientsTitle',product.ingredients]].map(([label, values])=><div className="maya-note-row" key={label as string}><span>{t(label as string)}</span><p>{(values as string[] || []).join(' · ') || '—'}</p></div>)}</div></div></section>;
+}
+function BagContents({ cart, t, changeQty, subtotal, onCheckout }: { cart: CartLine[]; t: (key: string) => string; changeQty: (id: number, size: number, amount: number) => void; subtotal: number; onCheckout: () => void }) {
+  return <><div className="maya-drawer-items">{cart.map(({product,quantity,size})=><div className="maya-cart-line" key={`${product.id}-${size}`}><Link href={`/product/${product.id}`} className="maya-cart-image"><img src={product.image_url} alt={product.title}/></Link><div className="maya-cart-copy"><strong>{product.title}</strong><span>{size} ml · {formatIQD(product.price)}</span><div className="maya-cart-qty"><button onClick={() => changeQty(product.id,size,-1)} aria-label="Remove one" data-testid={`button-minus-${product.id}-${size}`}><Minus size={13}/></button><span>{quantity}</span><button onClick={() => changeQty(product.id,size,1)} aria-label="Add one" data-testid={`button-plus-${product.id}-${size}`}><Plus size={13}/></button></div></div><strong className="maya-line-total">{formatIQD(product.price * quantity)}</strong></div>)}{cart.length === 0 && <EmptyPanel text={t('emptyBag')} action={t('browse')} href="/collection"/>}</div>{cart.length > 0 && <div className="maya-subtotal"><div><span>{t('subtotal')}</span><strong>{formatIQD(subtotal)}</strong></div><small>{t('currencyNote')}</small><button onClick={onCheckout} className="maya-primary-link" data-testid="button-open-checkout">{t('checkout')} <ArrowRight size={15}/></button></div>}</>;
+}
+function Checkout({ cart, subtotal, t }: { cart: CartLine[]; subtotal: number; t: (key: string) => string }) {
+  const [open, setOpen] = useState(false);
+  const [customer, setCustomer] = useState({ name:'', phone:'', address:'' });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const rows = cart.map((line) => `• ${line.product.title} — ${line.size} ml × ${line.quantity} = ${formatIQD(line.product.price * line.quantity)}`).join('\n');
+    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatIQD(subtotal)}\n${t('customer')}: ${customer.name}\n${t('phone')}: ${customer.phone}\n${t('delivery')}: ${customer.address}\n\n${t('receiptNote')}`;
+    window.open(`https://wa.me/9647701575609?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+  };
+  if (!open) return <div className="maya-checkout-toggle"><p>{t('receiptNote')}</p><button onClick={() => setOpen(true)} className="maya-outline-button" data-testid="button-checkout">{t('checkout')}</button></div>;
+  return <form onSubmit={submit} className="maya-checkout-form"><h3>{t('checkoutTitle')}</h3><label>{t('name')}<input required value={customer.name} onChange={(e)=>setCustomer({...customer,name:e.target.value})} data-testid="input-checkout-name"/></label><label>{t('phone')}<input required type="tel" value={customer.phone} onChange={(e)=>setCustomer({...customer,phone:e.target.value})} data-testid="input-checkout-phone"/></label><label>{t('address')}<textarea required value={customer.address} onChange={(e)=>setCustomer({...customer,address:e.target.value})} data-testid="input-checkout-address"/></label><button className="maya-primary-link" data-testid="button-whatsapp-order">{t('prepare')} <MessageCircle size={16}/></button><small>{t('receiptNote')}</small></form>;
+}
+function EmptyPanel({ text, action, href }: { text: string; action: string; href: string }) { return <div className="maya-empty-panel"><Heart/><p>{text}</p><Link href={href} className="maya-underlink">{action} <ArrowRight size={14}/></Link></div>; }
+function TextPage({ title, body, t }: { title: string; body: string; t: (key: string) => string }) { return <section className="maya-page-intro maya-text-page"><span className="maya-kicker">MAYA COLLECTION · SULAYMANIYAH</span><h1>{title}</h1><p>{body}</p><Link href="/collection" className="maya-primary-link">{t('shop')} <ArrowRight size={15}/></Link></section>; }
+function Footer({ t, language, setLanguage }: { t: (key: string) => string; language: Language; setLanguage: (language: Language) => void }) {
+  const [email,setEmail] = useState('');
+  const [sent,setSent] = useState(false);
+  const subscribe = (e: FormEvent) => { e.preventDefault(); setSent(true); };
+  return <footer className="maya-footer"><div className="maya-footer-top"><div><span className="maya-kicker">{t('newsletter')}</span><h2>{t('footerStory')}</h2><p>{t('newsletterBody')}</p></div><form onSubmit={subscribe} className="maya-newsletter"><label className="sr-only" htmlFor="maya-email">{t('email')}</label><input id="maya-email" type="email" required placeholder={t('email')} value={email} onChange={(e)=>setEmail(e.target.value)} data-testid="input-newsletter"/><button data-testid="button-newsletter">{sent ? t('subscribed') : t('join')} <ArrowRight size={15}/></button></form></div>
+    <div className="maya-footer-grid"><div className="maya-footer-brand"><Link href="/" className="maya-wordmark"><span>MAYA</span><small>COLLECTION</small></Link><p>{t('footerStory')}</p><div className="maya-footer-social"><a href={whatsappLink} aria-label="WhatsApp"><MessageCircle/></a><a href="https://facebook.com/" aria-label="Facebook"><Facebook/></a><a href="https://instagram.com/" aria-label="Instagram"><Instagram/></a></div></div><div><h3>{t('pages')}</h3>{navLinks.map((link)=><Link href={link.href} key={link.href}>{t(link.key)}</Link>)}</div><div><h3>{t('support')}</h3><a href="tel:+9647701575609">{storePhone}</a><a href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp</a><a href={storeMapLink} target="_blank" rel="noreferrer">{t('map')}</a></div><div><h3>{t('visit')}</h3><p>{storeAddress}</p><label className="maya-footer-language">{t('language')}<select value={language} onChange={(e)=>setLanguage(e.target.value as Language)} data-testid="footer-language"><option value="en">English</option><option value="ku">کوردی</option><option value="ar">العربية</option></select></label></div></div>
+    <div className="maya-footer-bottom"><span>© {new Date().getFullYear()} Maya Collection · {t('footerStory')}</span><Link href="/admin" className="maya-admin-link" data-testid="link-admin">{t('admin')}</Link></div>
+  </footer>;
+}
+function AdminGate() {
+  const status = useGetAdminPasscodeStatus();
+  const unlock = useUnlockAdminPasscode();
+  const [passcode,setPasscode] = useState('');
+  const [error,setError] = useState('');
+  const unlocked = status.data?.unlocked;
+  const submit = async (e: FormEvent) => { e.preventDefault(); setError(''); try { await unlock.mutateAsync({data:{passcode}}); await status.refetch(); } catch { setError('That passcode could not unlock the collection. Please try again.'); } };
+  if (status.isLoading) return <div className="maya-admin-gate">Checking private access…</div>;
+  if (unlocked) return <AdminPanel/>;
+  return <div className="maya-admin-gate"><form onSubmit={submit}><LockKeyhole/><span className="maya-kicker">MAYA COLLECTION · PRIVATE</span><h1>Admin access</h1><p>Enter your administrator passcode to continue.</p><label htmlFor="admin-passcode">Passcode</label><input id="admin-passcode" type="password" required value={passcode} onChange={(e)=>setPasscode(e.target.value)} data-testid="input-admin-passcode"/>{error && <p role="alert">{error}</p>}<button disabled={unlock.isPending} data-testid="button-admin-unlock">{unlock.isPending ? 'Verifying…' : 'Unlock panel'}</button><Link href="/" data-testid="link-admin-store">Return to storefront</Link></form></div>;
 }
 function App() {
-  return <TooltipProvider><WouterRouter base={basePath}><Router/></WouterRouter></TooltipProvider>;
+  return <TooltipProvider><WouterRouter base={basePath}><ErrorBoundary><QueryClientProvider client={queryClient}><Switch><Route path="/admin" component={AdminGate}/><Route><StoreApp/></Route></Switch><Toaster/></QueryClientProvider></ErrorBoundary></WouterRouter></TooltipProvider>;
 }
 export default App;

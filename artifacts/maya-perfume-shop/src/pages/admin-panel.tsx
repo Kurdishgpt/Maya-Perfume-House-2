@@ -1,11 +1,13 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useClerk } from "@clerk/react";
+import { useLocation } from "wouter";
 import {
   useAutofillFragrance,
   useCreateProduct,
   useDeleteProduct,
-  useGetAdminAccess,
+  getGetAdminPasscodeStatusQueryKey,
+  useGetAdminPasscodeStatus,
+  useLockAdminPasscode,
   useListProducts,
   useRequestUploadUrl,
   useUpdateProduct,
@@ -24,7 +26,7 @@ type Draft = ProductInput;
 
 const blankDraft = (): Draft => ({
   title: "", brand: "", price: 0, stock: 0, sku: "", category: "", description: "",
-  top_notes: [], heart_notes: [], base_notes: [], ingredients: [], image_url: "",
+  top_notes: [], heart_notes: [], base_notes: [], ingredients: [], image_url: "", gallery_images: [],
 });
 const navItems: { label: Page; icon: typeof LayoutDashboard }[] = [
   { label: "Dashboard", icon: LayoutDashboard }, { label: "Products", icon: Package },
@@ -35,8 +37,11 @@ const errText = (error: unknown) => error instanceof Error ? error.message : "So
 
 export default function AdminPanel() {
   const queryClient = useQueryClient();
-  const { signOut } = useClerk();
-  const access = useGetAdminAccess();
+  const [, setLocation] = useLocation();
+  const access = useGetAdminPasscodeStatus({
+    query: { queryKey: getGetAdminPasscodeStatusQueryKey(), refetchInterval: 60_000 },
+  });
+  const lockAdmin = useLockAdminPasscode();
   const productsQuery = useListProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -144,7 +149,7 @@ export default function AdminPanel() {
   if (access.isError || productsQuery.isError) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-6 text-[#eee9df]" data-testid="state-admin-error">
     <div className="max-w-md text-center"><AlertTriangle className="mx-auto mb-4 text-[#c8a978]" size={30}/><h1 className="font-serif text-3xl">The archive is unavailable</h1><p className="mt-3 text-sm leading-6 text-[#9ca5a2]">{errText(access.error ?? productsQuery.error)}</p><button onClick={() => { access.refetch(); productsQuery.refetch(); }} className="mt-6 rounded-md bg-[#d2bb8b] px-5 py-3 text-xs font-semibold uppercase tracking-[.14em] text-[#1a1d1d]" data-testid="button-retry-admin">Try again</button></div>
   </div>;
-  if (access.data && !access.data.allowed) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-6 text-[#eee9df]" data-testid="state-admin-denied"><div className="max-w-md text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#c8a978]/30 text-[#c8a978]"><CircleHelp size={24}/></div><h1 className="mt-5 font-serif text-3xl">Private collection</h1><p className="mt-3 text-sm leading-6 text-[#9ca5a2]">This workspace is reserved for Maya Collection administrators.</p></div></div>;
+  if (access.data && !access.data.unlocked) return <div className="grid min-h-[100dvh] place-items-center bg-[#111619] px-6 text-[#eee9df]" data-testid="state-admin-denied"><div className="max-w-md text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#c8a978]/30 text-[#c8a978]"><CircleHelp size={24}/></div><h1 className="mt-5 font-serif text-3xl">Private collection</h1><p className="mt-3 text-sm leading-6 text-[#9ca5a2]">Unlock the admin panel to manage the catalog.</p></div></div>;
 
   return <div className="min-h-[100dvh] bg-[#111619] text-[#e8e5dd]" data-testid="admin-panel">
     <div className="pointer-events-none fixed inset-0 z-0 opacity-[.12]" style={{ backgroundImage: "radial-gradient(#c9b587 0.55px, transparent 0.55px)", backgroundSize: "18px 18px" }}/>
