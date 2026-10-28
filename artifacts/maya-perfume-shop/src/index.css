@@ -356,26 +356,31 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .maya-store { --maya-ink:#35234c; --maya-deep:#142f3c; --maya-paper:#fbfaf7; --maya-soft:#f1efeb; --maya-gold:#b59b66; color:var(--maya-ink); background:var(--maya-paper); min-height:100dvh; }
 .maya-store a { color:inherit; text-decoration:none; }
 .maya-announcement { background:var(--maya-deep); color:#f7f3e9; text-align:center; padding:10px 14px; font-size:11px; letter-spacing:.09em; }
-.maya-header { position:sticky; top:0; z-index:40; background:rgba(251,250,247,.97); border-bottom:1px solid #e8e3dc; backdrop-filter:blur(14px); }
-.maya-header-social { min-height:34px; display:flex; justify-content:flex-end; align-items:center; gap:22px; max-width:1440px; margin:auto; padding:3px 5vw 0; }
-.maya-header-social a,.maya-footer-social a { display:grid; place-items:center; width:24px; height:24px; }
-.maya-header-social svg { width:17px; height:17px; stroke-width:1.7; }
-.maya-header-main { min-height:82px; max-width:1440px; margin:auto; padding:8px 5vw 14px; display:flex; justify-content:space-between; align-items:center; gap:24px; }
+.maya-header { position:sticky; top:0; z-index:40; background:#fff; border-bottom:1px solid #e8e8e8; }
+.maya-header-top,.maya-header-bottom { max-width:1440px; margin:0 auto; padding-inline:5vw; direction:ltr; }
+.maya-header-top { min-height:174px; display:flex; justify-content:space-between; align-items:center; gap:32px; }
+.maya-header-utilities { display:flex; align-items:center; gap:34px; color:#171717; }
+.maya-header-social { display:flex; justify-content:flex-end; align-items:center; gap:29px; }
+.maya-header-social a,.maya-footer-social a { display:grid; place-items:center; width:28px; height:32px; }
+.maya-header-social svg { width:27px; height:27px; stroke-width:1.7; }
+.maya-header-social a:first-child svg { width:29px; height:29px; }
+.maya-header-bottom { min-height:114px; display:flex; align-items:center; border-top:1px solid #f0f0f0; }
 .maya-wordmark { display:flex; flex-direction:column; flex:none; align-items:center; color:#35234c!important; line-height:1; }
-.maya-wordmark span { font-family:'Playfair Display',serif; font-size:34px; letter-spacing:.075em; }
-.maya-wordmark small { font-family:'DM Sans',sans-serif; margin-top:5px; font-size:10px; letter-spacing:.22em; }
-.maya-language { display:flex; align-items:center; gap:8px; font-size:13px; white-space:nowrap; }
+.maya-header-top>.maya-wordmark { align-items:flex-start; }
+.maya-wordmark span { font-family:'Playfair Display',serif; font-size:clamp(42px,6vw,70px); letter-spacing:.075em; }
+.maya-wordmark small { font-family:'DM Sans',sans-serif; margin-top:7px; font-size:clamp(13px,1.8vw,20px); letter-spacing:.17em; }
+.maya-language { display:flex; align-items:center; gap:9px; color:#171717; font-size:20px; white-space:nowrap; }
 .maya-language select,.maya-footer-language select { background:transparent; border:0; color:inherit; outline:none; padding:5px 2px; cursor:pointer; }
 .maya-language select { appearance:none; }
 .maya-desktop-nav { display:flex; align-items:center; gap:25px; }
 .maya-desktop-nav a { font-size:10px; text-transform:uppercase; letter-spacing:.12em; white-space:nowrap; }
 .maya-desktop-nav a:hover,.maya-footer-grid a:hover { opacity:.65; }
-.maya-actions { display:flex; align-items:center; gap:12px; }
-.maya-icon-button { position:relative; width:39px; height:39px; display:grid; place-items:center; border:0; background:transparent; color:var(--maya-ink); cursor:pointer; }
-.maya-icon-button svg { width:23px; height:23px; stroke-width:1.55; }
+.maya-actions { display:flex; align-items:center; gap:23px; }
+.maya-icon-button { position:relative; width:48px; height:48px; display:grid; place-items:center; border:0; background:transparent; color:#171717; cursor:pointer; }
+.maya-icon-button svg { width:32px; height:32px; stroke-width:1.45; }
 .maya-count { position:absolute; top:0; inset-inline-end:-2px; min-width:16px; height:16px; display:grid; place-items:center; border-radius:50%; background:var(--maya-gold); color:white; font-size:9px; }
-.maya-mobile-menu,.maya-mobile-nav,.maya-actions .maya-icon-button:first-child { display:none; }
-.maya-mobile-nav { padding:8px 7vw 18px; border-top:1px solid #ece6de; background:var(--maya-paper); }
+.maya-action-divider { width:1px; height:52px; margin-inline:2px; background:#d8d8d8; }
+.maya-mobile-nav { display:block; padding:8px 5vw 18px; border-top:1px solid #ececec; background:#fff; }
 .maya-mobile-nav a { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #ece6de; font-size:13px; }
 .maya-error { padding:10px; text-align:center; background:#f5e8d8; color:#694d33; font-size:12px; }
 .maya-hero { min-height:590px; position:relative; overflow:hidden; display:flex; align-items:center; background:#dce6e1; }
@@ -522,27 +527,36 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .maya-admin-gate button { margin-top:18px; padding:14px; border:0; background:#35234c; color:white; cursor:pointer; }
 .maya-admin-gate a { margin-top:18px; text-align:center; font-size:11px; }
 @media(max-width:950px) {
- .maya-desktop-nav { gap:13px; }
- .maya-header-main { gap:15px; }
- .maya-wordmark span { font-size:29px; }
+  .maya-header-top { min-height:145px; }
+  .maya-header-bottom { min-height:96px; }
+  .maya-header-utilities { gap:24px; }
+  .maya-header-social { gap:20px; }
+  .maya-wordmark span { font-size:clamp(38px,6vw,58px); }
+  .maya-wordmark small { font-size:clamp(12px,1.8vw,17px); }
+  .maya-language { font-size:17px; }
+  .maya-actions { gap:18px; }
  .maya-product-grid,.maya-skeleton-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 18px; }
  .maya-detail { gap:4vw; }
 }
 @media(max-width:700px) {
  .maya-announcement { padding:9px 8px; font-size:9px; letter-spacing:.035em; }
- .maya-header-social { min-height:0; position:absolute; inset-inline-end:5vw; top:10px; gap:13px; }
- .maya-header-social svg { width:16px; height:16px; }
- .maya-header-main { min-height:92px; padding:32px 5vw 8px; display:grid; grid-template-columns:42px 1fr auto; gap:5px; }
- .maya-mobile-menu { display:grid; }
- .maya-header-main>.maya-wordmark { grid-column:2; grid-row:1; }
- .maya-wordmark span { font-size:30px; }
- .maya-wordmark small { font-size:8px; }
- .maya-language { position:absolute; top:8px; inset-inline-start:5vw; gap:3px; font-size:10px; }
- .maya-language>svg:first-child { display:none; }
- .maya-actions { grid-column:3; grid-row:1; gap:1px; }
- .maya-actions .maya-icon-button:first-child { display:none; }
- .maya-icon-button { width:35px; height:36px; }
- .maya-icon-button svg { width:21px; height:21px; }
+  .maya-header-top { min-height:102px; padding-inline:5vw; gap:12px; }
+  .maya-header-utilities { gap:12px; }
+  .maya-header-social { gap:10px; }
+  .maya-header-social a,.maya-footer-social a { width:21px; height:27px; }
+  .maya-header-social svg,.maya-header-social a:first-child svg { width:19px; height:19px; }
+  .maya-header-top>.maya-wordmark { flex:none; }
+  .maya-wordmark span { font-size:clamp(25px,7.7vw,34px); }
+  .maya-wordmark small { margin-top:5px; font-size:clamp(7px,2.1vw,9px); letter-spacing:.18em; }
+  .maya-language { gap:3px; font-size:clamp(10px,3.2vw,13px); }
+  .maya-language select { padding-inline:0; }
+  .maya-language>svg { width:13px; height:13px; }
+  .maya-header-bottom { min-height:70px; padding-inline:5vw; }
+  .maya-actions { gap:15px; }
+  .maya-icon-button { width:38px; height:40px; }
+  .maya-icon-button svg { width:26px; height:26px; }
+  .maya-action-divider { height:34px; }
+  .maya-mobile-nav { padding:7px 5vw 14px; }
  .maya-mobile-nav { display:block; }
  .maya-hero { min-height:590px; align-items:flex-end; }
  .maya-hero-image { object-position:62% center; }

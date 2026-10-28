@@ -8,6 +8,7 @@ import NotFound from '@/pages/not-found';
 import AdminPanel from '@/pages/admin-panel';
 import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { ArrowDown, ArrowRight, ChevronDown, Heart, Instagram, Menu, MessageCircle, Minus, Plus, ShoppingBag, X, Facebook, Languages, LockKeyhole } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -98,19 +99,26 @@ function StoreApp() {
   return <main className="maya-store" dir={language === 'en' ? 'ltr' : 'rtl'}>
     <div className="maya-announcement" data-testid="announcement-delivery">{t('banner')}</div>
     <header className="maya-header">
-      <div className="maya-header-social"><a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" data-testid="header-whatsapp"><MessageCircle/></a><a href="https://facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" data-testid="header-facebook"><Facebook/></a><a href="https://instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" data-testid="header-instagram"><Instagram/></a></div>
-      <div className="maya-header-main">
-        <button className="maya-icon-button maya-mobile-menu" onClick={() => setMenuOpen((v) => !v)} aria-label={menuOpen ? t('closeMenu') : t('menu')} data-testid="button-menu"><Menu/></button>
+      <div className="maya-header-top">
         <Link href="/" className="maya-wordmark" data-testid="link-brand"><span>MAYA</span><small>COLLECTION</small></Link>
-        <label className="maya-language"><Languages size={16}/><span className="sr-only">{t('language')}</span><select value={language} onChange={(e) => setLanguage(e.target.value as Language)} aria-label={t('language')} data-testid="select-language"><option value="en">English</option><option value="ku">کوردی</option><option value="ar">العربية</option></select><ChevronDown size={15}/></label>
-        <nav className="maya-desktop-nav" aria-label="Main navigation">{navLinks.map((link) => <Link href={link.href} key={link.href} data-testid={`nav-${link.key}`}>{t(link.key)}</Link>)}</nav>
-        <div className="maya-actions">
-          <button className="maya-icon-button" onClick={() => setMenuOpen((v) => !v)} aria-label={t('menu')} data-testid="button-header-menu"><Menu/></button>
-          <button className="maya-icon-button bag-trigger" onClick={() => setDrawer('bag')} aria-label={`${t('bag')} ${count}`} data-testid="button-cart"><ShoppingBag/><span className="maya-count" data-testid="text-cart-count">{count}</span></button>
-          <button className="maya-icon-button" onClick={() => setDrawer('wishlist')} aria-label={`${t('wishlist')} ${wishlist.length}`} data-testid="button-wishlist"><Heart/><span className="maya-count" data-testid="text-wishlist-count">{wishlist.length}</span></button>
+        <div className="maya-header-utilities">
+          <label className="maya-language"><span className="sr-only">{t('language')}</span><select value={language} onChange={(e) => setLanguage(e.target.value as Language)} aria-label={t('language')} data-testid="select-language"><option value="en">English</option><option value="ku">کوردی</option><option value="ar">العربية</option></select><ChevronDown size={17}/></label>
+          <div className="maya-header-social">
+            <a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" data-testid="header-whatsapp"><FaWhatsapp/></a>
+            <a href="https://facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" data-testid="header-facebook"><Facebook/></a>
+            <a href="https://instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" data-testid="header-instagram"><Instagram/></a>
+          </div>
         </div>
       </div>
-      {menuOpen && <nav className="maya-mobile-nav" aria-label="Mobile navigation">{navLinks.map((link) => <Link href={link.href} key={link.href} data-testid={`mobile-nav-${link.key}`}>{t(link.key)}<ArrowRight size={15}/></Link>)}</nav>}
+      <div className="maya-header-bottom">
+        <div className="maya-actions">
+          <button className="maya-icon-button" onClick={() => setMenuOpen((v) => !v)} aria-label={menuOpen ? t('closeMenu') : t('menu')} aria-expanded={menuOpen} data-testid="button-header-menu"><Menu/></button>
+          <button className="maya-icon-button bag-trigger" onClick={() => setDrawer('bag')} aria-label={`${t('bag')} ${count}`} data-testid="button-cart"><ShoppingBag/>{count > 0 && <span className="maya-count" data-testid="text-cart-count">{count}</span>}</button>
+          <span className="maya-action-divider" aria-hidden="true"/>
+          <button className="maya-icon-button" onClick={() => setDrawer('wishlist')} aria-label={`${t('wishlist')} ${wishlist.length}`} data-testid="button-wishlist"><Heart/>{wishlist.length > 0 && <span className="maya-count" data-testid="text-wishlist-count">{wishlist.length}</span>}</button>
+        </div>
+      </div>
+      {menuOpen && <nav className="maya-mobile-nav" aria-label="Main navigation">{navLinks.map((link) => <Link href={link.href} key={link.href} data-testid={`mobile-nav-${link.key}`}>{t(link.key)}<ArrowRight size={15}/></Link>)}</nav>}
     </header>
     {catalog.isError && <div className="maya-error" role="alert">We could not refresh the live collection. Please try again shortly.</div>}
     <Switch>
