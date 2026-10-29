@@ -19,11 +19,12 @@ export function Header() {
   const [path] = useLocation();
   useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [open]);
+  const isHome = path === '/';
   return <>
-    <div className="mc-announce" data-testid="announcement-delivery">{t('banner')}</div>
-    <header className="mc-header">
+    {!isHome && <div className="mc-announce" data-testid="announcement-delivery">{t('banner')}</div>}
+    <header className={`mc-header${isHome ? ' is-home' : ''}`}>
       <button className="mc-header-btn" onClick={() => setOpen(true)} aria-label={t('menu')} aria-expanded={open} data-testid="button-header-menu"><Menu/></button>
-      <Wordmark compact/>
+      {isHome ? <span/> : <Wordmark compact/>}
       <LanguageMenu/>
     </header>
     {open && <div className="mc-sheet-overlay" onClick={() => setOpen(false)} role="presentation">
