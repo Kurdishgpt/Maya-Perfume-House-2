@@ -234,6 +234,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /search-fragrance-images:
+    post:
+      operationId: searchFragranceImages
+      tags: [fragrance-ai]
+      summary: Search Brave for perfume photographs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutofillFragranceInput"
+      responses:
+        "200":
+          description: Image candidates with source pages for merchant review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FragranceImageSearch"
+        "400":
+          description: Invalid search query.
+        "403":
+          description: Administrator access required.
+        "429":
+          description: Search rate limit reached.
+        "502":
+          description: Image search is unavailable.
   /autofill-fragrance:
     post:
       operationId: autofillFragrance
@@ -544,6 +570,36 @@ components:
           type: string
           minLength: 2
           maxLength: 120
+    FragranceImage:
+      type: object
+      required: [title, image_url, thumbnail_url, source_url, source]
+      properties:
+        title:
+          type: string
+        image_url:
+          type: string
+        thumbnail_url:
+          type: string
+        source_url:
+          type: string
+        source:
+          type: string
+    FragranceSource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+    FragranceImageSearch:
+      type: object
+      required: [images]
+      properties:
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/FragranceImage"
     FragranceSuggestion:
       type: object
       required:
@@ -559,6 +615,18 @@ components:
         - image_url
         - gallery_images
       properties:
+        image_results:
+          type: array
+          items:
+            $ref: "#/components/schemas/FragranceImage"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/FragranceSource"
+        warnings:
+          type: array
+          items:
+            type: string
         title:
           type: string
         brand:

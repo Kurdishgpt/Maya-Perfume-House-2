@@ -91,7 +91,27 @@ export interface AutofillFragranceInput {
   query: string;
 }
 
+export interface FragranceImage {
+  title: string;
+  image_url: string;
+  thumbnail_url: string;
+  source_url: string;
+  source: string;
+}
+
+export interface FragranceSource {
+  title: string;
+  url: string;
+}
+
+export interface FragranceImageSearch {
+  images: FragranceImage[];
+}
+
 export interface FragranceSuggestion {
+  image_results?: FragranceImage[];
+  sources?: FragranceSource[];
+  warnings?: string[];
   title: string;
   brand: string;
   price: number;

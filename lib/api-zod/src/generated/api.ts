@@ -187,6 +187,29 @@ export const DeleteProductResponse = zod.void()
 
 
 /**
+ * @summary Search Brave for perfume photographs
+ */
+export const searchFragranceImagesBodyQueryMin = 2;
+export const searchFragranceImagesBodyQueryMax = 120;
+
+
+
+export const SearchFragranceImagesBody = zod.object({
+  "query": zod.string().min(searchFragranceImagesBodyQueryMin).max(searchFragranceImagesBodyQueryMax)
+})
+
+export const SearchFragranceImagesResponse = zod.object({
+  "images": zod.array(zod.object({
+  "title": zod.string(),
+  "image_url": zod.string(),
+  "thumbnail_url": zod.string(),
+  "source_url": zod.string(),
+  "source": zod.string()
+}))
+})
+
+
+/**
  * @summary Generate editable fragrance product suggestions
  */
 export const autofillFragranceBodyQueryMin = 2;
@@ -199,6 +222,18 @@ export const AutofillFragranceBody = zod.object({
 })
 
 export const AutofillFragranceResponse = zod.object({
+  "image_results": zod.array(zod.object({
+  "title": zod.string(),
+  "image_url": zod.string(),
+  "thumbnail_url": zod.string(),
+  "source_url": zod.string(),
+  "source": zod.string()
+})).optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})).optional(),
+  "warnings": zod.array(zod.string()).optional(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),

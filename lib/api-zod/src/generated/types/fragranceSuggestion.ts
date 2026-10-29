@@ -5,8 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FragranceImage } from './fragranceImage';
+import type { FragranceSource } from './fragranceSource';
 
 export interface FragranceSuggestion {
+  image_results?: FragranceImage[];
+  sources?: FragranceSource[];
+  warnings?: string[];
   title: string;
   brand: string;
   price: number;

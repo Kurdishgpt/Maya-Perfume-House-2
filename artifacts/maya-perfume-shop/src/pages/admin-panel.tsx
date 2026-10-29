@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { PerfumeResearch } from "@/components/store/perfume-research";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -59,6 +60,7 @@ export default function AdminPanel() {
   const [draft, setDraft] = useState<Draft>(blankDraft);
   const [mode, setMode] = useState<EditorMode>("manual");
   const [aiQuery, setAiQuery] = useState("");
+  const [suggestion, setSuggestion] = useState<FragranceSuggestion | null>(null);
   const [toast, setToast] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [syncChecked, setSyncChecked] = useState("");
@@ -93,11 +95,11 @@ export default function AdminPanel() {
     notify(result.isError ? "error" : "success", result.isError ? "Storefront catalog could not be reached." : "Storefront catalog is up to date.");
   };
   const openCreate = (initialMode: EditorMode = "manual") => {
-    setEditTarget(null); setDraft(blankDraft()); setMode(initialMode); setAiQuery(""); setEditorOpen(true);
+    setEditTarget(null); setDraft(blankDraft()); setMode(initialMode); setAiQuery(""); setSuggestion(null); setEditorOpen(true);
   };
   const openEdit = (product: Product) => {
     const { id: _id, created_at: _created, ...input } = product;
-    setEditTarget(product); setDraft({ ...input }); setMode("manual"); setEditorOpen(true);
+    setEditTarget(product); setDraft({ ...input }); setMode("manual"); setSuggestion(null); setEditorOpen(true);
   };
   const setField = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const setNotes = (key: "top_notes" | "heart_notes" | "base_notes" | "ingredients", value: string) =>
@@ -124,8 +126,12 @@ export default function AdminPanel() {
     if (aiQuery.trim().length < 2) { notify("error", "Enter at least two characters for the fragrance name."); return; }
     try {
       const result: FragranceSuggestion = await autofill.mutateAsync({ data: { query: aiQuery.trim() } });
-      setDraft((current) => ({ ...current, ...result, stock: current.stock, sku: current.sku }));
-      notify("success", "Suggestion added. Review every field before saving.");
+      const { image_results: _images, sources: _sources, warnings: _warnings, ...fields } = result;
+      setSuggestion(result);
+      setDraft((current) => ({ ...current, ...fields, price: current.price || fields.price,
+        image_url: current.image_url, gallery_images: current.gallery_images,
+        ingredients: current.ingredients, stock: current.stock, sku: current.sku }));
+      notify("success", "Draft ready. Review the details and select photos below.");
     } catch (error) { notify("error", errText(error)); }
   };
   const uploadImage = async (file?: File) => {
@@ -175,7 +181,7 @@ export default function AdminPanel() {
         </div>
       </main>
     </div>
-    {editorOpen&&<ProductEditor draft={draft} setField={setField} setNotes={setNotes} mode={mode} setMode={setMode} editTarget={editTarget} onClose={()=>setEditorOpen(false)} onSubmit={submitDraft} onGenerate={generateSuggestion} aiQuery={aiQuery} setAiQuery={setAiQuery} aiPending={autofill.isPending} saving={createProduct.isPending||updateProduct.isPending} uploadPending={requestUpload.isPending} onPickFile={()=>fileInput.current?.click()} onFile={(file)=>uploadImage(file)} fileInput={fileInput}/>}
+    {editorOpen&&<ProductEditor research={<PerfumeResearch draft={draft} suggestion={suggestion} setField={setField}/>} draft={draft} setField={setField} setNotes={setNotes} mode={mode} setMode={setMode} editTarget={editTarget} onClose={()=>setEditorOpen(false)} onSubmit={submitDraft} onGenerate={generateSuggestion} aiQuery={aiQuery} setAiQuery={setAiQuery} aiPending={autofill.isPending} saving={createProduct.isPending||updateProduct.isPending} uploadPending={requestUpload.isPending} onPickFile={()=>fileInput.current?.click()} onFile={(file)=>uploadImage(file)} fileInput={fileInput}/>}
     {deleteTarget&&<div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4" role="presentation"><section role="alertdialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-[430px] rounded-xl border border-white/10 bg-[#033f44] p-6 shadow-2xl"><div className="grid h-11 w-11 place-items-center rounded-full border border-[#c7796a]/25 bg-[#c7796a]/10 text-[#d28b7b]"><Trash2 size={18}/></div><h2 id="delete-title" className="mt-5 font-serif text-2xl">Remove this fragrance?</h2><p className="mt-2 text-sm leading-6 text-[#9ba39e]"><span className="text-[#e5dfd1]">{deleteTarget.title}</span> will be removed from the catalog. This cannot be undone.</p><div className="mt-7 flex justify-end gap-3"><button onClick={()=>setDeleteTarget(null)} className="rounded-md border border-white/10 px-4 py-2.5 text-xs text-[#c6cbc5]" data-testid="button-cancel-delete">Keep fragrance</button><button onClick={confirmDelete} disabled={deleteProduct.isPending} className="inline-flex items-center gap-2 rounded-md bg-[#a9574d] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50" data-testid="button-confirm-delete">{deleteProduct.isPending&&<Loader2 size={14} className="animate-spin"/>}Remove</button></div></section></div>}
     {toast&&<div role="status" aria-live="polite" className={`fixed bottom-5 right-5 z-[80] flex max-w-[calc(100vw-40px)] items-center gap-3 rounded-lg border px-4 py-3 shadow-xl ${toast.tone==="success"?"border-[#7e9b84]/30 bg-[#1c2824] text-[#dce7db]":"border-[#bd7162]/30 bg-[#2a211f] text-[#f0d6cf]"}`} data-testid={`toast-${toast.tone}`}><span className={toast.tone==="success"?"text-[#a9c3a8]":"text-[#d28b7b]"}>{toast.tone==="success"?<CheckCircle2 size={17}/>:<AlertTriangle size={17}/>}</span><span className="text-xs leading-5">{toast.text}</span><button onClick={()=>setToast(null)} className="ml-2 text-current opacity-60 hover:opacity-100" aria-label="Dismiss notification" data-testid="button-dismiss-toast"><X size={14}/></button></div>}
   </div>;
@@ -241,7 +247,7 @@ function SettingsView({threshold,onThreshold}:{threshold:number;onThreshold:(val
   </section>;
 }
 
-function ProductEditor({draft,setField,setNotes,mode,setMode,editTarget,onClose,onSubmit,onGenerate,aiQuery,setAiQuery,aiPending,saving,uploadPending,onPickFile,onFile,fileInput}:{draft:Draft;setField:<K extends keyof Draft>(key:K,value:Draft[K])=>void;setNotes:(key:"top_notes"|"heart_notes"|"base_notes"|"ingredients",value:string)=>void;mode:EditorMode;setMode:(v:EditorMode)=>void;editTarget:Product|null;onClose:()=>void;onSubmit:(e:FormEvent)=>void;onGenerate:()=>void;aiQuery:string;setAiQuery:(v:string)=>void;aiPending:boolean;saving:boolean;uploadPending:boolean;onPickFile:()=>void;onFile:(file?:File)=>void;fileInput:{current:HTMLInputElement|null}}) {
+function ProductEditor({research,draft,setField,setNotes,mode,setMode,editTarget,onClose,onSubmit,onGenerate,aiQuery,setAiQuery,aiPending,saving,uploadPending,onPickFile,onFile,fileInput}:{research:ReactNode;draft:Draft;setField:<K extends keyof Draft>(key:K,value:Draft[K])=>void;setNotes:(key:"top_notes"|"heart_notes"|"base_notes"|"ingredients",value:string)=>void;mode:EditorMode;setMode:(v:EditorMode)=>void;editTarget:Product|null;onClose:()=>void;onSubmit:(e:FormEvent)=>void;onGenerate:()=>void;aiQuery:string;setAiQuery:(v:string)=>void;aiPending:boolean;saving:boolean;uploadPending:boolean;onPickFile:()=>void;onFile:(file?:File)=>void;fileInput:{current:HTMLInputElement|null}}) {
   const notesCount=draft.top_notes.length+draft.heart_notes.length+draft.base_notes.length;
   const fieldClass="mt-1.5 h-10 w-full rounded-md border border-white/[.1] bg-[#121819] px-3 text-[12px] text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65";
   const labelClass="text-[9px] font-medium uppercase tracking-[.13em] text-[#aab1a9]";
@@ -258,7 +264,8 @@ function ProductEditor({draft,setField,setNotes,mode,setMode,editTarget,onClose,
           <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">03 · Olfactory pyramid</legend><div className="grid gap-3"><NoteInput label="Top notes" hint="The first impression" value={noteString("top_notes")} onChange={v=>setNotes("top_notes",v)} testId="input-top-notes" tone="top"/><NoteInput label="Heart notes" hint="The character at its heart" value={noteString("heart_notes")} onChange={v=>setNotes("heart_notes",v)} testId="input-heart-notes" tone="heart"/><NoteInput label="Base notes" hint="The lasting signature" value={noteString("base_notes")} onChange={v=>setNotes("base_notes",v)} testId="input-base-notes" tone="base"/></div><p className="mt-2 text-[9px] text-[#717c76]">Separate each note with a comma.</p></fieldset>
           <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">04 · Materials & image</legend><label className={labelClass}>Cosmetic ingredients<textarea value={noteString("ingredients")} onChange={e=>setNotes("ingredients",e.target.value)} rows={2} placeholder="Alcohol denat., parfum, linalool…" className="mt-1.5 w-full resize-y rounded-md border border-white/[.1] bg-[#121819] px-3 py-2.5 text-[11px] leading-5 text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-ingredients"/></label><div className="mt-4"><label className={labelClass}>Image URL</label><div className="mt-1.5 flex gap-2"><input value={draft.image_url} onChange={e=>setField("image_url",e.target.value)} placeholder="https://… or uploaded image path" className="h-10 min-w-0 flex-1 rounded-md border border-white/[.1] bg-[#121819] px-3 text-[11px] text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-image-url"/><button type="button" onClick={onPickFile} disabled={uploadPending} className="inline-flex shrink-0 items-center gap-2 rounded-md border border-white/10 px-3 text-[9px] uppercase tracking-[.1em] text-[#bac0b8] hover:bg-white/[.05] disabled:opacity-50" data-testid="button-upload-image">{uploadPending?<Loader2 size={14} className="animate-spin"/>:<Upload size={14}/>}<span className="hidden sm:inline">{uploadPending?"Uploading":"Upload"}</span></button><input ref={fileInput} type="file" accept="image/*" className="sr-only" onChange={e=>{onFile(e.currentTarget.files?.[0]);e.currentTarget.value="";}} aria-label="Upload fragrance image" data-testid="input-product-image-file"/></div><p className="mt-2 text-[9px] text-[#717c76]">Enter an image URL or upload an image, up to 5 MB.</p></div></fieldset>
         </div>
-        <div className="sticky bottom-0 mt-7 flex justify-end gap-2 border-t border-white/[.07] bg-[#023f44]/95 py-4 backdrop-blur"><button type="button" onClick={onClose} className="rounded-md border border-white/10 px-4 py-2.5 text-[10px] text-[#adb4ad] hover:bg-white/[.04]" data-testid="button-cancel-editor">Cancel</button><button type="submit" disabled={saving||uploadPending} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-5 py-2.5 text-[9px] font-semibold uppercase tracking-[.12em] text-[#1b201f] hover:bg-[#F0D49A] disabled:opacity-50" data-testid="button-save-product">{saving?<Loader2 size={14} className="animate-spin"/>:<Check size={14}/>} {saving?"Saving…":editTarget?"Save changes":"Add to collection"}</button></div>
+        {research}
+        <div className="sticky bottom-0 mt-7 flex justify-end gap-2 border-t border-white/[.07] bg-[#023f44]/95 py-4 backdrop-blur"><button type="button" onClick={onClose} className="rounded-md border border-white/10 px-4 py-2.5 text-[10px] text-[#adb4ad] hover:bg-white/[.04]" data-testid="button-cancel-editor">Cancel</button><button type="submit" disabled={saving||uploadPending||aiPending} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-5 py-2.5 text-[9px] font-semibold uppercase tracking-[.12em] text-[#1b201f] hover:bg-[#F0D49A] disabled:opacity-50" data-testid="button-save-product">{saving?<Loader2 size={14} className="animate-spin"/>:<Check size={14}/>} {saving?"Saving…":editTarget?"Save changes":"Add to collection"}</button></div>
       </form>
       <aside className="border-t border-white/[.07] bg-[#141a1c] px-5 py-6 lg:border-l lg:border-t-0" aria-label="Live fragrance preview"><div className="flex items-center justify-between"><div><p className="text-[8px] uppercase tracking-[.18em] text-[#a9956d]">LIVE PREVIEW</p><h3 className="mt-1 font-serif text-xl text-[#e7e2d7]">Olfactory pyramid</h3></div><span className="rounded-full border border-white/[.08] px-2 py-1 text-[8px] text-[#8a948d]" data-testid="text-preview-note-count">{notesCount} notes</span></div>
         <div className="mt-7"><PyramidLayer label="Top" descriptor="First impression" notes={draft.top_notes} color="amber" testId="preview-top-notes"/><div className="mx-auto h-4 w-px bg-gradient-to-b from-[#c5a66f]/50 to-[#95a18e]/45"/><PyramidLayer label="Heart" descriptor="The character" notes={draft.heart_notes} color="sage" testId="preview-heart-notes"/><div className="mx-auto h-4 w-px bg-gradient-to-b from-[#95a18e]/45 to-[#9b887c]/50"/><PyramidLayer label="Base" descriptor="Lasting signature" notes={draft.base_notes} color="rose" testId="preview-base-notes"/></div>
