@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGetAdminPasscodeStatus, useUnlockAdminPasscode } from '@workspace/api-client-react';
-import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
+import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { LockKeyhole } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -31,6 +31,7 @@ function StoreShell() {
   const { rtl, isError, products, t } = useStore();
   useEffect(() => { recordNavigation(); window.scrollTo({ top: 0 }); }, [path]);
   if (path === '/welcome') return <main className="mc-store" dir={rtl ? 'rtl' : 'ltr'}><Welcome/></main>;
+  if (path === '/' && !localStorage.getItem('maya-welcomed')) return <Redirect to="/welcome" replace/>;
   return <main className="mc-store" dir={rtl ? 'rtl' : 'ltr'}>
     <Header/>
     {isError && products.length > 0 && <div className="mc-alert" role="alert">{t('loadError')}</div>}

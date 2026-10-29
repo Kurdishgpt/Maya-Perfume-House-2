@@ -14,8 +14,7 @@ export const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
 export const storeMapLink = 'https://www.google.com/maps/search/?api=1&query=Kolak+Mall%2C+Mawlawi+Street%2C+Sulaymaniyah%2C+Iraq';
 export const whatsappNumber = '9647701575609';
 export const whatsappLink = `https://wa.me/${whatsappNumber}`;
-/** Configurable: replace with the real Maya Collection Instagram profile URL. */
-export const instagramLink = 'https://instagram.com/';
+export const instagramLink = 'https://www.instagram.com/khansarayperfums/';
 export const sizes = [25, 50, 100, 150, 200];
 export const languages: { code: Language; label: string }[] = [
   { code: 'en', label: 'English' }, { code: 'ku', label: 'کوردی' }, { code: 'ar', label: 'العربية' },
@@ -41,7 +40,7 @@ export const inFamily = (p: ApiProduct, key: FamilyKey) => key === 'all' || fami
 const en: Record<string, string> = {
   home:'Home', explore:'Explore', wishlist:'Wishlist', bags:'Bags', about:'About Us', collection:'Shop', ingredients:'Raw Materials', contact:'Contact Us', language:'Language', menu:'Open menu', closeMenu:'Close menu', close:'Close', back:'Back',
   banner:'We deliver to all cities and towns in Kurdistan',
-  welcomeTitle1:'Discover Your', welcomeTitle2:'Signature', welcomeBody:'Luxury perfumes for every mood, every moment.', getStarted:'Get Started',
+  welcomeTitle1:'Discover Your', welcomeTitle2:'Your Signature', welcomeBody:'Luxury perfumes for every mood, every moment.', getStarted:'Get Started', welcomePage:'Welcome', instagramSoon:'Instagram — coming soon',
   brandTagline:'Discover your signature collection scent', newArrivals:'New Arrivals', bannerTitle:'Exquisite Scents For a Regal Aura', shopNow:'Shop Now',
   categories:'Categories', women:'Women', men:'Men', perfect:'Perfect', rawMaterials:'Raw Materials', unisex:'Unisex', ourStore:'Our Store',
   noProducts:'Our collection is being refreshed. Please visit again shortly.', loading:'Finding your collection', loadError:'We could not refresh the live collection.', retry:'Try again',
@@ -75,7 +74,7 @@ const en: Record<string, string> = {
 const ku: Record<string, string> = {
   home:'سەرەکی', explore:'گەڕان', wishlist:'دڵخوازەکان', bags:'سەبەتە', about:'دەربارەی ئێمە', collection:'فرۆشگا', ingredients:'کەرەستەی خاو', contact:'پەیوەندی', language:'زمان', menu:'کردنەوەی لیست', closeMenu:'داخستنی لیست', close:'داخستن', back:'گەڕانەوە',
   banner:'گەیاندن بۆ هەموو شار و شارۆچکەکانی کوردستان',
-  welcomeTitle1:'واژۆکەی خۆت', welcomeTitle2:'بدۆزەوە', welcomeBody:'بۆنی شاهانە بۆ هەموو هەست و ساتێک.', getStarted:'دەست پێبکە',
+  welcomeTitle1:'واژۆکەی خۆت', welcomeTitle2:'بدۆزەوە', welcomeBody:'بۆنی شاهانە بۆ هەموو هەست و ساتێک.', getStarted:'دەست پێبکە', welcomePage:'بەخێرهاتن', instagramSoon:'ئینستاگرام — بەم زووانە',
   brandTagline:'بۆنی تایبەت بە خۆت بدۆزەوە', newArrivals:'تازەگەیشتووەکان', bannerTitle:'بۆنی نایاب بۆ کەشێکی شاهانە', shopNow:'ئێستا بکڕە',
   categories:'پۆلەکان', women:'ئافرەتان', men:'پیاوان', perfect:'هاوبەش', rawMaterials:'کەرەستەی خاو', unisex:'یونیسێکس', ourStore:'فرۆشگاکەمان',
   noProducts:'کۆمەڵەکەمان نوێ دەکرێتەوە. تکایە دواتر سەردانمان بکە.', loading:'کۆمەڵەکەت دەدۆزینەوە', loadError:'نەمانتوانی کۆمەڵەکە نوێ بکەینەوە.', retry:'دووبارە هەوڵبدەوە',
@@ -109,7 +108,7 @@ const ku: Record<string, string> = {
 const ar: Record<string, string> = {
   home:'الرئيسية', explore:'استكشف', wishlist:'المفضلة', bags:'الحقيبة', about:'من نحن', collection:'المتجر', ingredients:'المواد الخام', contact:'اتصل بنا', language:'اللغة', menu:'فتح القائمة', closeMenu:'إغلاق القائمة', close:'إغلاق', back:'رجوع',
   banner:'نوصل إلى جميع مدن وبلدات كردستان',
-  welcomeTitle1:'اكتشف', welcomeTitle2:'توقيعك العطري', welcomeBody:'عطور فاخرة لكل مزاج ولكل لحظة.', getStarted:'ابدأ الآن',
+  welcomeTitle1:'اكتشف', welcomeTitle2:'توقيعك العطري', welcomeBody:'عطور فاخرة لكل مزاج ولكل لحظة.', getStarted:'ابدأ الآن', welcomePage:'الترحيب', instagramSoon:'إنستغرام — قريباً',
   brandTagline:'اكتشف عطرك المميز من مجموعتنا', newArrivals:'وصل حديثاً', bannerTitle:'عطور رائعة لهالة ملكية', shopNow:'تسوق الآن',
   categories:'الفئات', women:'نساء', men:'رجال', perfect:'مشترك', rawMaterials:'المواد الخام', unisex:'للجنسين', ourStore:'متجرنا',
   noProducts:'نعمل على تحديث مجموعتنا. يرجى زيارتنا قريباً.', loading:'نجهز مجموعتك', loadError:'تعذر تحديث المجموعة.', retry:'حاول مجدداً',

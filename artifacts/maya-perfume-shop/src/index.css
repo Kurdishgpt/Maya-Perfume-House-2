@@ -935,3 +935,62 @@ button, a, input, textarea, select { -webkit-tap-highlight-color:transparent; }
 .mc-ref-grid .mc-heart.is-saved svg { fill:var(--mc-gold); stroke:var(--mc-gold); }
 .mc-ref-empty { padding:30px 16px; border:1px dashed #c9a25a88; border-radius:14px; }
 @media (min-width:768px) { .mc-ref { max-width:900px; } .mc-ref-hero { aspect-ratio:532/210; } }
+
+/* ===== Welcome: reference-matched ===== */
+.mc-wel { position:relative; min-height:100dvh; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; background:#3a2a17; color:#fbf6ea; transition:opacity .42s ease, transform .42s var(--mc-ease); }
+.mc-wel.is-leaving { opacity:0; transform:scale(1.03); }
+.mc-wel-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 58%; }
+.mc-wel-shade { position:absolute; inset:0; background:linear-gradient(180deg,#1d140a26 0%,transparent 35%,transparent 80%,#002d3226 100%); }
+.mc-wel-top { position:relative; text-align:center; padding:calc(22px + env(safe-area-inset-top,0px)) 18px 0; }
+.mc-wel-brand { display:flex; align-items:center; justify-content:center; gap:12px; }
+.mc-wel-brand > span { width:min(15vw,96px); height:1px; background:#d9b56a; }
+.mc-wel-crown { width:30px; height:22px; color:#e2b958; }
+.mc-wel-brand strong { font-family:'Cinzel',serif; font-weight:600; font-size:clamp(15px,3.6vw,26px); letter-spacing:.04em; color:#f1d48f; }
+.mc-wel h1 { margin:clamp(18px,4vh,32px) 0 10px; font-family:'Cormorant Garamond',serif; font-weight:600; line-height:1.02; text-shadow:0 3px 18px #1d140a88; }
+[dir='rtl'] .mc-wel h1 { font-family:var(--mc-serif); }
+.mc-wel h1 span { display:block; font-size:clamp(40px,11vw,76px); color:#fbf8f1; }
+.mc-wel h1 em { display:block; font-style:normal; font-size:clamp(45px,12.8vw,88px); background:linear-gradient(180deg,#fbe2a6,#d9a948 75%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.mc-wel-top p { margin:0 auto; width:88%; max-width:560px; font-size:clamp(15px,4vw,28px); line-height:1.2; color:#f7f1e3; text-shadow:0 2px 10px #1d140aaa; }
+.mc-wel-cta { position:relative; display:flex; justify-content:center; padding:24px 24px calc(28px + var(--mc-safe-b)); }
+.mc-wel-cta button { display:flex; align-items:center; justify-content:center; gap:14px; width:min(78%,310px); height:clamp(54px,7vh,66px); border-radius:999px; border:1.5px solid #d9b25c; background:linear-gradient(180deg,#0a5156,#023537); color:#fbf6ea; font-family:'Cormorant Garamond',serif; font-size:clamp(21px,5vw,26px); font-weight:600; cursor:pointer; box-shadow:0 12px 26px -10px #000b, inset 0 1px 0 #ffffff26; transition:transform .2s var(--mc-ease); }
+[dir='rtl'] .mc-wel-cta button { font-family:var(--mc-serif); }
+.mc-wel-cta button svg { color:#f1d48f; transition:transform .25s; }
+.mc-wel-cta button:hover svg { transform:translateX(4px); }
+[dir='rtl'] .mc-wel-cta button:hover svg { transform:scaleX(-1) translateX(4px); }
+.mc-wel-cta button:active { transform:scale(.97); }
+.mc-wel-cta button:focus-visible { outline:2px solid #f1d48f; outline-offset:3px; }
+@media (max-height:600px) { .mc-wel { min-height:600px; } }
+
+/* ===== Footer: reference-matched ===== */
+.mc-foot { margin-top:20px; color:#e8bf62; background:radial-gradient(90% 50% at 50% 0%,#0d4651 0%,transparent 70%),linear-gradient(180deg,#0a3b45 0%,#073039 100%); padding-bottom:calc(var(--mc-nav-h) + var(--mc-safe-b) + 22px); }
+.mc-foot-inner { max-width:500px; margin:0 auto; padding:36px 28px 26px; }
+.mc-foot-logo { display:flex; justify-content:center; margin-bottom:20px; }
+.mc-foot-logo img { width:min(64%,250px); height:auto; filter:drop-shadow(0 6px 14px #0006); }
+.mc-foot-acc { border-top:0; }
+.mc-facc { border-bottom:1px solid #c9a55c80; }
+.mc-facc summary { list-style:none; display:flex; align-items:center; justify-content:space-between; min-height:62px; padding:0 14px 0 14px; cursor:pointer; font-size:clamp(17px,4.4vw,20px); font-weight:500; color:#f0d08c; }
+.mc-facc summary::-webkit-details-marker { display:none; }
+.mc-facc summary:focus-visible { outline:2px solid #e8bf62; outline-offset:-2px; border-radius:6px; }
+.mc-facc summary svg { color:#e8bf62; transition:transform .25s var(--mc-ease); }
+.mc-facc[open] summary svg { transform:rotate(180deg); }
+.mc-facc-body { display:grid; padding:0 14px 14px; }
+.mc-facc-body a { min-height:44px; display:flex; align-items:center; color:#f4ead2!important; font-size:15px; }
+.mc-facc-body a:hover { color:#e8bf62!important; }
+.mc-foot-langs { display:flex; flex-wrap:wrap; gap:8px; }
+.mc-foot-langs button { min-height:44px; padding:0 16px; border-radius:999px; border:1px solid #c9a55c80; background:transparent; color:#f4ead2; cursor:pointer; font-size:14px; }
+.mc-foot-langs button.is-active { background:#e8bf62; color:#073039; border-color:#e8bf62; }
+.mc-foot-contact { display:grid; gap:22px; padding:30px 8px 4px; }
+.mc-foot-contact a { display:flex; align-items:flex-start; gap:clamp(18px,6vw,34px); min-height:44px; color:#f0d08c!important; }
+.mc-foot-contact a > svg { flex:none; width:30px; height:30px; color:#e8bf62; fill:#e8bf62; stroke:#0a3b45; stroke-width:1.2; margin-top:2px; }
+.mc-foot-contact .is-phone { font-size:clamp(21px,5.4vw,26px); font-weight:500; letter-spacing:.01em; align-self:center; }
+.mc-foot-contact a > span:not(.is-phone) { display:grid; gap:4px; font-size:clamp(15px,3.9vw,18px); line-height:1.35; color:#ead9b0; }
+.mc-foot-contact strong { font-size:clamp(18px,4.6vw,22px); font-weight:500; color:#f0d08c; }
+.mc-foot-follow { border-top:1.5px solid #e8bf62; }
+.mc-foot-follow > div { max-width:500px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 28px; }
+.mc-foot-follow > div > span { font-size:clamp(20px,5vw,25px); font-weight:500; color:#f0d08c; }
+.mc-foot-follow nav { display:flex; gap:10px; }
+.mc-foot-follow nav > * { width:48px; height:48px; display:grid; place-items:center; color:#e8bf62!important; border-radius:12px; transition:background .2s; }
+.mc-foot-follow nav a:hover { background:#ffffff12; }
+.mc-foot-follow nav svg { width:36px; height:36px; }
+.mc-foot-follow .is-disabled { opacity:.4; cursor:not-allowed; }
+@media (min-width:768px) { .mc-foot-inner, .mc-foot-follow > div { max-width:620px; } }
