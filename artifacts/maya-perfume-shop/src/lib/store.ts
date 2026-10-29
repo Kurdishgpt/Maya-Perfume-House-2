@@ -60,7 +60,7 @@ const en: Record<string, string> = {
   confirmTitle:'Your order is ready in WhatsApp', confirmBody:'Send the prepared message in WhatsApp. Your order is confirmed once Maya Collection replies. No payment has been taken.', reopen:'Open WhatsApp again', clearBag:'Clear bag and continue',
   order:'Maya Collection order', size:'Size', total:'Total', customer:'Customer', deliveryAddr:'Delivery address',
   pages:'Pages', support:'Customer Support', faq:'Frequently Asked Questions', shipping:'Shipping Information', returns:'Returns and Refunds', contactSupport:'Contact Support', privacy:'Privacy Policy', terms:'Terms and Conditions',
-  contactInfo:'Contact', storeName:'Maya collection perfumes', map:'Find us on Maps', followUs:'Follow us on', rights:'© MAYA COLLECTION. All rights reserved.', admin:'Admin',
+  contactInfo:'Contact', storeName:'Maya collection perfumes', map:'Find us on Maps', followUs:'Follow us on', rights:'© MAYA COLLECTION. All rights reserved.', admin:'Admin Panel',
   aboutTitle:'Fragrance, made personal.', aboutBody:'Maya Collection is a Sulaymaniyah fragrance house built around a simple idea: the right scent should feel like it has always belonged to you.',
   rawTitle:'The notes behind the feeling.', rawBody:'From the first bright impression to the warmth that stays close, every fragrance is a small composition with a story.',
   contactTitle:'Let us find your scent.', contactBody:'Tell us what you love and our team in Sulaymaniyah will help you choose. We are always happy to talk fragrance.',

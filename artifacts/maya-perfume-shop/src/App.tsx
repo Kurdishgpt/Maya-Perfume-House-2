@@ -65,8 +65,9 @@ function AdminGate() {
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
   const unlocked = status.data?.unlocked;
-  const submit = async (e: FormEvent) => { e.preventDefault(); setError(''); try { await unlock.mutateAsync({ data: { passcode } }); await status.refetch(); } catch { setError('That passcode could not unlock the collection. Please try again.'); } };
+  const submit = async (e: FormEvent) => { e.preventDefault(); setError(''); try { await unlock.mutateAsync({ data: { passcode } }); await status.refetch(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Admin access could not be checked. Please try again.'); } };
   if (status.isLoading) return <div className="mc-admin-gate"><div className="mc-admin-gate-card is-loading" data-testid="state-admin-checking"><Crown className="mc-gate-crown"/><p>Checking private access</p></div></div>;
+  if (status.isError) return <div className="mc-admin-gate"><div className="mc-admin-gate-card"><Crown className="mc-gate-crown"/><h1>Admin access unavailable</h1><p role="alert">The server could not check your access. Please try again.</p><button onClick={() => void status.refetch()} disabled={status.isFetching} data-testid="button-retry-admin-access">{status.isFetching ? 'Checking…' : 'Try again'}</button><Link href="/">Return to storefront</Link></div></div>;
   if (unlocked) return <AdminPanel/>;
   return <div className="mc-admin-gate"><form onSubmit={submit} className="mc-admin-gate-card">
     <Crown className="mc-gate-crown"/><span className="mc-kicker">MAYA COLLECTION · PRIVATE</span><h1>Admin access</h1><p>Enter your administrator passcode to continue.</p>

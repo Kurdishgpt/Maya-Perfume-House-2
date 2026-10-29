@@ -10,7 +10,7 @@ import { storePhone, storePhoneHref, whatsappLink } from '@/lib/store';
 const menuLinks = [
   { href: '/', key: 'home' }, { href: '/collection', key: 'collection' }, { href: '/collection?cat=women', key: 'women' },
   { href: '/collection?cat=men', key: 'men' }, { href: '/collection?cat=perfect', key: 'perfect' }, { href: '/raw-material', key: 'ingredients' },
-  { href: '/about', key: 'about' }, { href: '/contact', key: 'contact' },
+   { href: '/about', key: 'about' }, { href: '/contact', key: 'contact' }, { href: '/admin', key: 'admin' },
 ] as const;
 
 export function Header() {
@@ -30,7 +30,7 @@ export function Header() {
       <nav className="mc-sheet" onClick={(e) => e.stopPropagation()} aria-label="Main navigation">
         <div className="mc-sheet-head"><Wordmark compact/><button className="mc-header-btn" onClick={() => setOpen(false)} aria-label={t('closeMenu')} data-testid="button-close-menu"><X/></button></div>
         <div className="mc-sheet-links">
-          {menuLinks.map((l, i) => <Link key={l.href} href={l.href} style={{ animationDelay: `${i * 35}ms` }} data-testid={`mobile-nav-${l.key}`}><span>{t(l.key)}</span><ArrowRight size={15}/></Link>)}
+          {menuLinks.map((l, i) => <Link key={l.href} href={l.href} onClick={() => setOpen(false)} style={{ animationDelay: `${i * 35}ms` }} data-testid={`mobile-nav-${l.key}`}><span>{t(l.key)}</span><ArrowRight size={15}/></Link>)}
         </div>
         <div className="mc-sheet-foot">
           <a href={whatsappLink} target="_blank" rel="noreferrer" data-testid="menu-whatsapp"><FaWhatsapp/> {t('whatsappUs')}</a>
