@@ -16,6 +16,11 @@ const maxAttempts = 5;
 const attemptWindowMs = 15 * 60 * 1000;
 const failedAttempts = new Map<string, { count: number; startedAt: number }>();
 
+router.use("/admin/passcode", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 router.get("/admin/passcode", (req, res): void => {
   if (!process.env.SESSION_SECRET) {
     req.log.error("Admin session signing is not configured");

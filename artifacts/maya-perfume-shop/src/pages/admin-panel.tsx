@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { PerfumeResearch } from "@/components/store/perfume-research";
+import { CommaSeparatedInput } from "@/components/store/comma-separated-input";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -68,6 +69,20 @@ export default function AdminPanel() {
     try { return Number(localStorage.getItem("maya-low-stock") || 5); } catch { return 5; }
   });
   const fileInput = useRef<HTMLInputElement>(null);
+  const editorSession = useRef(0);
+  const originalDraft = useRef(JSON.stringify(blankDraft()));
+  const [uploading, setUploading] = useState(false);
+  const saving = createProduct.isPending || updateProduct.isPending;
+  const dirty = JSON.stringify(draft) !== originalDraft.current;
+  useEffect(() => {
+    if (!editorOpen || !dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [editorOpen, dirty]);
   const products = productsQuery.data ?? [];
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(), [products]);
   const brands = useMemo(() => [...new Set(products.map((p) => p.brand).filter(Boolean))].sort(), [products]);
@@ -89,28 +104,55 @@ export default function AdminPanel() {
     window.setTimeout(() => setToast(null), 4200);
   };
   const refresh = () => queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+  const signOut = async () => {
+    try {
+      await lockAdmin.mutateAsync();
+      queryClient.setQueryData(getGetAdminPasscodeStatusQueryKey(), { unlocked: false });
+      setLocation("/");
+    } catch (error) { notify("error", `Sign out failed. ${errText(error)}`); }
+  };
   const checkSync = async () => {
     const result = await productsQuery.refetch();
     setSyncChecked(new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }));
     notify(result.isError ? "error" : "success", result.isError ? "Storefront catalog could not be reached." : "Storefront catalog is up to date.");
   };
   const openCreate = (initialMode: EditorMode = "manual") => {
-    setEditTarget(null); setDraft(blankDraft()); setMode(initialMode); setAiQuery(""); setSuggestion(null); setEditorOpen(true);
+    editorSession.current += 1;
+    const initial = blankDraft();
+    originalDraft.current = JSON.stringify(initial);
+    setUploading(false);
+    setEditTarget(null); setDraft(initial); setMode(initialMode); setAiQuery(""); setSuggestion(null); setEditorOpen(true);
   };
   const openEdit = (product: Product) => {
     const { id: _id, created_at: _created, ...input } = product;
+    editorSession.current += 1;
+    originalDraft.current = JSON.stringify(input);
+    setUploading(false);
     setEditTarget(product); setDraft({ ...input }); setMode("manual"); setSuggestion(null); setEditorOpen(true);
+  };
+  const closeEditor = () => {
+    if (saving) return;
+    if ((dirty || uploading || autofill.isPending) && !window.confirm("Discard unsaved changes and close this fragrance?")) return;
+    editorSession.current += 1;
+    setUploading(false);
+    setEditorOpen(false);
   };
   const setField = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const setNotes = (key: "top_notes" | "heart_notes" | "base_notes" | "ingredients", value: string) =>
     setField(key, value.split(",").map((note) => note.trim()).filter(Boolean));
   const submitDraft = async (event: FormEvent) => {
     event.preventDefault();
+    if (saving || uploading || autofill.isPending) return;
     try {
-      const payload: ProductInput = { ...draft, price: Number(draft.price), stock: Number(draft.stock) };
+      const payload: ProductInput = { ...draft, title: draft.title.trim(), brand: draft.brand.trim(),
+        category: draft.category.trim(), sku: draft.sku.trim(), price: Number(draft.price), stock: Number(draft.stock) };
+      if (!payload.title || !payload.brand || !payload.category || !payload.sku) throw new Error("Enter a name, brand, category and SKU.");
+      if (!Number.isFinite(payload.price) || payload.price < 0) throw new Error("Enter a valid price of zero or more.");
+      if (!Number.isInteger(payload.stock) || payload.stock < 0) throw new Error("Stock must be a whole number of zero or more.");
       if (editTarget) await updateProduct.mutateAsync({ id: editTarget.id, data: payload });
       else await createProduct.mutateAsync({ data: payload });
       await refresh();
+      editorSession.current += 1;
       setEditorOpen(false);
       notify("success", editTarget ? "Fragrance details saved." : "Fragrance added to the collection.");
     } catch (error) { notify("error", errText(error)); }
@@ -124,28 +166,35 @@ export default function AdminPanel() {
   };
   const generateSuggestion = async () => {
     if (aiQuery.trim().length < 2) { notify("error", "Enter at least two characters for the fragrance name."); return; }
+    const session = editorSession.current;
     try {
       const result: FragranceSuggestion = await autofill.mutateAsync({ data: { query: aiQuery.trim() } });
+      if (session !== editorSession.current) return;
       const { image_results: _images, sources: _sources, warnings: _warnings, ...fields } = result;
       setSuggestion(result);
       setDraft((current) => ({ ...current, ...fields, price: current.price || fields.price,
         image_url: current.image_url, gallery_images: current.gallery_images,
         ingredients: current.ingredients, stock: current.stock, sku: current.sku }));
       notify("success", "Draft ready. Review the details and select photos below.");
-    } catch (error) { notify("error", errText(error)); }
+    } catch (error) { if (session === editorSession.current) notify("error", errText(error)); }
   };
   const uploadImage = async (file?: File) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) { notify("error", "Choose an image file."); return; }
+    if (uploading) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type)) { notify("error", "Choose a JPEG, PNG, WebP or AVIF image."); return; }
     if (file.size > 5 * 1024 * 1024) { notify("error", "Image must be 5 MB or smaller."); return; }
+    const session = editorSession.current;
+    setUploading(true);
     try {
       const signed = await requestUpload.mutateAsync({ data: { name: file.name, size: file.size, contentType: file.type } });
       const response = await fetch(signed.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
       if (!response.ok) throw new Error("Image upload did not complete.");
+      if (session !== editorSession.current) return;
       const objectPath = signed.objectPath.replace(/^\/objects\//, "");
       setField("image_url", `/api/storage/objects/${objectPath}`);
       notify("success", "Image uploaded and attached to this fragrance.");
-    } catch (error) { notify("error", errText(error)); }
+    } catch (error) { if (session === editorSession.current) notify("error", errText(error)); }
+    finally { if (session === editorSession.current) setUploading(false); }
   };
   const loading = access.isLoading || productsQuery.isLoading;
 
@@ -171,17 +220,17 @@ export default function AdminPanel() {
       <main className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-white/[.07] bg-[#002D32]/90 px-5 backdrop-blur-xl md:px-9">
           <div className="flex items-center gap-3"><button onClick={()=>setMobileNav(true)} className="rounded p-2 text-[#adb2ad] md:hidden" aria-label="Open navigation" data-testid="button-open-sidebar"><Menu size={18}/></button><span className="hidden text-[10px] uppercase tracking-[.14em] text-[#69736f] sm:inline">Maya Collection</span><span className="hidden text-[#4b5451] sm:inline">/</span><span className="text-[11px] uppercase tracking-[.12em] text-[#d3d0c7]" data-testid="text-current-page">{page}</span></div>
-          <div className="flex items-center gap-3"><span className="hidden items-center gap-2 text-[10px] text-[#929b96] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#8aa28c]"/>Catalog connected</span><span className="h-7 w-px bg-white/10"/><span className="text-[10px] tracking-[.08em] text-[#a0a59f]" data-testid="text-admin-date">ATELIER · {new Date().toLocaleDateString("en-US",{month:"short",day:"2-digit"})}</span><button onClick={() => lockAdmin.mutate(undefined, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: getGetAdminPasscodeStatusQueryKey() }); setLocation("/"); } })} className="rounded border border-white/10 px-3 py-2 text-[9px] uppercase tracking-[.12em] text-[#aeb5ae] hover:bg-white/[.05]" data-testid="button-admin-sign-out">Sign out</button></div>
+          <div className="flex items-center gap-3"><span className="hidden items-center gap-2 text-[10px] text-[#929b96] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#8aa28c]"/>Catalog connected</span><span className="h-7 w-px bg-white/10"/><span className="text-[10px] tracking-[.08em] text-[#a0a59f]" data-testid="text-admin-date">ATELIER · {new Date().toLocaleDateString("en-US",{month:"short",day:"2-digit"})}</span><button onClick={() => void signOut()} disabled={lockAdmin.isPending} className="rounded border border-white/10 px-3 py-2 text-[9px] uppercase tracking-[.12em] text-[#aeb5ae] hover:bg-white/[.05] disabled:opacity-50" data-testid="button-admin-sign-out">{lockAdmin.isPending ? "Signing out…" : "Sign out"}</button></div>
         </header>
         <div className="mx-auto max-w-[1500px] px-5 py-7 md:px-9 md:py-9">
-          {page==="Products"&&<ProductsView products={products} filtered={filtered} categories={categories} brands={brands} search={search} setSearch={setSearch} category={category} setCategory={setCategory} brand={brand} setBrand={setBrand} sort={sort} setSort={setSort} onCreate={openCreate} onEdit={openEdit} onDelete={setDeleteTarget} loading={productsQuery.isFetching}/>}
+          {page==="Products"&&<ProductsView products={products} filtered={filtered} categories={categories} brands={brands} search={search} setSearch={setSearch} category={category} setCategory={setCategory} brand={brand} setBrand={setBrand} sort={sort} setSort={setSort} onCreate={openCreate} onEdit={openEdit} onDelete={setDeleteTarget} loading={productsQuery.isFetching} threshold={lowStockThreshold}/>}
           {page==="Dashboard"&&<DashboardView products={products} lowStock={lowStock} threshold={lowStockThreshold} onProducts={()=>setPage("Products")} onCreate={()=>openCreate("manual")} onSync={()=>setPage("Storefront Sync")}/>}
           {page==="Storefront Sync"&&<SyncView products={products} checked={syncChecked || (productsQuery.dataUpdatedAt ? new Date(productsQuery.dataUpdatedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "Awaiting first check")} onCheck={()=>void checkSync()} checking={productsQuery.isFetching} connected={!productsQuery.isError} onProducts={()=>setPage("Products")}/>}
           {page==="Settings"&&<SettingsView threshold={lowStockThreshold} onThreshold={(value)=>{const safe=Math.max(0,Number(value)||0);setLowStockThreshold(safe);try{localStorage.setItem("maya-low-stock",String(safe));}catch{}}}/>}
         </div>
       </main>
     </div>
-    {editorOpen&&<ProductEditor research={<PerfumeResearch draft={draft} suggestion={suggestion} setField={setField}/>} draft={draft} setField={setField} setNotes={setNotes} mode={mode} setMode={setMode} editTarget={editTarget} onClose={()=>setEditorOpen(false)} onSubmit={submitDraft} onGenerate={generateSuggestion} aiQuery={aiQuery} setAiQuery={setAiQuery} aiPending={autofill.isPending} saving={createProduct.isPending||updateProduct.isPending} uploadPending={requestUpload.isPending} onPickFile={()=>fileInput.current?.click()} onFile={(file)=>uploadImage(file)} fileInput={fileInput}/>}
+    {editorOpen&&<ProductEditor research={<PerfumeResearch draft={draft} suggestion={suggestion} setField={setField}/>} draft={draft} setField={setField} setNotes={setNotes} mode={mode} setMode={setMode} editTarget={editTarget} onClose={closeEditor} onSubmit={submitDraft} onGenerate={generateSuggestion} aiQuery={aiQuery} setAiQuery={setAiQuery} aiPending={autofill.isPending} saving={saving} uploadPending={uploading} onPickFile={()=>fileInput.current?.click()} onFile={(file)=>uploadImage(file)} fileInput={fileInput}/>}
     {deleteTarget&&<div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4" role="presentation"><section role="alertdialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-[430px] rounded-xl border border-white/10 bg-[#033f44] p-6 shadow-2xl"><div className="grid h-11 w-11 place-items-center rounded-full border border-[#c7796a]/25 bg-[#c7796a]/10 text-[#d28b7b]"><Trash2 size={18}/></div><h2 id="delete-title" className="mt-5 font-serif text-2xl">Remove this fragrance?</h2><p className="mt-2 text-sm leading-6 text-[#9ba39e]"><span className="text-[#e5dfd1]">{deleteTarget.title}</span> will be removed from the catalog. This cannot be undone.</p><div className="mt-7 flex justify-end gap-3"><button onClick={()=>setDeleteTarget(null)} className="rounded-md border border-white/10 px-4 py-2.5 text-xs text-[#c6cbc5]" data-testid="button-cancel-delete">Keep fragrance</button><button onClick={confirmDelete} disabled={deleteProduct.isPending} className="inline-flex items-center gap-2 rounded-md bg-[#a9574d] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50" data-testid="button-confirm-delete">{deleteProduct.isPending&&<Loader2 size={14} className="animate-spin"/>}Remove</button></div></section></div>}
     {toast&&<div role="status" aria-live="polite" className={`fixed bottom-5 right-5 z-[80] flex max-w-[calc(100vw-40px)] items-center gap-3 rounded-lg border px-4 py-3 shadow-xl ${toast.tone==="success"?"border-[#7e9b84]/30 bg-[#1c2824] text-[#dce7db]":"border-[#bd7162]/30 bg-[#2a211f] text-[#f0d6cf]"}`} data-testid={`toast-${toast.tone}`}><span className={toast.tone==="success"?"text-[#a9c3a8]":"text-[#d28b7b]"}>{toast.tone==="success"?<CheckCircle2 size={17}/>:<AlertTriangle size={17}/>}</span><span className="text-xs leading-5">{toast.text}</span><button onClick={()=>setToast(null)} className="ml-2 text-current opacity-60 hover:opacity-100" aria-label="Dismiss notification" data-testid="button-dismiss-toast"><X size={14}/></button></div>}
   </div>;
@@ -190,15 +239,15 @@ export default function AdminPanel() {
 function ProductsView(props: {
   products: Product[]; filtered: Product[]; categories: string[]; brands: string[]; search: string; setSearch: (v:string)=>void;
   category:string; setCategory:(v:string)=>void; brand:string; setBrand:(v:string)=>void; sort:string; setSort:(v:string)=>void;
-  onCreate:(mode?:EditorMode)=>void; onEdit:(p:Product)=>void; onDelete:(p:Product)=>void; loading:boolean;
+  onCreate:(mode?:EditorMode)=>void; onEdit:(p:Product)=>void; onDelete:(p:Product)=>void; loading:boolean; threshold:number;
 }) {
-  const {products,filtered,categories,brands,search,setSearch,category,setCategory,brand,setBrand,sort,setSort,onCreate,onEdit,onDelete,loading}=props;
+  const {products,filtered,categories,brands,search,setSearch,category,setCategory,brand,setBrand,sort,setSort,onCreate,onEdit,onDelete,loading,threshold}=props;
   return <section className="animate-[fadeIn_.4s_ease-out]">
     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-[9px] font-semibold uppercase tracking-[.22em] text-[#a9956d]">CURATED CATALOG · {String(products.length).padStart(2,"0")} SCENTS</p><h1 className="mt-2 font-serif text-[34px] leading-tight tracking-[-.02em] text-[#eee9df] md:text-[42px]">The fragrance archive</h1><p className="mt-2 max-w-lg text-[12px] leading-5 text-[#8c9691]">Manage the compositions, materials and stories that shape the Maya Collection.</p></div><button onClick={()=>onCreate("manual")} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#D9AD45] px-5 text-[10px] font-semibold uppercase tracking-[.13em] text-[#1b201f] transition-colors hover:bg-[#F0D49A]" data-testid="button-add-product"><Plus size={15}/> Add fragrance</button></div>
     <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">{[
       {label:"Live fragrances",value:products.length,detail:"available in the archive",icon:Boxes},
       {label:"In stock",value:products.filter(p=>p.stock>0).length,detail:"ready for the storefront",icon:Package},
-      {label:"Low stock",value:products.filter(p=>p.stock<=5).length,detail:"at or below 5 units",icon:AlertTriangle},
+      {label:"Low stock",value:products.filter(p=>p.stock<=threshold).length,detail:`at or below ${threshold} units`,icon:AlertTriangle},
       {label:"Scent families",value:categories.length,detail:"distinct categories",icon:FlaskConical},
     ].map(({label,value,detail,icon:Icon})=><div key={label} className="rounded-lg border border-white/[.07] bg-[#023f44]/85 p-4 md:p-5" data-testid={`metric-card-${label.toLowerCase().replaceAll(" ","-")}`}><div className="flex items-center justify-between"><span className="text-[9px] uppercase tracking-[.14em] text-[#8c9691]">{label}</span><Icon size={15} className="text-[#a99770]"/></div><div className="mt-3 flex items-end justify-between gap-2"><span className="font-serif text-3xl text-[#e8e4d8]" data-testid={`metric-value-${label.toLowerCase().replaceAll(" ","-")}`}>{value}</span><span className="pb-1 text-right text-[9px] leading-4 text-[#68736e]">{detail}</span></div></div>)}</div>
     <div className="mt-7 overflow-hidden rounded-lg border border-white/[.08] bg-[#023f44]/90">
@@ -253,7 +302,7 @@ function ProductEditor({research,draft,setField,setNotes,mode,setMode,editTarget
   const labelClass="text-[9px] font-medium uppercase tracking-[.13em] text-[#aab1a9]";
   const noteString=(key:"top_notes"|"heart_notes"|"base_notes"|"ingredients")=>draft[key].join(", ");
   return <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-0 sm:p-5" role="presentation"><section role="dialog" aria-modal="true" aria-labelledby="editor-title" className="mx-auto min-h-[100dvh] w-full max-w-[1040px] border border-white/10 bg-[#023f44] shadow-2xl sm:my-4 sm:min-h-0 sm:rounded-xl">
-    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[.08] bg-[#023f44]/95 px-5 py-4 backdrop-blur md:px-7"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-md border border-[#c4ad7c]/20 bg-[#c4ad7c]/[.07] text-[#c9b582]"><FlaskConical size={17}/></div><div><p className="text-[8px] uppercase tracking-[.19em] text-[#a9956d]">{editTarget?"EDIT COMPOSITION":"NEW COMPOSITION"}</p><h2 id="editor-title" className="mt-0.5 font-serif text-xl text-[#e9e4d9]">{editTarget?`Edit ${editTarget.title}`:"Add a fragrance"}</h2></div></div><button onClick={onClose} className="grid h-9 w-9 place-items-center rounded text-[#9ba39e] hover:bg-white/[.06]" aria-label="Close editor" data-testid="button-close-editor"><X size={18}/></button></div>
+    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[.08] bg-[#023f44]/95 px-5 py-4 backdrop-blur md:px-7"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-md border border-[#c4ad7c]/20 bg-[#c4ad7c]/[.07] text-[#c9b582]"><FlaskConical size={17}/></div><div><p className="text-[8px] uppercase tracking-[.19em] text-[#a9956d]">{editTarget?"EDIT COMPOSITION":"NEW COMPOSITION"}</p><h2 id="editor-title" className="mt-0.5 font-serif text-xl text-[#e9e4d9]">{editTarget?`Edit ${editTarget.title}`:"Add a fragrance"}</h2></div></div><button onClick={onClose} disabled={saving} className="grid h-9 w-9 place-items-center rounded text-[#9ba39e] hover:bg-white/[.06] disabled:opacity-50" aria-label="Close editor" data-testid="button-close-editor"><X size={18}/></button></div>
     <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
       <form onSubmit={onSubmit} className="min-w-0 px-5 py-5 md:px-7 md:py-6">
         {!editTarget&&<div className="mb-6 flex w-fit rounded-md border border-white/[.08] bg-[#00262a] p-1" role="tablist" aria-label="Creation method"><button type="button" role="tab" aria-selected={mode==="manual"} onClick={()=>setMode("manual")} className={`rounded px-4 py-2 text-[9px] uppercase tracking-[.11em] ${mode==="manual"?"bg-[#343a36] text-[#e9e3d6]":"text-[#838d87] hover:text-[#d4d4ca]"}`} data-testid="tab-manual-mode">Manual</button><button type="button" role="tab" aria-selected={mode==="ai"} onClick={()=>setMode("ai")} className={`inline-flex items-center gap-1.5 rounded px-4 py-2 text-[9px] uppercase tracking-[.11em] ${mode==="ai"?"bg-[#343a36] text-[#e9e3d6]":"text-[#838d87] hover:text-[#d4d4ca]"}`} data-testid="tab-ai-mode"><Sparkles size={12}/>AI assisted</button></div>}
@@ -262,10 +311,10 @@ function ProductEditor({research,draft,setField,setNotes,mode,setMode,editTarget
           <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">01 · Identity</legend><div className="grid gap-3 sm:grid-cols-2"><label className={labelClass}>Fragrance name<input required value={draft.title} onChange={e=>setField("title",e.target.value)} placeholder="e.g. Rose No. 04" className={fieldClass} data-testid="input-product-title"/></label><label className={labelClass}>Brand<input required value={draft.brand} onChange={e=>setField("brand",e.target.value)} placeholder="Maya Collection" className={fieldClass} data-testid="input-product-brand"/></label><label className={labelClass}>Category<input required value={draft.category} onChange={e=>setField("category",e.target.value)} placeholder="Floral · Powdery" className={fieldClass} data-testid="input-product-category"/></label><label className={labelClass}>SKU<input required value={draft.sku} onChange={e=>setField("sku",e.target.value)} placeholder="MC-ROSE-04" className={fieldClass} data-testid="input-product-sku"/></label><label className={labelClass}>Price (USD)<input required min="0" step="0.01" type="number" value={draft.price} onChange={e=>setField("price",Number(e.target.value))} className={fieldClass} data-testid="input-product-price"/></label><label className={labelClass}>Stock on hand<input required min="0" step="1" type="number" value={draft.stock} onChange={e=>setField("stock",Number(e.target.value))} className={fieldClass} data-testid="input-product-stock"/></label></div></fieldset>
           <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">02 · The fragrance story</legend><label className={labelClass}>Description / scent story<textarea value={draft.description} onChange={e=>setField("description",e.target.value)} rows={4} placeholder="Describe the feeling, the setting, and how this composition unfolds…" className="mt-1.5 w-full resize-y rounded-md border border-white/[.1] bg-[#121819] px-3 py-3 text-[12px] leading-5 text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-description"/></label></fieldset>
           <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">03 · Olfactory pyramid</legend><div className="grid gap-3"><NoteInput label="Top notes" hint="The first impression" value={noteString("top_notes")} onChange={v=>setNotes("top_notes",v)} testId="input-top-notes" tone="top"/><NoteInput label="Heart notes" hint="The character at its heart" value={noteString("heart_notes")} onChange={v=>setNotes("heart_notes",v)} testId="input-heart-notes" tone="heart"/><NoteInput label="Base notes" hint="The lasting signature" value={noteString("base_notes")} onChange={v=>setNotes("base_notes",v)} testId="input-base-notes" tone="base"/></div><p className="mt-2 text-[9px] text-[#717c76]">Separate each note with a comma.</p></fieldset>
-          <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">04 · Materials & image</legend><label className={labelClass}>Cosmetic ingredients<textarea value={noteString("ingredients")} onChange={e=>setNotes("ingredients",e.target.value)} rows={2} placeholder="Alcohol denat., parfum, linalool…" className="mt-1.5 w-full resize-y rounded-md border border-white/[.1] bg-[#121819] px-3 py-2.5 text-[11px] leading-5 text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-ingredients"/></label><div className="mt-4"><label className={labelClass}>Image URL</label><div className="mt-1.5 flex gap-2"><input value={draft.image_url} onChange={e=>setField("image_url",e.target.value)} placeholder="https://… or uploaded image path" className="h-10 min-w-0 flex-1 rounded-md border border-white/[.1] bg-[#121819] px-3 text-[11px] text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-image-url"/><button type="button" onClick={onPickFile} disabled={uploadPending} className="inline-flex shrink-0 items-center gap-2 rounded-md border border-white/10 px-3 text-[9px] uppercase tracking-[.1em] text-[#bac0b8] hover:bg-white/[.05] disabled:opacity-50" data-testid="button-upload-image">{uploadPending?<Loader2 size={14} className="animate-spin"/>:<Upload size={14}/>}<span className="hidden sm:inline">{uploadPending?"Uploading":"Upload"}</span></button><input ref={fileInput} type="file" accept="image/*" className="sr-only" onChange={e=>{onFile(e.currentTarget.files?.[0]);e.currentTarget.value="";}} aria-label="Upload fragrance image" data-testid="input-product-image-file"/></div><p className="mt-2 text-[9px] text-[#717c76]">Enter an image URL or upload an image, up to 5 MB.</p></div></fieldset>
+          <fieldset><legend className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-[#c3b080]">04 · Materials & image</legend><label className={labelClass}>Cosmetic ingredients<CommaSeparatedInput value={noteString("ingredients")} onChange={v=>setNotes("ingredients",v)} multiline placeholder="Alcohol denat., parfum, linalool…" className="mt-1.5 w-full resize-y rounded-md border border-white/[.1] bg-[#121819] px-3 py-2.5 text-[11px] leading-5 text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" testId="input-product-ingredients"/></label><div className="mt-4"><label className={labelClass}>Image URL</label><div className="mt-1.5 flex gap-2"><input value={draft.image_url} onChange={e=>setField("image_url",e.target.value)} placeholder="https://… or uploaded image path" className="h-10 min-w-0 flex-1 rounded-md border border-white/[.1] bg-[#121819] px-3 text-[11px] text-[#e7e4dc] outline-none placeholder:text-[#5f6964] focus:border-[#b9a274]/65" data-testid="input-product-image-url"/><button type="button" onClick={onPickFile} disabled={uploadPending} className="inline-flex shrink-0 items-center gap-2 rounded-md border border-white/10 px-3 text-[9px] uppercase tracking-[.1em] text-[#bac0b8] hover:bg-white/[.05] disabled:opacity-50" data-testid="button-upload-image">{uploadPending?<Loader2 size={14} className="animate-spin"/>:<Upload size={14}/>}<span className="hidden sm:inline">{uploadPending?"Uploading":"Upload"}</span></button><input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={e=>{onFile(e.currentTarget.files?.[0]);e.currentTarget.value="";}} aria-label="Upload fragrance image" data-testid="input-product-image-file"/></div><p className="mt-2 text-[9px] text-[#717c76]">Enter an image URL or upload JPEG, PNG, WebP or AVIF, up to 5 MB.</p></div></fieldset>
         </div>
         {research}
-        <div className="sticky bottom-0 mt-7 flex justify-end gap-2 border-t border-white/[.07] bg-[#023f44]/95 py-4 backdrop-blur"><button type="button" onClick={onClose} className="rounded-md border border-white/10 px-4 py-2.5 text-[10px] text-[#adb4ad] hover:bg-white/[.04]" data-testid="button-cancel-editor">Cancel</button><button type="submit" disabled={saving||uploadPending||aiPending} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-5 py-2.5 text-[9px] font-semibold uppercase tracking-[.12em] text-[#1b201f] hover:bg-[#F0D49A] disabled:opacity-50" data-testid="button-save-product">{saving?<Loader2 size={14} className="animate-spin"/>:<Check size={14}/>} {saving?"Saving…":editTarget?"Save changes":"Add to collection"}</button></div>
+        <div className="sticky bottom-0 mt-7 flex justify-end gap-2 border-t border-white/[.07] bg-[#023f44]/95 py-4 backdrop-blur"><button type="button" onClick={onClose} disabled={saving} className="rounded-md border border-white/10 px-4 py-2.5 text-[10px] text-[#adb4ad] hover:bg-white/[.04] disabled:opacity-50" data-testid="button-cancel-editor">Cancel</button><button type="submit" disabled={saving||uploadPending||aiPending} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-5 py-2.5 text-[9px] font-semibold uppercase tracking-[.12em] text-[#1b201f] hover:bg-[#F0D49A] disabled:opacity-50" data-testid="button-save-product">{saving?<Loader2 size={14} className="animate-spin"/>:<Check size={14}/>} {saving?"Saving…":editTarget?"Save changes":"Add to collection"}</button></div>
       </form>
       <aside className="border-t border-white/[.07] bg-[#141a1c] px-5 py-6 lg:border-l lg:border-t-0" aria-label="Live fragrance preview"><div className="flex items-center justify-between"><div><p className="text-[8px] uppercase tracking-[.18em] text-[#a9956d]">LIVE PREVIEW</p><h3 className="mt-1 font-serif text-xl text-[#e7e2d7]">Olfactory pyramid</h3></div><span className="rounded-full border border-white/[.08] px-2 py-1 text-[8px] text-[#8a948d]" data-testid="text-preview-note-count">{notesCount} notes</span></div>
         <div className="mt-7"><PyramidLayer label="Top" descriptor="First impression" notes={draft.top_notes} color="amber" testId="preview-top-notes"/><div className="mx-auto h-4 w-px bg-gradient-to-b from-[#c5a66f]/50 to-[#95a18e]/45"/><PyramidLayer label="Heart" descriptor="The character" notes={draft.heart_notes} color="sage" testId="preview-heart-notes"/><div className="mx-auto h-4 w-px bg-gradient-to-b from-[#95a18e]/45 to-[#9b887c]/50"/><PyramidLayer label="Base" descriptor="Lasting signature" notes={draft.base_notes} color="rose" testId="preview-base-notes"/></div>
@@ -278,7 +327,7 @@ function ProductEditor({research,draft,setField,setNotes,mode,setMode,editTarget
 
 function NoteInput({label,hint,value,onChange,testId,tone}:{label:string;hint:string;value:string;onChange:(v:string)=>void;testId:string;tone:"top"|"heart"|"base"}) {
   const tones={top:"border-[#c3a66f]/20 bg-[#c3a66f]/[.035]",heart:"border-[#93a38b]/20 bg-[#93a38b]/[.035]",base:"border-[#a78c80]/20 bg-[#a78c80]/[.035]"};
-  return <label className={`block rounded-md border p-3 ${tones[tone]}`}><span className="flex items-center justify-between"><span className="text-[9px] font-semibold uppercase tracking-[.13em] text-[#c5c6bc]">{label}</span><span className="text-[8px] text-[#727d76]">{hint}</span></span><input value={value} onChange={e=>onChange(e.target.value)} placeholder="Bergamot, pink pepper,…" className="mt-2 h-8 w-full border-b border-white/[.09] bg-transparent text-[11px] text-[#dedbd1] outline-none placeholder:text-[#626d66] focus:border-[#c3a66f]/50" data-testid={testId}/></label>;
+  return <label className={`block rounded-md border p-3 ${tones[tone]}`}><span className="flex items-center justify-between"><span className="text-[9px] font-semibold uppercase tracking-[.13em] text-[#c5c6bc]">{label}</span><span className="text-[8px] text-[#727d76]">{hint}</span></span><CommaSeparatedInput value={value} onChange={onChange} placeholder="Bergamot, pink pepper,…" className="mt-2 h-8 w-full border-b border-white/[.09] bg-transparent text-[11px] text-[#dedbd1] outline-none placeholder:text-[#626d66] focus:border-[#c3a66f]/50" testId={testId}/></label>;
 }
 function PyramidLayer({label,descriptor,notes,color,testId}:{label:string;descriptor:string;notes:string[];color:"amber"|"sage"|"rose";testId:string}) {
   const palette={amber:{line:"#c5a66f",bg:"#c5a66f"},sage:{line:"#96a78e",bg:"#96a78e"},rose:{line:"#a58d82",bg:"#a58d82"}};
