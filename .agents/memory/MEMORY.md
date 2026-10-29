@@ -1,0 +1,1 @@
+- [Mobile brand direction](mobile-brand-direction.md) — User wants Maya’s entire shop mobile-first, guided by supplied teal-and-gold references.
