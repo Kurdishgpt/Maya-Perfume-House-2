@@ -28,6 +28,12 @@ import type {
   AdminPasscodeInput,
   AdminPasscodeStatus,
   AutofillFragranceInput,
+  ContactMessage,
+  ContactMessageInput,
+  ContactMessageReceived,
+  ContactMessageUpdate,
+  ContactSettings,
+  ContactSettingsUpdate,
   ErrorEnvelope,
   FragranceImageSearch,
   FragranceSuggestion,
@@ -2161,5 +2167,647 @@ export const useResearchRawMaterials = <TError = ErrorType<RawMaterialErrorRespo
         TContext
       > => {
       return useMutation(getResearchRawMaterialsMutationOptions(options), queryClient);
+    }
+
+export const getGetPublicContactSettingsUrl = () => {
+
+
+
+
+  return `/api/contact/settings`
+}
+
+/**
+ * @summary Read published store hours
+ */
+export const getPublicContactSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<ContactSettings> => {
+
+  return customFetch<ContactSettings>(getGetPublicContactSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicContactSettingsQueryKey = () => {
+    return [
+    `/api/contact/settings`
+    ] as const;
+    }
+
+
+export const getGetPublicContactSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getPublicContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicContactSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicContactSettings>>> = ({ signal }) => getPublicContactSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicContactSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicContactSettings>>>
+export type GetPublicContactSettingsQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useGetPublicContactSettings<TData = Awaited<ReturnType<typeof getPublicContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublicContactSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getPublicContactSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPublicContactSettings<TData = Awaited<ReturnType<typeof getPublicContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublicContactSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getPublicContactSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPublicContactSettings<TData = Awaited<ReturnType<typeof getPublicContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read published store hours
+ */
+
+export function useGetPublicContactSettings<TData = Awaited<ReturnType<typeof getPublicContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPublicContactSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitContactMessageUrl = () => {
+
+
+
+
+  return `/api/contact/messages`
+}
+
+/**
+ * @summary Save a customer message to the private store inbox
+ */
+export const submitContactMessage = async (contactMessageInput: ContactMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<ContactMessageReceived> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ContactMessageReceived>(getSubmitContactMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(contactMessageInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitContactMessageMutationKey = () => ['submitContactMessage'] as const;
+
+export const getSubmitContactMessageMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitContactMessage>>, TError,SubmitContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitContactMessage>>, TError,SubmitContactMessageMutationVariables, TContext> => {
+
+const mutationKey = getSubmitContactMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitContactMessage>>, SubmitContactMessageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitContactMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitContactMessageMutationResult = NonNullable<Awaited<ReturnType<typeof submitContactMessage>>>
+    export type SubmitContactMessageMutationBody = BodyType<ContactMessageInput>
+    export type SubmitContactMessageMutationError = ErrorType<RawMaterialErrorResponse>
+    export type SubmitContactMessageMutationVariables = {data: BodyType<ContactMessageInput>}
+
+    /**
+ * @summary Save a customer message to the private store inbox
+ */
+export const useSubmitContactMessage = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitContactMessage>>, TError,SubmitContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitContactMessage>>,
+        TError,
+        SubmitContactMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSubmitContactMessageMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminContactSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/contact/settings`
+}
+
+/**
+ * @summary Read admin-configurable contact settings
+ */
+export const getAdminContactSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<ContactSettings> => {
+
+  return customFetch<ContactSettings>(getGetAdminContactSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminContactSettingsQueryKey = () => {
+    return [
+    `/api/admin/contact/settings`
+    ] as const;
+    }
+
+
+export const getGetAdminContactSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminContactSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminContactSettings>>> = ({ signal }) => getAdminContactSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminContactSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminContactSettings>>>
+export type GetAdminContactSettingsQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useGetAdminContactSettings<TData = Awaited<ReturnType<typeof getAdminContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminContactSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminContactSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminContactSettings<TData = Awaited<ReturnType<typeof getAdminContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminContactSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminContactSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminContactSettings<TData = Awaited<ReturnType<typeof getAdminContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read admin-configurable contact settings
+ */
+
+export function useGetAdminContactSettings<TData = Awaited<ReturnType<typeof getAdminContactSettings>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminContactSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminContactSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminContactSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/contact/settings`
+}
+
+/**
+ * @summary Update store hours
+ */
+export const updateAdminContactSettings = async (contactSettingsUpdate: ContactSettingsUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ContactSettings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ContactSettings>(getUpdateAdminContactSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(contactSettingsUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminContactSettingsMutationKey = () => ['updateAdminContactSettings'] as const;
+
+export const getUpdateAdminContactSettingsMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactSettings>>, TError,UpdateAdminContactSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactSettings>>, TError,UpdateAdminContactSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminContactSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminContactSettings>>, UpdateAdminContactSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminContactSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminContactSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminContactSettings>>>
+    export type UpdateAdminContactSettingsMutationBody = BodyType<ContactSettingsUpdate>
+    export type UpdateAdminContactSettingsMutationError = ErrorType<RawMaterialErrorResponse>
+    export type UpdateAdminContactSettingsMutationVariables = {data: BodyType<ContactSettingsUpdate>}
+
+    /**
+ * @summary Update store hours
+ */
+export const useUpdateAdminContactSettings = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactSettings>>, TError,UpdateAdminContactSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminContactSettings>>,
+        TError,
+        UpdateAdminContactSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminContactSettingsMutationOptions(options), queryClient);
+    }
+
+export const getListAdminContactMessagesUrl = () => {
+
+
+
+
+  return `/api/admin/contact/messages`
+}
+
+/**
+ * @summary List messages in the admin-only inbox
+ */
+export const listAdminContactMessages = async ( options?: Parameters<typeof customFetch>[1]): Promise<ContactMessage[]> => {
+
+  return customFetch<ContactMessage[]>(getListAdminContactMessagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminContactMessagesQueryKey = () => {
+    return [
+    `/api/admin/contact/messages`
+    ] as const;
+    }
+
+
+export const getListAdminContactMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminContactMessages>>, TError = ErrorType<RawMaterialErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminContactMessagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminContactMessages>>> = ({ signal }) => listAdminContactMessages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAdminContactMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminContactMessages>>>
+export type ListAdminContactMessagesQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useListAdminContactMessages<TData = Awaited<ReturnType<typeof listAdminContactMessages>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminContactMessages>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminContactMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminContactMessages<TData = Awaited<ReturnType<typeof listAdminContactMessages>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminContactMessages>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminContactMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminContactMessages<TData = Awaited<ReturnType<typeof listAdminContactMessages>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List messages in the admin-only inbox
+ */
+
+export function useListAdminContactMessages<TData = Awaited<ReturnType<typeof listAdminContactMessages>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminContactMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAdminContactMessagesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminContactMessageUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/contact/messages/${id}`
+}
+
+/**
+ * @summary Mark a contact message as read or unread
+ */
+export const updateAdminContactMessage = async (id: number,
+    contactMessageUpdate: ContactMessageUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ContactMessage> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ContactMessage>(getUpdateAdminContactMessageUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(contactMessageUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminContactMessageMutationKey = () => ['updateAdminContactMessage'] as const;
+
+export const getUpdateAdminContactMessageMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactMessage>>, TError,UpdateAdminContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactMessage>>, TError,UpdateAdminContactMessageMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminContactMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminContactMessage>>, UpdateAdminContactMessageMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminContactMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminContactMessageMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminContactMessage>>>
+    export type UpdateAdminContactMessageMutationBody = BodyType<ContactMessageUpdate>
+    export type UpdateAdminContactMessageMutationError = ErrorType<RawMaterialErrorResponse>
+    export type UpdateAdminContactMessageMutationVariables = {id: number;data: BodyType<ContactMessageUpdate>}
+
+    /**
+ * @summary Mark a contact message as read or unread
+ */
+export const useUpdateAdminContactMessage = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminContactMessage>>, TError,UpdateAdminContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminContactMessage>>,
+        TError,
+        UpdateAdminContactMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminContactMessageMutationOptions(options), queryClient);
+    }
+
+export const getDeleteAdminContactMessageUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/contact/messages/${id}`
+}
+
+/**
+ * @summary Delete a contact message from the private inbox
+ */
+export const deleteAdminContactMessage = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminContactMessageUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminContactMessageMutationKey = () => ['deleteAdminContactMessage'] as const;
+
+export const getDeleteAdminContactMessageMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminContactMessage>>, TError,DeleteAdminContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminContactMessage>>, TError,DeleteAdminContactMessageMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAdminContactMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminContactMessage>>, DeleteAdminContactMessageMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminContactMessage(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminContactMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminContactMessage>>>
+
+    export type DeleteAdminContactMessageMutationError = ErrorType<RawMaterialErrorResponse>
+    export type DeleteAdminContactMessageMutationVariables = {id: number}
+
+    /**
+ * @summary Delete a contact message from the private inbox
+ */
+export const useDeleteAdminContactMessage = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminContactMessage>>, TError,DeleteAdminContactMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminContactMessage>>,
+        TError,
+        DeleteAdminContactMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAdminContactMessageMutationOptions(options), queryClient);
     }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { PerfumeResearch } from "@/components/store/perfume-research";
 import { CommaSeparatedInput } from "@/components/store/comma-separated-input";
 import { RawMaterialAdmin } from "@/components/store/raw-material-admin";
+import AdminContact from "@/pages/admin-contact";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -19,11 +20,11 @@ import {
 import type { FragranceSuggestion, Product, ProductInput } from "@workspace/api-client-react";
 import {
   AlertTriangle, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, Boxes, Check, CheckCircle2,
-  ChevronDown, CircleHelp, CloudUpload, ExternalLink, FlaskConical, LayoutDashboard, Loader2,
+  ChevronDown, CircleHelp, CloudUpload, ExternalLink, FlaskConical, LayoutDashboard, Loader2, Mail,
   Menu, Package, Pencil, Plus, Search, Settings2, Sparkles, Store, Trash2, Upload, X,
 } from "lucide-react";
 
-type Page = "Dashboard" | "Products" | "Raw Materials" | "Storefront Sync" | "Settings";
+type Page = "Dashboard" | "Products" | "Raw Materials" | "Storefront Sync" | "Inbox & Hours" | "Settings";
 type EditorMode = "manual" | "ai";
 type Draft = ProductInput;
 import { comparePrices, formatMoney } from "@/lib/money";
@@ -35,7 +36,8 @@ const blankDraft = (): Draft => ({
 const navItems: { label: Page; icon: typeof LayoutDashboard }[] = [
   { label: "Dashboard", icon: LayoutDashboard }, { label: "Products", icon: Package },
   { label: "Raw Materials", icon: FlaskConical },
-  { label: "Storefront Sync", icon: Store }, { label: "Settings", icon: Settings2 },
+  { label: "Storefront Sync", icon: Store }, { label: "Inbox & Hours", icon: Mail },
+  { label: "Settings", icon: Settings2 },
 ];
 const money = formatMoney;
 const errText = (error: unknown) => error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -232,6 +234,7 @@ export default function AdminPanel() {
           {page==="Raw Materials"&&<RawMaterialAdmin notify={notify}/>}
           {page==="Dashboard"&&<DashboardView products={products} lowStock={lowStock} threshold={lowStockThreshold} onProducts={()=>setPage("Products")} onCreate={()=>openCreate("manual")} onSync={()=>setPage("Storefront Sync")}/>}
           {page==="Storefront Sync"&&<SyncView products={products} checked={syncChecked || (productsQuery.dataUpdatedAt ? new Date(productsQuery.dataUpdatedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "Awaiting first check")} onCheck={()=>void checkSync()} checking={productsQuery.isFetching} connected={!productsQuery.isError} onProducts={()=>setPage("Products")}/>}
+          {page==="Inbox & Hours"&&<AdminContact/>}
           {page==="Settings"&&<SettingsView threshold={lowStockThreshold} onThreshold={(value)=>{const safe=Math.max(0,Number(value)||0);setLowStockThreshold(safe);try{localStorage.setItem("maya-low-stock",String(safe));}catch{}}}/>}
         </div>
       </main>

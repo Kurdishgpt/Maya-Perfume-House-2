@@ -2,3 +2,4 @@
 - [Perfume research scope](perfume-research-scope.md) — User approved Brave instead of Google for admin photo search; AI drafts require merchant review.
 - [Catalog pricing](catalog-pricing.md) — User chose IQD and USD support; preserve native amounts and merchant-entered bottle sizes.
 - [Raw-material sourcing](raw-material-sourcing.md) — Keep Hillen99 supplier prices unchanged, preserve merchant edits, and distinguish supplier stock from Maya’s inventory.
+- [Contact details integrity](contact-details-integrity.md) — Only display merchant-confirmed hours or location; never guess a map marker or address.

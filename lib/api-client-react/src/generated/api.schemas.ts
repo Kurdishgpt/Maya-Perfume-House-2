@@ -392,6 +392,89 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export interface ContactSettings {
+  /** @nullable */
+  store_hours: string | null;
+  /** @nullable */
+  updated_at: string | null;
+}
+
+export interface ContactSettingsUpdate {
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  store_hours: string | null;
+}
+
+export type ContactMessageInputSubject = typeof ContactMessageInputSubject[keyof typeof ContactMessageInputSubject];
+
+
+export const ContactMessageInputSubject = {
+  product: 'product',
+  order: 'order',
+  feedback: 'feedback',
+  store_info: 'store_info',
+  other: 'other',
+} as const;
+
+export interface ContactMessageInput {
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  full_name: string;
+  /**
+     * @minLength 3
+     * @maxLength 254
+     */
+  email: string;
+  /**
+     * @maxLength 32
+     * @nullable
+     * @pattern ^[+0-9() .-]{0,32}$
+     */
+  phone?: string | null;
+  subject: ContactMessageInputSubject;
+  /**
+     * @minLength 10
+     * @maxLength 2000
+     */
+  message: string;
+}
+
+export interface ContactMessageReceived {
+  id: number;
+  received: true;
+}
+
+export type ContactMessageSubject = typeof ContactMessageSubject[keyof typeof ContactMessageSubject];
+
+
+export const ContactMessageSubject = {
+  product: 'product',
+  order: 'order',
+  feedback: 'feedback',
+  store_info: 'store_info',
+  other: 'other',
+} as const;
+
+export interface ContactMessage {
+  id: number;
+  full_name: string;
+  email: string;
+  /** @nullable */
+  phone: string | null;
+  subject: ContactMessageSubject;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ContactMessageUpdate {
+  is_read: boolean;
+}
+
 /**
  * Invalid input, sign-in required, missing material, rate limit, or supplier/AI service unavailable.
  */

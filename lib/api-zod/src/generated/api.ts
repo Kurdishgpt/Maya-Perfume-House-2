@@ -718,3 +718,125 @@ export const ResearchRawMaterialsResponse = zod.object({
 })
 
 
+/**
+ * @summary Read published store hours
+ */
+export const GetPublicContactSettingsResponse = zod.object({
+  "store_hours": zod.string().nullable(),
+  "updated_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Save a customer message to the private store inbox
+ */
+export const submitContactMessageBodyFullNameMin = 2;
+export const submitContactMessageBodyFullNameMax = 100;
+
+export const submitContactMessageBodyEmailMin = 3;
+export const submitContactMessageBodyEmailMax = 254;
+
+export const submitContactMessageBodyPhoneMax = 32;
+
+
+export const submitContactMessageBodyPhoneRegExp = new RegExp('^[+0-9() .-]{0,32}$');
+export const submitContactMessageBodyMessageMin = 10;
+export const submitContactMessageBodyMessageMax = 2000;
+
+
+
+export const SubmitContactMessageBody = zod.object({
+  "full_name": zod.string().min(submitContactMessageBodyFullNameMin).max(submitContactMessageBodyFullNameMax),
+  "email": zod.string().email().min(submitContactMessageBodyEmailMin).max(submitContactMessageBodyEmailMax),
+  "phone": zod.string().max(submitContactMessageBodyPhoneMax).regex(submitContactMessageBodyPhoneRegExp).nullish(),
+  "subject": zod.enum(['product', 'order', 'feedback', 'store_info', 'other']),
+  "message": zod.string().min(submitContactMessageBodyMessageMin).max(submitContactMessageBodyMessageMax)
+})
+
+export const SubmitContactMessageResponse = zod.object({
+  "id": zod.number().int(),
+  "received": zod.literal(true)
+})
+
+
+/**
+ * @summary Read admin-configurable contact settings
+ */
+export const GetAdminContactSettingsResponse = zod.object({
+  "store_hours": zod.string().nullable(),
+  "updated_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Update store hours
+ */
+export const updateAdminContactSettingsBodyStoreHoursMax = 1000;
+
+
+
+export const UpdateAdminContactSettingsBody = zod.object({
+  "store_hours": zod.string().max(updateAdminContactSettingsBodyStoreHoursMax).nullable()
+})
+
+export const UpdateAdminContactSettingsResponse = zod.object({
+  "store_hours": zod.string().nullable(),
+  "updated_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary List messages in the admin-only inbox
+ */
+export const ListAdminContactMessagesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "full_name": zod.string(),
+  "email": zod.string().email(),
+  "phone": zod.string().nullable(),
+  "subject": zod.enum(['product', 'order', 'feedback', 'store_info', 'other']),
+  "message": zod.string(),
+  "is_read": zod.boolean(),
+  "created_at": zod.coerce.date()
+})
+export const ListAdminContactMessagesResponse = zod.array(ListAdminContactMessagesResponseItem)
+
+
+/**
+ * @summary Mark a contact message as read or unread
+ */
+
+
+
+export const UpdateAdminContactMessageParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const UpdateAdminContactMessageBody = zod.object({
+  "is_read": zod.boolean()
+})
+
+export const UpdateAdminContactMessageResponse = zod.object({
+  "id": zod.number().int(),
+  "full_name": zod.string(),
+  "email": zod.string().email(),
+  "phone": zod.string().nullable(),
+  "subject": zod.enum(['product', 'order', 'feedback', 'store_info', 'other']),
+  "message": zod.string(),
+  "is_read": zod.boolean(),
+  "created_at": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a contact message from the private inbox
+ */
+
+
+
+export const DeleteAdminContactMessageParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteAdminContactMessageResponse = zod.void()
+
+

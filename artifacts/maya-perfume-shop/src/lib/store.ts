@@ -1,4 +1,5 @@
 import type { Product as ApiProduct } from '@workspace/api-client-react';
+import { CONTACT_CONFIG } from '@/lib/contact-config';
 
 export type Language = 'en' | 'ku' | 'ar';
 export type StoreProduct = ApiProduct & { image_url: string; gallery_images: string[] };
@@ -7,10 +8,10 @@ export type T = (key: string) => string;
 export type CategoryKey = 'all' | 'women' | 'men' | 'perfect';
 export type FamilyKey = 'all' | 'floral' | 'woody' | 'fruity' | 'oriental';
 
-export const storePhone = '+964 770 157 5609';
-export const storePhoneHref = 'tel:+9647701575609';
+export const storePhone = CONTACT_CONFIG.phone;
+export const storePhoneHref = CONTACT_CONFIG.phoneHref;
 export const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
-export const storeMapLink = 'https://www.google.com/maps/search/?api=1&query=Kolak+Mall%2C+Mawlawi+Street%2C+Sulaymaniyah%2C+Iraq';
+export const storeMapLink = CONTACT_CONFIG.mapUrl;
 export const whatsappNumber = '9647701575609';
 export const whatsappLink = `https://wa.me/${whatsappNumber}`;
 export const instagramLink = 'https://www.instagram.com/khansarayperfums/';

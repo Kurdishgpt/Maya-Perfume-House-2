@@ -536,6 +536,106 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RawMaterialResearch" }
+  /contact/settings:
+    get:
+      operationId: getPublicContactSettings
+      tags: [contact]
+      summary: Read published store hours
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Configured store hours, if set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactSettings" }
+  /contact/messages:
+    post:
+      operationId: submitContactMessage
+      tags: [contact]
+      summary: Save a customer message to the private store inbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactMessageInput" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "201":
+          description: The message was saved successfully.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactMessageReceived" }
+  /admin/contact/settings:
+    get:
+      operationId: getAdminContactSettings
+      tags: [contact]
+      summary: Read admin-configurable contact settings
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Current contact settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactSettings" }
+    patch:
+      operationId: updateAdminContactSettings
+      tags: [contact]
+      summary: Update store hours
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactSettingsUpdate" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Updated contact settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactSettings" }
+  /admin/contact/messages:
+    get:
+      operationId: listAdminContactMessages
+      tags: [contact]
+      summary: List messages in the admin-only inbox
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Most recent contact messages.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ContactMessage" }
+  /admin/contact/messages/{id}:
+    patch:
+      operationId: updateAdminContactMessage
+      tags: [contact]
+      summary: Mark a contact message as read or unread
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactMessageUpdate" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Updated message state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactMessage" }
+    delete:
+      operationId: deleteAdminContactMessage
+      tags: [contact]
+      summary: Delete a contact message from the private inbox
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "204":
+          description: Message permanently deleted.
 components:
   responses:
     RawMaterialError:
@@ -1005,4 +1105,54 @@ components:
       properties:
         error:
           type: string
+    ContactSettings:
+      type: object
+      required: [store_hours, updated_at]
+      properties:
+        store_hours:
+          type: [string, "null"]
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+    ContactSettingsUpdate:
+      type: object
+      required: [store_hours]
+      properties:
+        store_hours:
+          type: [string, "null"]
+          maxLength: 1000
+    ContactMessageInput:
+      type: object
+      required: [full_name, email, subject, message]
+      properties:
+        full_name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, minLength: 3, maxLength: 254 }
+        phone: { type: [string, "null"], maxLength: 32, pattern: "^[+0-9() .-]{0,32}$" }
+        subject:
+          type: string
+          enum: [product, order, feedback, store_info, other]
+        message: { type: string, minLength: 10, maxLength: 2000 }
+    ContactMessageReceived:
+      type: object
+      required: [id, received]
+      properties:
+        id: { type: integer }
+        received: { type: boolean, enum: [true] }
+    ContactMessage:
+      type: object
+      required: [id, full_name, email, phone, subject, message, is_read, created_at]
+      properties:
+        id: { type: integer }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: [string, "null"] }
+        subject: { type: string, enum: [product, order, feedback, store_info, other] }
+        message: { type: string }
+        is_read: { type: boolean }
+        created_at: { type: string, format: date-time }
+    ContactMessageUpdate:
+      type: object
+      required: [is_read]
+      properties:
+        is_read: { type: boolean }
 

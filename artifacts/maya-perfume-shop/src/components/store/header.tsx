@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { ArrowRight, Heart, Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Wordmark } from '@/components/store/brand';
 import { LanguageMenu } from '@/components/store/language-menu';
@@ -19,12 +19,18 @@ export function Header() {
   useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [open]);
   const isHome = path === '/';
+  const isContact = path === '/contact';
   return <>
-    {!isHome && <div className="mc-announce" data-testid="announcement-delivery">{t('banner')}</div>}
-    <header className={`mc-header${isHome ? ' is-home' : ''}`}>
+    {!isHome && !isContact && <div className="mc-announce" data-testid="announcement-delivery">{t('banner')}</div>}
+      <header className={`mc-header${isHome ? ' is-home' : ''}${isContact ? ' is-contact' : ''}`}>
       <button className="mc-header-btn" onClick={() => setOpen(true)} aria-label={t('menu')} aria-expanded={open} data-testid="button-header-menu"><Menu/></button>
       {isHome ? <span/> : <Wordmark compact/>}
-      <LanguageMenu/>
+        <div className="mc-header-tools">
+          <Link href="/collection" className="mc-header-btn" aria-label="Search collection" data-testid="link-header-search"><Search/></Link>
+          <Link href="/wishlist" className="mc-header-btn" aria-label={t('wishlist')} data-testid="link-header-wishlist"><Heart/></Link>
+          <Link href="/bag" className="mc-header-btn" aria-label={t('bags')} data-testid="link-header-bag"><ShoppingBag/></Link>
+          <LanguageMenu/>
+        </div>
     </header>
     {open && <div className="mc-sheet-overlay" onClick={() => setOpen(false)} role="presentation">
       <nav className="mc-sheet" onClick={(e) => e.stopPropagation()} aria-label="Main navigation">
