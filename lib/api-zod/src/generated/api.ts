@@ -317,3 +317,192 @@ export const GetStorageObjectParams = zod.object({
 export const GetStorageObjectResponse = zod.unknown()
 
 
+/**
+ * @summary List published materials priced per gram
+ */
+export const ListRawMaterialsResponseItem = zod.object({
+  "source_id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "image_url": zod.string(),
+  "source_url": zod.string(),
+  "supplier_available": zod.boolean()
+}).and(zod.object({
+  "id": zod.number().int(),
+  "source_price": zod.number(),
+  "source_currency": zod.enum(['USD', 'IQD']),
+  "published": zod.boolean(),
+  "imported_at": zod.coerce.date()
+}))
+export const ListRawMaterialsResponse = zod.array(ListRawMaterialsResponseItem)
+
+
+/**
+ * @summary List all raw materials for administration
+ */
+export const ListAdminRawMaterialsResponseItem = zod.object({
+  "source_id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "image_url": zod.string(),
+  "source_url": zod.string(),
+  "supplier_available": zod.boolean()
+}).and(zod.object({
+  "id": zod.number().int(),
+  "source_price": zod.number(),
+  "source_currency": zod.enum(['USD', 'IQD']),
+  "published": zod.boolean(),
+  "imported_at": zod.coerce.date()
+}))
+export const ListAdminRawMaterialsResponse = zod.array(ListAdminRawMaterialsResponseItem)
+
+
+/**
+ * @summary Import one verified Hillen99 product at its original price
+ */
+
+
+
+export const AddHillenRawMaterialBody = zod.object({
+  "source_id": zod.number().int().min(1)
+})
+
+export const AddHillenRawMaterialResponse = zod.object({
+  "source_id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "image_url": zod.string(),
+  "source_url": zod.string(),
+  "supplier_available": zod.boolean()
+}).and(zod.object({
+  "id": zod.number().int(),
+  "source_price": zod.number(),
+  "source_currency": zod.enum(['USD', 'IQD']),
+  "published": zod.boolean(),
+  "imported_at": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Edit a material without changing the recorded supplier price
+ */
+
+
+
+export const UpdateRawMaterialParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateRawMaterialBodyNameMax = 500;
+
+export const updateRawMaterialBodyDescriptionMax = 3000;
+
+export const updateRawMaterialBodyCategoryMax = 150;
+
+export const updateRawMaterialBodyPriceMin = 0;
+export const updateRawMaterialBodyPriceMax = 99999999;
+
+
+
+export const UpdateRawMaterialBody = zod.object({
+  "name": zod.string().min(1).max(updateRawMaterialBodyNameMax).optional(),
+  "description": zod.string().max(updateRawMaterialBodyDescriptionMax).optional(),
+  "category": zod.string().min(1).max(updateRawMaterialBodyCategoryMax).optional(),
+  "price": zod.number().min(updateRawMaterialBodyPriceMin).max(updateRawMaterialBodyPriceMax).optional(),
+  "currency": zod.enum(['USD', 'IQD']).optional(),
+  "published": zod.boolean().optional()
+})
+
+export const UpdateRawMaterialResponse = zod.object({
+  "source_id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "image_url": zod.string(),
+  "source_url": zod.string(),
+  "supplier_available": zod.boolean()
+}).and(zod.object({
+  "id": zod.number().int(),
+  "source_price": zod.number(),
+  "source_currency": zod.enum(['USD', 'IQD']),
+  "published": zod.boolean(),
+  "imported_at": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Delete a raw material
+ */
+
+
+
+export const DeleteRawMaterialParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteRawMaterialResponse = zod.void()
+
+
+/**
+ * @summary Import one catalog page while preserving existing materials
+ */
+export const importHillenMaterialsBodyPageMax = 1000;
+
+
+
+export const ImportHillenMaterialsBody = zod.object({
+  "page": zod.number().int().min(1).max(importHillenMaterialsBodyPageMax)
+})
+
+export const ImportHillenMaterialsResponse = zod.object({
+  "page": zod.number().int(),
+  "total_pages": zod.number().int(),
+  "total": zod.number().int(),
+  "created": zod.number().int(),
+  "skipped": zod.number().int(),
+  "processed": zod.number().int(),
+  "complete": zod.boolean(),
+  "issues": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Search Hillen99 and get a grounded AI material summary
+ */
+export const researchRawMaterialsBodyQueryMin = 2;
+export const researchRawMaterialsBodyQueryMax = 120;
+
+
+
+export const ResearchRawMaterialsBody = zod.object({
+  "query": zod.string().min(researchRawMaterialsBodyQueryMin).max(researchRawMaterialsBodyQueryMax)
+})
+
+export const ResearchRawMaterialsResponse = zod.object({
+  "answer": zod.string(),
+  "matches": zod.array(zod.object({
+  "source_id": zod.number().int(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "image_url": zod.string(),
+  "source_url": zod.string(),
+  "supplier_available": zod.boolean()
+})),
+  "warning": zod.string()
+})
+
+

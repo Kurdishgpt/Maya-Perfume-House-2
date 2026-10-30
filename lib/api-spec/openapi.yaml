@@ -375,7 +375,119 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /raw-materials:
+    get:
+      operationId: listRawMaterials
+      tags: [raw-materials]
+      summary: List published materials priced per gram
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Published raw materials.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RawMaterial" }
+  /admin/raw-materials:
+    get:
+      operationId: listAdminRawMaterials
+      tags: [raw-materials]
+      summary: List all raw materials for administration
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: All raw materials.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RawMaterial" }
+    post:
+      operationId: addHillenRawMaterial
+      tags: [raw-materials]
+      summary: Import one verified Hillen99 product at its original price
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HillenMaterialInput" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Imported or already existing material.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RawMaterial" }
+  /admin/raw-materials/{id}:
+    patch:
+      operationId: updateRawMaterial
+      tags: [raw-materials]
+      summary: Edit a material without changing the recorded supplier price
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RawMaterialUpdate" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Saved material.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RawMaterial" }
+    delete:
+      operationId: deleteRawMaterial
+      tags: [raw-materials]
+      summary: Delete a raw material
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "204": { description: Deleted. }
+  /admin/raw-materials/import:
+    post:
+      operationId: importHillenMaterials
+      tags: [raw-materials]
+      summary: Import one catalog page while preserving existing materials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HillenImportInput" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Page result; continue until complete.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HillenImportResult" }
+  /admin/raw-materials/research:
+    post:
+      operationId: researchRawMaterials
+      tags: [raw-materials]
+      summary: Search Hillen99 and get a grounded AI material summary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RawMaterialQuery" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Verified supplier matches and AI explanation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RawMaterialResearch" }
 components:
+  responses:
+    RawMaterialError:
+      description: Invalid input, sign-in required, missing material, rate limit, or supplier/AI service unavailable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   schemas:
     HealthStatus:
       type: object
@@ -384,6 +496,75 @@ components:
           type: string
       required:
         - status
+    RawMaterialCandidate:
+      type: object
+      required: [source_id, name, description, category, price, currency, image_url, source_url, supplier_available]
+      properties:
+        source_id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        price: { type: number }
+        currency: { type: string, enum: [USD, IQD] }
+        image_url: { type: string }
+        source_url: { type: string }
+        supplier_available: { type: boolean }
+    RawMaterial:
+      allOf:
+        - { $ref: "#/components/schemas/RawMaterialCandidate" }
+        - type: object
+          required: [id, source_price, source_currency, published, imported_at]
+          properties:
+            id: { type: integer }
+            source_price: { type: number }
+            source_currency: { type: string, enum: [USD, IQD] }
+            published: { type: boolean }
+            imported_at: { type: string, format: date-time }
+    HillenMaterialInput:
+      type: object
+      required: [source_id]
+      properties:
+        source_id: { type: integer, minimum: 1 }
+    RawMaterialUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 500 }
+        description: { type: string, maxLength: 3000 }
+        category: { type: string, minLength: 1, maxLength: 150 }
+        price: { type: number, minimum: 0, maximum: 99999999 }
+        currency: { type: string, enum: [USD, IQD] }
+        published: { type: boolean }
+    HillenImportInput:
+      type: object
+      required: [page]
+      properties:
+        page: { type: integer, minimum: 1, maximum: 1000 }
+    HillenImportResult:
+      type: object
+      required: [page, total_pages, total, created, skipped, processed, complete, issues]
+      properties:
+        page: { type: integer }
+        total_pages: { type: integer }
+        total: { type: integer }
+        created: { type: integer }
+        skipped: { type: integer }
+        processed: { type: integer }
+        complete: { type: boolean }
+        issues: { type: array, items: { type: string } }
+    RawMaterialQuery:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 2, maxLength: 120 }
+    RawMaterialResearch:
+      type: object
+      required: [answer, matches, warning]
+      properties:
+        answer: { type: string }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/RawMaterialCandidate" }
+        warning: { type: string }
     Product:
       type: object
       required:

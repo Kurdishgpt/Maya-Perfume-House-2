@@ -9,6 +9,110 @@ export interface HealthStatus {
   status: string;
 }
 
+export type RawMaterialCandidateCurrency = typeof RawMaterialCandidateCurrency[keyof typeof RawMaterialCandidateCurrency];
+
+
+export const RawMaterialCandidateCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
+export interface RawMaterialCandidate {
+  source_id: number;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  currency: RawMaterialCandidateCurrency;
+  image_url: string;
+  source_url: string;
+  supplier_available: boolean;
+}
+
+export type RawMaterialSourceCurrency = typeof RawMaterialSourceCurrency[keyof typeof RawMaterialSourceCurrency];
+
+
+export const RawMaterialSourceCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
+export type RawMaterial = RawMaterialCandidate & {
+  id: number;
+  source_price: number;
+  source_currency: RawMaterialSourceCurrency;
+  published: boolean;
+  imported_at: string;
+};
+
+export interface HillenMaterialInput {
+  /** @minimum 1 */
+  source_id: number;
+}
+
+export type RawMaterialUpdateCurrency = typeof RawMaterialUpdateCurrency[keyof typeof RawMaterialUpdateCurrency];
+
+
+export const RawMaterialUpdateCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
+export interface RawMaterialUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  name?: string;
+  /** @maxLength 3000 */
+  description?: string;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  category?: string;
+  /**
+     * @minimum 0
+     * @maximum 99999999
+     */
+  price?: number;
+  currency?: RawMaterialUpdateCurrency;
+  published?: boolean;
+}
+
+export interface HillenImportInput {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  page: number;
+}
+
+export interface HillenImportResult {
+  page: number;
+  total_pages: number;
+  total: number;
+  created: number;
+  skipped: number;
+  processed: number;
+  complete: boolean;
+  issues: string[];
+}
+
+export interface RawMaterialQuery {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  query: string;
+}
+
+export interface RawMaterialResearch {
+  answer: string;
+  matches: RawMaterialCandidate[];
+  warning: string;
+}
+
 export type ProductCurrency = typeof ProductCurrency[keyof typeof ProductCurrency];
 
 
@@ -191,4 +295,9 @@ export interface UploadUrlResponse {
 export interface ErrorEnvelope {
   error: string;
 }
+
+/**
+ * Invalid input, sign-in required, missing material, rate limit, or supplier/AI service unavailable.
+ */
+export type RawMaterialErrorResponse = ErrorEnvelope;
 
