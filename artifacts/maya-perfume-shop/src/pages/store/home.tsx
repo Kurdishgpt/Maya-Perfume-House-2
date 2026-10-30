@@ -31,17 +31,6 @@ export default function Home() {
       </div>
     </section>
 
-    <section className="mc-story-marquee" aria-labelledby="home-story-heading">
-      <h2 id="home-story-heading" className="sr-only">{t('ourStoryHeading')}</h2>
-      <p className="sr-only">{t('storyMarquee')}</p>
-      <div className="mc-story-marquee-window" aria-hidden="true">
-        <div className="mc-story-marquee-track">
-          <span className="mc-story-marquee-copy" dir="auto">{t('storyMarquee')}</span>
-          <span className="mc-story-marquee-copy" dir="auto">{t('storyMarquee')}</span>
-        </div>
-      </div>
-    </section>
-
     <section className="mc-ref-sec">
       <h2 className="mc-ref-h2">{t('categories')}</h2>
       <CategoryGrid/>
