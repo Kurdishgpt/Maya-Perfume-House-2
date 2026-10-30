@@ -1,9 +1,26 @@
 import serverless from "serverless-http";
-import app from "./app";
 
-// Netlify rewrites /api/* to this function. basePath removes the function
-// routing prefix so Express receives the same /api/... path used on Replit.
-export const handler = serverless(app, {
-  basePath: "/.netlify/functions/api",
-  binary: ["image/*"],
-});
+type ServerlessHandler = ReturnType<typeof serverless>;
+
+let handlerPromise: Promise<ServerlessHandler> | undefined;
+
+function getHandler(): Promise<ServerlessHandler> {
+  // Netlify does not expose this platform marker consistently in function
+  // runtimes. Set it before importing routes, because @workspace/db checks it
+  // during module initialization when DATABASE_URL is intentionally absent.
+  process.env.NETLIFY = "true";
+
+  handlerPromise ??= import("./app").then(({ default: app }) =>
+    serverless(app, {
+      // Netlify rewrites /api/* to this function. Remove the function prefix so
+      // Express receives the same /api/... path used on Replit.
+      basePath: "/.netlify/functions/api",
+      binary: ["image/*"],
+    }),
+  );
+
+  return handlerPromise;
+}
+
+export const handler = async (...args: Parameters<ServerlessHandler>) =>
+  (await getHandler())(...args);
