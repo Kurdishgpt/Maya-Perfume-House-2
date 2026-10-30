@@ -1,11 +1,13 @@
 import { RequestUploadUrlBody, RequestUploadUrlResponse } from "@workspace/api-zod";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
+import { randomUUID } from "node:crypto";
 import {
   ObjectNotFoundError,
   ObjectStorageService,
 } from "../lib/objectStorage";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -35,6 +37,27 @@ router.post(
 
     try {
       const { name, size, contentType } = parsed.data;
+      if (isSupabaseConfigured()) {
+        const extension = contentType === "image/jpeg" ? "jpg"
+          : contentType === "image/png" ? "png"
+          : contentType === "image/webp" ? "webp"
+          : "avif";
+        const bucket = "maya-product-images";
+        const path = `products/${randomUUID()}.${extension}`;
+        const storage = getSupabaseAdmin().storage.from(bucket);
+        const { data, error } = await storage.createSignedUploadUrl(path);
+        if (error || !data) throw new Error("Supabase image upload could not be prepared.");
+        const { data: publicData } = storage.getPublicUrl(path);
+        res.json(RequestUploadUrlResponse.parse({
+          uploadURL: data.signedUrl,
+          objectPath: data.path,
+          uploadToken: data.token,
+          bucket,
+          publicUrl: publicData.publicUrl,
+          metadata: { name, size, contentType },
+        }));
+        return;
+      }
       const uploadURL = await objectStorage.getObjectEntityUploadURL();
       const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
       res.json(

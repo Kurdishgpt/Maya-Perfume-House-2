@@ -59,8 +59,10 @@ export const RawMaterialSourceCurrency = {
   IQD: 'IQD',
 } as const;
 
-export type RawMaterial = RawMaterialCandidate & {
+export type RawMaterial = RawMaterialCandidate & ({
   id: number;
+  /** @nullable */
+  supabase_id: string | null;
   source_name: string;
   source_category: string;
   source_image_url: string;
@@ -69,7 +71,7 @@ export type RawMaterial = RawMaterialCandidate & {
   source_currency: RawMaterialSourceCurrency;
   published: boolean;
   imported_at: string;
-};
+});
 
 export interface HillenMaterialInput {
   /** @minimum 1 */
@@ -219,6 +221,8 @@ export const ProductCurrency = {
 
 export interface Product {
   id: number;
+  /** @nullable */
+  supabase_id: string | null;
   title: string;
   brand: string;
   price: number;
@@ -316,6 +320,96 @@ export interface ProductUpdate {
   gallery_images?: string[];
 }
 
+export type OrderCheckoutInputPaymentMethod = typeof OrderCheckoutInputPaymentMethod[keyof typeof OrderCheckoutInputPaymentMethod];
+
+
+export const OrderCheckoutInputPaymentMethod = {
+  whatsapp: 'whatsapp',
+} as const;
+
+export type OrderCheckoutInputItemsItem = {
+  product_id: string;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     */
+  quantity: number;
+};
+
+export interface OrderCheckoutInput {
+  /**
+     * @minLength 2
+     * @maxLength 200
+     */
+  customer_name: string;
+  /**
+     * @minLength 7
+     * @maxLength 40
+     */
+  phone: string;
+  /** @nullable */
+  email?: string | null;
+  /**
+     * @minLength 3
+     * @maxLength 1000
+     */
+  shipping_address: string;
+  /**
+     * @minLength 2
+     * @maxLength 150
+     */
+  city: string;
+  /** @maxLength 2000 */
+  notes?: string;
+  payment_method: OrderCheckoutInputPaymentMethod;
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  items: OrderCheckoutInputItemsItem[];
+}
+
+export type OrderCheckoutConfirmationCurrency = typeof OrderCheckoutConfirmationCurrency[keyof typeof OrderCheckoutConfirmationCurrency];
+
+
+export const OrderCheckoutConfirmationCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
+export type OrderCheckoutConfirmationOrderStatus = typeof OrderCheckoutConfirmationOrderStatus[keyof typeof OrderCheckoutConfirmationOrderStatus];
+
+
+export const OrderCheckoutConfirmationOrderStatus = {
+  pending_confirmation: 'pending_confirmation',
+} as const;
+
+export type OrderCheckoutConfirmationPaymentStatus = typeof OrderCheckoutConfirmationPaymentStatus[keyof typeof OrderCheckoutConfirmationPaymentStatus];
+
+
+export const OrderCheckoutConfirmationPaymentStatus = {
+  pending: 'pending',
+} as const;
+
+export type OrderCheckoutConfirmationItemsItem = {
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+};
+
+export interface OrderCheckoutConfirmation {
+  order_id: string;
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  currency: OrderCheckoutConfirmationCurrency;
+  order_status: OrderCheckoutConfirmationOrderStatus;
+  payment_status: OrderCheckoutConfirmationPaymentStatus;
+  created_at: string;
+  items: OrderCheckoutConfirmationItemsItem[];
+}
+
 export interface AdminPasscodeInput {
   /**
      * @minLength 1
@@ -385,6 +479,9 @@ export interface UploadUrlRequest {
 export interface UploadUrlResponse {
   uploadURL: string;
   objectPath: string;
+  uploadToken?: string;
+  bucket?: string;
+  publicUrl?: string;
   metadata?: UploadUrlRequest;
 }
 

@@ -1,7 +1,6 @@
 import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 
-const adminPasscode = "perfume12341";
 const passcodeCookieName = "maya_admin_unlock";
 const passcodeCookieMaxAge = 30 * 60;
 

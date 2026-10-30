@@ -56,6 +56,7 @@ export const listProductsResponseBottleSizeMlMax = 10000;
 
 export const ListProductsResponseItem = zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
@@ -116,6 +117,7 @@ export const createProductResponseBottleSizeMlMax = 10000;
 
 export const CreateProductResponse = zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
@@ -181,6 +183,7 @@ export const updateProductResponseBottleSizeMlMax = 10000;
 
 export const UpdateProductResponse = zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
@@ -299,6 +302,9 @@ export const requestUploadUrlResponseMetadataSizeMax = 5242880;
 export const RequestUploadUrlResponse = zod.object({
   "uploadURL": zod.string().url(),
   "objectPath": zod.string(),
+  "uploadToken": zod.string().optional(),
+  "bucket": zod.string().optional(),
+  "publicUrl": zod.string().url().optional(),
   "metadata": zod.object({
   "name": zod.string().min(1),
   "size": zod.number().int().min(1).max(requestUploadUrlResponseMetadataSizeMax),
@@ -315,6 +321,62 @@ export const GetStorageObjectParams = zod.object({
 })
 
 export const GetStorageObjectResponse = zod.unknown()
+
+
+/**
+ * @summary Create a guest order using current database prices and stock
+ */
+export const createStoreOrderBodyCustomerNameMin = 2;
+export const createStoreOrderBodyCustomerNameMax = 200;
+
+export const createStoreOrderBodyPhoneMin = 7;
+export const createStoreOrderBodyPhoneMax = 40;
+
+export const createStoreOrderBodyShippingAddressMin = 3;
+export const createStoreOrderBodyShippingAddressMax = 1000;
+
+export const createStoreOrderBodyCityMin = 2;
+export const createStoreOrderBodyCityMax = 150;
+
+export const createStoreOrderBodyNotesDefault = ``;
+export const createStoreOrderBodyNotesMax = 2000;
+
+export const createStoreOrderBodyItemsItemQuantityMax = 10000;
+
+export const createStoreOrderBodyItemsMax = 50;
+
+
+
+export const CreateStoreOrderBody = zod.object({
+  "customer_name": zod.string().min(createStoreOrderBodyCustomerNameMin).max(createStoreOrderBodyCustomerNameMax),
+  "phone": zod.string().min(createStoreOrderBodyPhoneMin).max(createStoreOrderBodyPhoneMax),
+  "email": zod.string().email().nullish(),
+  "shipping_address": zod.string().min(createStoreOrderBodyShippingAddressMin).max(createStoreOrderBodyShippingAddressMax),
+  "city": zod.string().min(createStoreOrderBodyCityMin).max(createStoreOrderBodyCityMax),
+  "notes": zod.string().max(createStoreOrderBodyNotesMax).default(createStoreOrderBodyNotesDefault),
+  "payment_method": zod.enum(['whatsapp']),
+  "items": zod.array(zod.object({
+  "product_id": zod.string().uuid(),
+  "quantity": zod.number().int().min(1).max(createStoreOrderBodyItemsItemQuantityMax)
+})).min(1).max(createStoreOrderBodyItemsMax)
+})
+
+export const CreateStoreOrderResponse = zod.object({
+  "order_id": zod.string().uuid(),
+  "subtotal": zod.number(),
+  "shipping_fee": zod.number(),
+  "total": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "order_status": zod.enum(['pending_confirmation']),
+  "payment_status": zod.enum(['pending']),
+  "created_at": zod.coerce.date(),
+  "items": zod.array(zod.object({
+  "product_name": zod.string(),
+  "unit_price": zod.number(),
+  "quantity": zod.number().int(),
+  "line_total": zod.number()
+}))
+})
 
 
 /**
@@ -343,6 +405,7 @@ export const ListRawMaterialsResponseItem = zod.object({
 }))
 }).and(zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "source_name": zod.string(),
   "source_category": zod.string(),
   "source_image_url": zod.string(),
@@ -381,6 +444,7 @@ export const ListAdminRawMaterialsResponseItem = zod.object({
 }))
 }).and(zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "source_name": zod.string(),
   "source_category": zod.string(),
   "source_image_url": zod.string(),
@@ -426,6 +490,7 @@ export const AddHillenRawMaterialResponse = zod.object({
 }))
 }).and(zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "source_name": zod.string(),
   "source_category": zod.string(),
   "source_image_url": zod.string(),
@@ -490,6 +555,7 @@ export const UpdateRawMaterialResponse = zod.object({
 }))
 }).and(zod.object({
   "id": zod.number().int(),
+  "supabase_id": zod.string().uuid().nullable(),
   "source_name": zod.string(),
   "source_category": zod.string(),
   "source_image_url": zod.string(),

@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-zod";
 import { contactMessagesTable, db, storeContactSettingsTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
 
 const router: IRouter = Router();
 const defaultStoreHours = "10:00 AM – 10:00 PM";
@@ -42,6 +43,35 @@ function messageResponse(row: typeof contactMessagesTable.$inferSelect) {
   };
 }
 
+function supabaseSettingsResponse(row: { store_hours: string; updated_at: string | null } | null) {
+  return {
+    store_hours: row ? row.store_hours.trim() || null : defaultStoreHours,
+    updated_at: row?.updated_at ?? null,
+  };
+}
+
+function supabaseMessageResponse(row: {
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}) {
+  return {
+    id: row.id,
+    full_name: row.full_name,
+    email: row.email,
+    phone: row.phone,
+    subject: row.subject,
+    message: row.message,
+    is_read: row.is_read,
+    created_at: row.created_at,
+  };
+}
+
 function allowSubmission(ip: string) {
   const now = Date.now();
   if (submissionsByIp.size > 10_000) {
@@ -62,6 +92,21 @@ function allowSubmission(ip: string) {
 
 router.get("/contact/settings", async (_req, res): Promise<void> => {
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("site_settings")
+        .select("store_hours,updated_at")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) {
+        _req.log.error({ code: error.code }, "Failed to read Supabase contact settings");
+        res.status(503).json({ error: "Contact information is temporarily unavailable." });
+        return;
+      }
+      res.setHeader("Cache-Control", "no-store");
+      res.json(GetPublicContactSettingsResponse.parse(supabaseSettingsResponse(data)));
+      return;
+    }
     const [row] = await db.select().from(storeContactSettingsTable).where(eq(storeContactSettingsTable.id, 1)).limit(1);
     res.setHeader("Cache-Control", "no-store");
     res.json(GetPublicContactSettingsResponse.parse(settingsResponse(row)));
@@ -92,6 +137,26 @@ router.post("/contact/messages", async (req, res): Promise<void> => {
   }
 
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("contact_messages")
+        .insert({
+          full_name: fullName,
+          email,
+          phone: parsed.data.phone?.trim() || null,
+          subject: parsed.data.subject,
+          message,
+        })
+        .select("id")
+        .single();
+      if (error || !data) {
+        req.log.error({ code: error?.code }, "Failed to save Supabase contact message");
+        res.status(503).json({ error: "Your message could not be saved. Please try again." });
+        return;
+      }
+      res.status(201).json(SubmitContactMessageResponse.parse({ id: Number(data.id), received: true }));
+      return;
+    }
     const [saved] = await db.insert(contactMessagesTable).values({
       fullName,
       email,
@@ -118,6 +183,16 @@ router.use("/admin/contact", requireAdmin, (_req, res, next) => {
 
 router.get("/admin/contact/settings", async (_req, res): Promise<void> => {
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("site_settings")
+        .select("store_hours,updated_at")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw new Error("Supabase contact settings could not be loaded.");
+      res.json(GetAdminContactSettingsResponse.parse(supabaseSettingsResponse(data)));
+      return;
+    }
     const [row] = await db.select().from(storeContactSettingsTable).where(eq(storeContactSettingsTable.id, 1)).limit(1);
     res.json(GetAdminContactSettingsResponse.parse(settingsResponse(row)));
   } catch (error) {
@@ -135,6 +210,17 @@ router.patch("/admin/contact/settings", async (req, res): Promise<void> => {
 
   try {
     const storeHours = parsed.data.store_hours?.trim() || "";
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("site_settings")
+        .update({ store_hours: storeHours })
+        .eq("id", 1)
+        .select("store_hours,updated_at")
+        .single();
+      if (error || !data) throw new Error("Supabase store hours could not be saved.");
+      res.json(UpdateAdminContactSettingsResponse.parse(supabaseSettingsResponse(data)));
+      return;
+    }
     const [row] = await db.insert(storeContactSettingsTable)
       .values({ id: 1, storeHours })
       .onConflictDoUpdate({
@@ -151,6 +237,24 @@ router.patch("/admin/contact/settings", async (req, res): Promise<void> => {
 
 router.get("/admin/contact/messages", async (req, res): Promise<void> => {
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("contact_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error("Supabase contact messages could not be loaded.");
+      res.json(ListAdminContactMessagesResponse.parse((data ?? []).map((row) => supabaseMessageResponse({
+        id: Number(row.id),
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        subject: row.subject,
+        message: row.message,
+        is_read: row.is_read,
+        created_at: row.created_at,
+      }))));
+      return;
+    }
     const rows = await db.select().from(contactMessagesTable).orderBy(desc(contactMessagesTable.createdAt));
     res.json(ListAdminContactMessagesResponse.parse(rows.map(messageResponse)));
   } catch (error) {
@@ -168,6 +272,30 @@ router.patch("/admin/contact/messages/:id", async (req, res): Promise<void> => {
   }
 
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("contact_messages")
+        .update({ is_read: body.data.is_read })
+        .eq("id", params.data.id)
+        .select("*")
+        .maybeSingle();
+      if (error) throw new Error("Supabase contact message could not be updated.");
+      if (!data) {
+        res.status(404).json({ error: "Contact message not found." });
+        return;
+      }
+      res.json(UpdateAdminContactMessageResponse.parse(supabaseMessageResponse({
+        id: Number(data.id),
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        subject: data.subject,
+        message: data.message,
+        is_read: data.is_read,
+        created_at: data.created_at,
+      })));
+      return;
+    }
     const [row] = await db.update(contactMessagesTable)
       .set({ isRead: body.data.is_read })
       .where(eq(contactMessagesTable.id, params.data.id))
@@ -191,6 +319,21 @@ router.delete("/admin/contact/messages/:id", async (req, res): Promise<void> => 
   }
 
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("contact_messages")
+        .delete()
+        .eq("id", params.data.id)
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error("Supabase contact message could not be deleted.");
+      if (!data) {
+        res.status(404).json({ error: "Contact message not found." });
+        return;
+      }
+      res.status(204).end();
+      return;
+    }
     const deleted = await db.delete(contactMessagesTable).where(eq(contactMessagesTable.id, params.data.id)).returning({ id: contactMessagesTable.id });
     if (!deleted.length) {
       res.status(404).json({ error: "Contact message not found." });

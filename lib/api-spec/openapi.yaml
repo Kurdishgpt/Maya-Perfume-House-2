@@ -375,6 +375,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /orders:
+    post:
+      operationId: createStoreOrder
+      tags: [orders]
+      summary: Create a guest order using current database prices and stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCheckoutInput"
+      responses:
+        "201":
+          description: Order created and waiting for store confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderCheckoutConfirmation"
+        "400":
+          description: Invalid checkout details, mixed currencies, or unavailable product.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Supabase checkout is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /raw-materials:
     get:
       operationId: listRawMaterials
@@ -683,9 +713,10 @@ components:
       allOf:
         - { $ref: "#/components/schemas/RawMaterialCandidate" }
         - type: object
-          required: [id, source_name, source_category, source_image_url, source_available, source_price, source_currency, published, imported_at]
+          required: [id, supabase_id, source_name, source_category, source_image_url, source_available, source_price, source_currency, published, imported_at]
           properties:
             id: { type: integer }
+            supabase_id: { type: [string, "null"], format: uuid }
             source_name: { type: string }
             source_category: { type: string }
             source_image_url: { type: string }
@@ -779,6 +810,7 @@ components:
       type: object
       required:
         - id
+        - supabase_id
         - title
         - brand
         - price
@@ -798,6 +830,9 @@ components:
       properties:
         id:
           type: integer
+        supabase_id:
+          type: [string, "null"]
+          format: uuid
         title:
           type: string
         brand:
@@ -963,6 +998,49 @@ components:
           type: array
           items:
             type: string
+    OrderCheckoutInput:
+      type: object
+      required: [customer_name, phone, shipping_address, city, payment_method, items]
+      properties:
+        customer_name: { type: string, minLength: 2, maxLength: 200 }
+        phone: { type: string, minLength: 7, maxLength: 40 }
+        email: { type: [string, "null"], format: email }
+        shipping_address: { type: string, minLength: 3, maxLength: 1000 }
+        city: { type: string, minLength: 2, maxLength: 150 }
+        notes: { type: string, maxLength: 2000, default: "" }
+        payment_method: { type: string, enum: [whatsapp] }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id: { type: string, format: uuid }
+              quantity: { type: integer, minimum: 1, maximum: 10000 }
+    OrderCheckoutConfirmation:
+      type: object
+      required: [order_id, subtotal, shipping_fee, total, currency, order_status, payment_status, created_at, items]
+      properties:
+        order_id: { type: string, format: uuid }
+        subtotal: { type: number }
+        shipping_fee: { type: number }
+        total: { type: number }
+        currency: { type: string, enum: [USD, IQD] }
+        order_status: { type: string, enum: [pending_confirmation] }
+        payment_status: { type: string, enum: [pending] }
+        created_at: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            type: object
+            required: [product_name, unit_price, quantity, line_total]
+            properties:
+              product_name: { type: string }
+              unit_price: { type: number }
+              quantity: { type: integer }
+              line_total: { type: number }
     AdminPasscodeInput:
       type: object
       required: [passcode]
@@ -1097,6 +1175,13 @@ components:
           format: uri
         objectPath:
           type: string
+        uploadToken:
+          type: string
+        bucket:
+          type: string
+        publicUrl:
+          type: string
+          format: uri
         metadata:
           $ref: "#/components/schemas/UploadUrlRequest"
     ErrorEnvelope:

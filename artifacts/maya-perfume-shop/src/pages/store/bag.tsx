@@ -17,7 +17,7 @@ export function BagSummary({ compact = false }: { compact?: boolean }) {
 }
 
 export default function Bag() {
-  const { t, cart, rawMaterialCart, count, changeQty, removeLine, changeRawMaterialQty, removeRawMaterial } = useStore();
+  const { t, cart, rawMaterialCart, count, changeQty, removeLine, changeRawMaterialQty, removeRawMaterial, cartSyncState } = useStore();
   const back = useBack('/');
   const [, navigate] = useLocation();
   return <div className="mc-page mc-bag">
@@ -58,6 +58,7 @@ export default function Bag() {
           <strong className="mc-line-total" dir="ltr">{formatMoney(line.price * line.quantity, line.currency)}</strong>
         </li>)}
       </ul>
+      {count > 0 && <p className="mc-fine" role="status" data-testid="status-bag-sync">{cartSyncState === 'saved' ? 'Your bag is saved securely for this guest session.' : cartSyncState === 'syncing' ? 'Saving your bag…' : cartSyncState === 'unavailable' ? 'Your bag remains on this device; secure sync is currently unavailable.' : 'Your bag is saved on this device.'}</p>}
       {!!rawMaterialCart.length && <p className="mc-fine">{t('rawBagNote')}</p>}
       <aside className="mc-bag-side">
         <BagSummary/>

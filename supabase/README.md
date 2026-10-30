@@ -19,6 +19,7 @@ Restart the web and API workflows after changing secrets. `.env.example` contain
 2. Copy and run the complete `migrations/20261030123000_maya_collection_core.sql` file.
 3. Confirm that the `products`, `profiles`, `wishlist_items`, `carts`, `cart_items`, `orders`, `order_items`, `site_settings`, `contact_messages`, and `raw_material_import_runs` tables exist and RLS is enabled.
 4. In **Storage**, confirm the public `maya-product-images` bucket exists with a 5 MB limit and image-only MIME types.
+5. In the unlocked admin panel, open **Settings → Supabase database → Copy existing store data**. Review the returned inserted/duplicate/error counts, then repeat the operation if any transient errors were reported. The copy is non-destructive and does not overwrite Supabase records already present.
 
 The migration is additive and idempotent; it does not drop tables or delete existing data. The current Replit database remains intact as the migration source until the Supabase cutover is verified.
 
@@ -54,4 +55,6 @@ Do not clear or replace the Replit database as part of setup. The migration is n
 
 ## Current implementation status
 
-The schema and Supabase client foundations are present. Live database migration and end-to-end verification must be completed against the Supabase project before the app is described as fully integrated.
+The schema, server/client SDKs, admin transfer controls, catalog CSV tools, server-validated guest checkout, guest-bag sync, Supabase contact storage, and signed product-image uploads are implemented. When Supabase is not configured, public catalog reads stay on the existing Replit database and the admin connection panel reports the setup issue. Writes that require Supabase stay unavailable until configuration and schema setup are complete.
+
+Customer sign-in, cross-device wishlist syncing, an order-history/admin-order interface, and server-side catalog pagination are not part of this implementation. The checklist above still needs to be run against the actual Supabase project. Do not describe the migration as complete until the project URL is valid, the SQL migration is applied, existing rows are copied, and the checks pass.

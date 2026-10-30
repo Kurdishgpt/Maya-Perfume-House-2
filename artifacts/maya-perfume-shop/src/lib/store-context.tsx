@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useListProducts, type Product as ApiProduct, type RawMaterial } from '@workspace/api-client-react';
 import { copy, type CartLine, type Language, type StoreProduct, type T } from '@/lib/store';
 import { totalByCurrency, type MoneyTotals } from '@/lib/money';
 
-export type RawMaterialBagLine = Pick<RawMaterial, 'id' | 'source_id' | 'name' | 'category' | 'price' | 'currency' | 'unit' | 'image_url'> & { quantity: number };
+export type RawMaterialBagLine = Pick<RawMaterial, 'id' | 'supabase_id' | 'source_id' | 'name' | 'category' | 'price' | 'currency' | 'unit' | 'image_url'> & { quantity: number };
+const emptyProducts: StoreProduct[] = [];
 
 type StoreValue = {
   language: Language; setLanguage: (l: Language) => void; t: T; rtl: boolean;
@@ -11,6 +12,7 @@ type StoreValue = {
   wishlist: number[]; toggleWish: (id: number) => void;
   cart: CartLine[]; add: (p: ApiProduct, size: number | null, qty?: number) => void;
   rawMaterialCart: RawMaterialBagLine[]; addRawMaterial: (material: RawMaterial, quantity: number) => void;
+  cartSyncState: 'local' | 'syncing' | 'saved' | 'unavailable';
   changeRawMaterialQty: (id: number, delta: number) => void; removeRawMaterial: (id: number) => void;
   changeQty: (id: number, size: number | null, delta: number) => void; removeLine: (id: number, size: number | null) => void; clearCart: () => void;
   count: number; subtotal: MoneyTotals; bagPulse: number;
@@ -34,6 +36,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<number[]>(() => read('maya-wishlist', []));
   const [cart, setCart] = useState<CartLine[]>(() => read('maya-cart', []));
   const [rawMaterialCart, setRawMaterialCart] = useState<RawMaterialBagLine[]>(() => read('maya-raw-material-cart', []));
+  const [cartSyncState, setCartSyncState] = useState<StoreValue['cartSyncState']>('local');
+  const hasSyncedCart = useRef(false);
   const [bagPulse, setBagPulse] = useState(0);
   useEffect(() => {
     localStorage.setItem('maya-language', language);
@@ -43,9 +47,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('maya-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('maya-cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('maya-raw-material-cart', JSON.stringify(rawMaterialCart)); }, [rawMaterialCart]);
-  const products = (catalog.data ?? []) as StoreProduct[];
+  const products = (catalog.data ?? emptyProducts) as StoreProduct[];
   // Keep bag lines in sync with live catalog data (price, image, title) when available.
   const liveCart = useMemo(() => synchronizeCart(cart, products), [cart, products]);
+  useEffect(() => {
+    const items = [
+      ...liveCart.map((line) => ({ product_id: line.product.supabase_id, quantity: line.quantity })),
+      ...rawMaterialCart.map((line) => ({ product_id: line.supabase_id, quantity: line.quantity })),
+    ];
+    if (items.length === 0) {
+      if (hasSyncedCart.current) {
+        void fetch('/api/cart', { method: 'DELETE', credentials: 'same-origin' })
+          .then((response) => { if (response.ok) hasSyncedCart.current = false; })
+          .catch(() => undefined);
+      }
+      setCartSyncState('local');
+      return;
+    }
+    if (items.some((item) => !item.product_id)) {
+      setCartSyncState('local');
+      return;
+    }
+
+    let cancelled = false;
+    setCartSyncState('syncing');
+    const timer = window.setTimeout(() => {
+      void fetch('/api/cart', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then((response) => {
+        if (cancelled) return;
+        if (!response.ok) throw new Error('Could not sync bag.');
+        hasSyncedCart.current = true;
+        setCartSyncState('saved');
+      }).catch(() => {
+        if (!cancelled) setCartSyncState('unavailable');
+      });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [liveCart, rawMaterialCart]);
   const value: StoreValue = {
     language, setLanguage, rtl: language !== 'en',
     t: (key) => copy[language][key] || copy.en[key] || key,
@@ -53,6 +98,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     wishlist, toggleWish: (id) => setWishlist((old) => old.includes(id) ? old.filter((x) => x !== id) : [...old, id]),
     cart: liveCart,
     rawMaterialCart,
+    cartSyncState,
     add: (product, size, quantity = 1) => { setBagPulse((n) => n + 1); setCart((old) => {
       const item = product as StoreProduct;
       const found = old.find((l) => l.product.id === item.id);
@@ -68,6 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const existing = old.find((line) => line.id === material.id);
         const item: RawMaterialBagLine = {
           id: material.id,
+          supabase_id: material.supabase_id,
           source_id: material.source_id,
           name: material.name,
           category: material.category,

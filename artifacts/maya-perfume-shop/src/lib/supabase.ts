@@ -5,12 +5,22 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
 export const supabaseConfigured = Boolean(url && anonKey);
 
+export const supabaseUrlValid = (() => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+})();
+
 let client: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient {
-  if (!url || !anonKey) {
+  if (!url || !anonKey || !supabaseUrlValid) {
     throw new Error(
-      "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Replit Secrets, then restart the web workflow.",
+      "Supabase is not configured correctly. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Replit Secrets, then restart the web workflow.",
     );
   }
   client ??= createClient(url, anonKey, {

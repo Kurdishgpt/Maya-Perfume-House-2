@@ -19,8 +19,8 @@ import {
 } from "@workspace/api-client-react";
 import type { FragranceSuggestion, Product, ProductInput } from "@workspace/api-client-react";
 import {
-  AlertTriangle, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, Boxes, Check, CheckCircle2,
-  ChevronDown, CircleHelp, CloudUpload, ExternalLink, FlaskConical, LayoutDashboard, Loader2, Mail,
+  AlertTriangle, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, Boxes, Check, CheckCircle2, Database,
+  ChevronDown, CircleHelp, CloudUpload, Download, ExternalLink, FlaskConical, LayoutDashboard, Loader2, Mail,
   Menu, Package, Pencil, Plus, Search, Settings2, Sparkles, Store, Trash2, Upload, X,
 } from "lucide-react";
 
@@ -28,6 +28,7 @@ type Page = "Dashboard" | "Products" | "Raw Materials" | "Storefront Sync" | "In
 type EditorMode = "manual" | "ai";
 type Draft = ProductInput;
 import { comparePrices, formatMoney } from "@/lib/money";
+import { getSupabaseClient } from "@/lib/supabase";
 
 const blankDraft = (): Draft => ({
   title: "", brand: "", price: 0, currency: "USD", bottle_size_ml: null, stock: 0, sku: "", category: "", description: "",
@@ -194,11 +195,18 @@ export default function AdminPanel() {
     setUploading(true);
     try {
       const signed = await requestUpload.mutateAsync({ data: { name: file.name, size: file.size, contentType: file.type } });
-      const response = await fetch(signed.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-      if (!response.ok) throw new Error("Image upload did not complete.");
+      if (signed.uploadToken && signed.bucket && signed.publicUrl) {
+        const { error } = await getSupabaseClient()
+          .storage.from(signed.bucket)
+          .uploadToSignedUrl(signed.objectPath, signed.uploadToken, file, { contentType: file.type });
+        if (error) throw new Error("Image upload did not complete.");
+      } else {
+        const response = await fetch(signed.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+        if (!response.ok) throw new Error("Image upload did not complete.");
+      }
       if (session !== editorSession.current) return;
       const objectPath = signed.objectPath.replace(/^\/objects\//, "");
-      setField("image_url", `/api/storage/objects/${objectPath}`);
+      setField("image_url", signed.publicUrl || `/api/storage/objects/${objectPath}`);
       notify("success", "Image uploaded and attached to this fragrance.");
     } catch (error) { if (session === editorSession.current) notify("error", errText(error)); }
     finally { if (session === editorSession.current) setUploading(false); }
@@ -322,10 +330,155 @@ function SyncView({products,checked,onCheck,onProducts,checking,connected}:{prod
 }
 
 function SettingsView({threshold,onThreshold}:{threshold:number;onThreshold:(value:string)=>void}) {
+  const [supabaseStatus, setSupabaseStatus] = useState<{ status: string; message?: string }>({ status: "checking" });
+  const [checkingSupabase, setCheckingSupabase] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<{
+    source_counts: Record<string, number>;
+    inserted_counts: Record<string, number>;
+    duplicate_or_existing_counts: Record<string, number>;
+    errors: { record: string; reason: string }[];
+    complete: boolean;
+  } | null>(null);
+  const [migrationError, setMigrationError] = useState("");
+
+  const checkSupabase = async () => {
+    setCheckingSupabase(true);
+    try {
+      const response = await fetch("/api/supabase/status", { credentials: "same-origin" });
+      const result = await response.json() as { status?: string; message?: string };
+      setSupabaseStatus({
+        status: result.status ?? "unavailable",
+        message: result.message ?? (response.ok ? undefined : "The connection check failed."),
+      });
+    } catch {
+      setSupabaseStatus({ status: "unavailable", message: "Could not reach the API server." });
+    } finally {
+      setCheckingSupabase(false);
+    }
+  };
+
+  useEffect(() => {
+    void checkSupabase();
+  }, []);
+
+  const migrateLegacyData = async () => {
+    if (!window.confirm("Copy the existing catalog and contact inbox into Supabase? This leaves the current Replit database unchanged.")) return;
+    setMigrating(true);
+    setMigrationError("");
+    setMigrationResult(null);
+    try {
+      const response = await fetch("/api/admin/supabase/migrate-legacy", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const result = await response.json() as typeof migrationResult & { error?: string };
+      if (!response.ok && response.status !== 207) {
+        throw new Error(result?.error ?? "The data transfer failed.");
+      }
+      setMigrationResult(result);
+    } catch (error) {
+      setMigrationError(error instanceof Error ? error.message : "The data transfer failed.");
+    } finally {
+      setMigrating(false);
+    }
+  };
+
+  const connectionLabel = supabaseStatus.status === "connected"
+    ? "Connected"
+    : supabaseStatus.status === "checking" ? "Checking"
+    : supabaseStatus.status === "schema_not_ready" ? "Migration required"
+    : supabaseStatus.status === "invalid_configuration" ? "URL needs correction"
+    : supabaseStatus.status === "not_configured" ? "Not configured"
+    : "Unavailable";
+
   return <section data-testid="view-settings"><p className="text-[9px] font-semibold uppercase tracking-[.22em] text-[#a9956d]">WORKSPACE PREFERENCES</p><h1 className="mt-2 font-serif text-[36px] text-[#eee9df] md:text-[42px]">Settings</h1><p className="mt-2 max-w-lg text-[12px] leading-5 text-[#8c9691]">Small details that help keep the collection cared for.</p>
     <div className="mt-8 max-w-[850px] space-y-5"><div className="rounded-lg border border-white/[.07] bg-[#023f44] p-5 md:p-6"><div className="flex gap-4"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#c4ad7c]/20 bg-[#c4ad7c]/[.07] text-[#c4ad7c]"><Package size={17}/></div><div className="flex-1"><h2 className="font-serif text-xl text-[#e7e2d7]">Low-stock reminder</h2><p className="mt-1 max-w-lg text-[11px] leading-5 text-[#87918c]">Flag fragrances when available inventory reaches this number or lower. Preference is saved in this browser.</p><div className="mt-5 flex flex-wrap items-center gap-3"><label htmlFor="low-stock-threshold" className="text-[10px] uppercase tracking-[.12em] text-[#aab1aa]">Remind me at</label><input id="low-stock-threshold" type="number" min="0" max="9999" value={threshold} onChange={e=>onThreshold(e.target.value)} className="h-10 w-24 rounded-md border border-white/10 bg-[#00262a] px-3 font-mono text-sm text-[#e5e0d5] outline-none focus:border-[#b9a274]/60" data-testid="input-low-stock-threshold"/><span className="text-[10px] text-[#7c8781]">units remaining</span><span className="ml-auto inline-flex items-center gap-1.5 text-[9px] text-[#a9b9a4]" data-testid="status-preference-saved"><Check size={12}/>Saved automatically</span></div></div></div></div>
+      <div className="rounded-lg border border-white/[.07] bg-[#023f44] p-5 md:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-start"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#c4ad7c]/20 bg-[#c4ad7c]/[.07] text-[#c4ad7c]"><Database size={17}/></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h2 className="font-serif text-xl text-[#e7e2d7]">Supabase database</h2><span className={`rounded-full border px-2.5 py-1 text-[9px] uppercase tracking-[.1em] ${supabaseStatus.status === "connected" ? "border-[#89a78e]/25 text-[#aac2a6]" : "border-[#bd886a]/25 text-[#d4a687]"}`} data-testid="status-supabase-connection">{connectionLabel}</span></div><p className="mt-2 max-w-xl text-[11px] leading-5 text-[#87918c]">{supabaseStatus.message ?? "Check the server-side Supabase connection before moving catalog data."}</p><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => void checkSupabase()} disabled={checkingSupabase} className="rounded-md border border-white/10 px-3 py-2 text-[9px] uppercase tracking-[.1em] text-[#c6cbc5] disabled:opacity-50" data-testid="button-check-supabase">{checkingSupabase ? "Checking…" : "Check connection"}</button><button type="button" onClick={() => void migrateLegacyData()} disabled={migrating || supabaseStatus.status !== "connected"} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-3 py-2 text-[9px] font-semibold uppercase tracking-[.1em] text-[#1b201f] disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-migrate-supabase">{migrating ? <><Loader2 size={12} className="animate-spin"/>Copying records…</> : "Copy existing store data"}</button></div><p className="mt-3 text-[10px] leading-5 text-[#a8b2aa]">This copies existing products, raw materials, import history, contact messages, and store hours. It never deletes the source records or overwrites existing Supabase catalog entries. Supplier availability is kept separate from Maya’s stock.</p>{migrationError&&<p className="mt-3 text-[11px] text-[#f0c2b6]" role="alert" data-testid="text-supabase-migration-error">{migrationError}</p>}{migrationResult&&<div className="mt-4 rounded-md border border-white/[.08] bg-[#002b2f] p-3 text-[10px] leading-5 text-[#d4d8cf]" role="status" data-testid="state-supabase-migration-result"><p>{migrationResult.complete ? "Transfer complete." : "Transfer finished with some errors."} New records: {Object.values(migrationResult.inserted_counts).reduce((a,b)=>a+b,0)}. Existing/duplicate records: {Object.values(migrationResult.duplicate_or_existing_counts).reduce((a,b)=>a+b,0)}.</p>{migrationResult.errors.length>0&&<ul className="mt-2 list-disc pl-4 text-[#d4a687]">{migrationResult.errors.map((item,index)=><li key={`${item.record}-${index}`}>{item.record}: {item.reason}</li>)}</ul>}</div>}</div></div></div>
+      <CatalogCsvTools enabled={supabaseStatus.status === "connected"}/>
       <div className="rounded-lg border border-white/[.07] bg-[#023f44] p-5 md:p-6"><div className="flex gap-4"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 text-[#a7ada5]"><Store size={17}/></div><div><h2 className="font-serif text-xl text-[#e7e2d7]">Store identity</h2><p className="mt-1 text-[11px] text-[#87918c]">This workspace is connected to the Maya Collection storefront.</p><div className="mt-4 flex items-center gap-2 text-[10px] text-[#b6c4b1]" data-testid="status-settings-connection"><span className="h-1.5 w-1.5 rounded-full bg-[#92ad92]"/>Catalog connection active</div></div></div></div>
       <div className="flex gap-3 rounded-lg border border-[#c4ad7c]/15 bg-[#c4ad7c]/[.04] p-4"><CircleHelp size={15} className="mt-0.5 shrink-0 text-[#bba779]"/><p className="text-[10px] leading-5 text-[#929991]">Preferences here are local to this browser. No additional catalog records are created.</p></div>
+    </div>
+  </section>;
+}
+
+function CatalogCsvTools({ enabled }: { enabled: boolean }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<{
+    received: number;
+    imported: number;
+    inserted: number;
+    updated: number;
+    errors: { row: number; reason: string }[];
+  } | null>(null);
+
+  const importFile = async (file?: File) => {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error("Choose a CSV smaller than 10 MB.");
+      const response = await fetch("/api/admin/products/import.csv", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: await file.text() }),
+      });
+      const payload = await response.json() as typeof result & { error?: string };
+      if (!response.ok) throw new Error(payload?.error ?? "The CSV import failed.");
+      setResult(payload);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The CSV import failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exportFile = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/products/export.csv", { credentials: "same-origin" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(payload.error ?? "The catalog export failed.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "maya-collection-catalog.csv";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The catalog export failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <section className="rounded-lg border border-white/[.07] bg-[#023f44] p-5 md:p-6" data-testid="section-catalog-csv">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 text-[#a7ada5]"><Upload size={17}/></div>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-serif text-xl text-[#e7e2d7]">Catalog CSV</h2>
+        <p className="mt-1 max-w-xl text-[11px] leading-5 text-[#87918c]">Import up to 10,000 rows in batches or export the full catalog. Matching product slugs are updated; rows without an explicit active value stay unpublished. Raw-material inventory is never inferred from supplier availability.</p>
+        <input ref={inputRef} type="file" accept=".csv,text/csv" className="sr-only" aria-label="Choose catalog CSV file" onChange={(event) => { void importFile(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-catalog-csv"/>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={() => inputRef.current?.click()} disabled={!enabled || busy} className="inline-flex items-center gap-2 rounded-md bg-[#D9AD45] px-3 py-2 text-[9px] font-semibold uppercase tracking-[.1em] text-[#1b201f] disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-import-catalog-csv">{busy ? <Loader2 size={12} className="animate-spin"/> : <Upload size={12}/>}Import CSV</button>
+          <button type="button" onClick={() => void exportFile()} disabled={!enabled || busy} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-[9px] uppercase tracking-[.1em] text-[#c6cbc5] disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-export-catalog-csv">{busy ? <Loader2 size={12} className="animate-spin"/> : <Download size={12}/>}Export CSV</button>
+        </div>
+        {error && <p className="mt-3 text-[11px] text-[#f0c2b6]" role="alert" data-testid="text-catalog-csv-error">{error}</p>}
+        {result && <div className="mt-4 rounded-md border border-white/[.08] bg-[#002b2f] p-3 text-[10px] leading-5 text-[#d4d8cf]" role="status" data-testid="state-catalog-csv-result">
+          <p>Read {result.received} rows; saved {result.imported} ({result.inserted} new, {result.updated} updated). {result.errors.length} row errors.</p>
+          {result.errors.length > 0 && <ul className="mt-2 max-h-36 list-disc space-y-1 overflow-auto pl-4 text-[#d4a687]">{result.errors.slice(0, 20).map((item, index) => <li key={`${item.row}-${index}`}>Row {item.row}: {item.reason}</li>)}</ul>}
+        </div>}
+      </div>
     </div>
   </section>;
 }

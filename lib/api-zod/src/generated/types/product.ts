@@ -9,6 +9,8 @@ import type { ProductCurrency } from './productCurrency';
 
 export interface Product {
   id: number;
+  /** @nullable */
+  supabase_id: string | null;
   title: string;
   brand: string;
   price: number;

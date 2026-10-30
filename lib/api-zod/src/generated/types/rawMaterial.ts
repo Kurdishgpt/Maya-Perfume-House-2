@@ -8,8 +8,10 @@
 import type { RawMaterialCandidate } from './rawMaterialCandidate';
 import type { RawMaterialSourceCurrency } from './rawMaterialSourceCurrency';
 
-export type RawMaterial = RawMaterialCandidate & {
+export type RawMaterial = RawMaterialCandidate & ({
   id: number;
+  /** @nullable */
+  supabase_id: string | null;
   source_name: string;
   source_category: string;
   source_image_url: string;
@@ -18,4 +20,4 @@ export type RawMaterial = RawMaterialCandidate & {
   source_currency: RawMaterialSourceCurrency;
   published: boolean;
   imported_at: Date;
-};
+});

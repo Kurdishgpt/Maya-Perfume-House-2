@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useLocation } from 'wouter';
 import { Check, FlaskConical, MessageCircle, Pencil } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
+import { useCreateStoreOrder, useListRawMaterials, type OrderCheckoutConfirmation } from '@workspace/api-client-react';
 import { PageBar } from '@/components/store/header';
 import { whatsappNumber } from '@/lib/store';
 import { formatMoney, formatTotals } from '@/lib/money';
@@ -19,6 +20,11 @@ export default function Checkout() {
   const [d, setD] = useState<Details>(() => { try { return { name: '', phone: '', city: '', address: '', notes: '', ...JSON.parse(localStorage.getItem('maya-checkout') || '{}') }; } catch { return { name: '', phone: '', city: '', address: '', notes: '' }; } });
   const [errors, setErrors] = useState<Partial<Record<keyof Details, string>>>({});
   const [link, setLink] = useState('');
+  const [orderError, setOrderError] = useState('');
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderCheckoutConfirmation | null>(null);
+  const [sending, setSending] = useState(false);
+  const createOrder = useCreateStoreOrder();
+  const rawMaterialsQuery = useListRawMaterials();
 
   const set = (k: keyof Details, v: string) => { setD((o) => ({ ...o, [k]: v })); if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined })); };
   const validate = (e: FormEvent) => {
@@ -31,19 +37,60 @@ export default function Checkout() {
     localStorage.setItem('maya-checkout', JSON.stringify({ name: d.name, phone: d.phone, city: d.city, address: d.address }));
     setStep('review'); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const send = () => {
-    const rows = [
-      ...cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`),
-      ...rawMaterialCart.map((line) => `- ${t('rawMaterialLabel')}: ${line.name} (${line.category}) - ${line.quantity} ${line.unit === 'g' ? t('rawUnitGram') : t('rawUnitItemPlural')} x ${formatMoney(line.price, line.currency)} ${t('rawPer')} ${line.unit === 'g' ? t('rawUnitGram') : t('rawUnitItem')} = ${formatMoney(line.price * line.quantity, line.currency)} (${t('estimateLabel')})`),
-    ].join('\n');
-    const rawMaterialNote = rawMaterialCart.length
-      ? `\n\n${t('rawAvailability')}`
-      : '';
-    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatTotals(subtotal)}${rawMaterialNote}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
-    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-    setLink(url);
-    window.open(url, '_blank', 'noopener,noreferrer');
-    setStep('done'); window.scrollTo({ top: 0, behavior: 'smooth' });
+  const send = async () => {
+    if (sending) return;
+    setOrderError('');
+    const items: { product_id: string; quantity: number }[] = [];
+    for (const line of cart) {
+      if (!line.product.supabase_id) {
+        setOrderError('This fragrance is not linked to the live catalog yet. Refresh the shop and try again.');
+        return;
+      }
+      items.push({ product_id: line.product.supabase_id, quantity: line.quantity });
+    }
+    const rawCatalog = rawMaterialsQuery.data ?? [];
+    for (const line of rawMaterialCart) {
+      const productId = line.supabase_id || rawCatalog.find((item) => item.source_id === line.source_id)?.supabase_id;
+      if (!productId) {
+        setOrderError('This raw material is not linked to the live catalog yet. Refresh the raw-material page and try again.');
+        return;
+      }
+      items.push({ product_id: productId, quantity: line.quantity });
+    }
+
+    setSending(true);
+    const popup = window.open('about:blank', '_blank');
+    try {
+      const confirmed = await createOrder.mutateAsync({
+        data: {
+          customer_name: d.name,
+          phone: d.phone,
+          shipping_address: d.address,
+          city: d.city,
+          notes: d.notes,
+          payment_method: 'whatsapp',
+          items,
+        },
+      });
+      const rows = confirmed.items.map((item) =>
+        `- ${item.product_name} x ${item.quantity} = ${formatMoney(item.line_total, confirmed.currency)}`,
+      ).join('\n');
+      const message = `${t('order')} #${confirmed.order_id.slice(0, 8)}\n\n${rows}\n\n${t('subtotal')}: ${formatMoney(confirmed.subtotal, confirmed.currency)}\n${t('delivery')}: ${formatMoney(confirmed.shipping_fee, confirmed.currency)}\n${t('total')}: ${formatMoney(confirmed.total, confirmed.currency)}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}${rawMaterialCart.length ? `\n\n${t('rawAvailability')}` : ''}`;
+      const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+      setOrderConfirmation(confirmed);
+      setLink(url);
+      if (popup) {
+        popup.opener = null;
+        popup.location.href = url;
+      }
+      setStep('done');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      popup?.close();
+      setOrderError(error instanceof Error ? error.message : 'The order could not be confirmed. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   if (step === 'done') return <div className="mc-page">
@@ -51,6 +98,7 @@ export default function Checkout() {
       <span className="mc-confirm-ring"><Check/></span>
       <h1>{t('confirmTitle')}</h1>
       <p>{t('confirmBody')}</p>
+      {orderConfirmation && <p className="mc-fine is-center">Order #{orderConfirmation.order_id.slice(0, 8)} · {formatMoney(orderConfirmation.total, orderConfirmation.currency)} · pending Maya’s confirmation.</p>}
       <a href={link} target="_blank" rel="noreferrer" className="mc-teal-btn is-block" data-testid="link-reopen-whatsapp"><FaWhatsapp/> {t('reopen')}</a>
       <button className="mc-ghost-btn is-block" onClick={() => { clearCart(); navigate('/'); }} data-testid="button-clear-bag">{t('clearBag')}</button>
     </section>
@@ -77,7 +125,8 @@ export default function Checkout() {
       </form> : <section className="mc-review">
         <div className="mc-review-card"><div className="mc-review-head"><h3>{t('customer')}</h3><button onClick={() => setStep('details')} className="mc-text-btn" data-testid="button-edit-details"><Pencil size={14}/> {t('editDetails')}</button></div>
           <dl><dt>{t('name')}</dt><dd>{d.name}</dd><dt>{t('phone')}</dt><dd dir="ltr">{d.phone}</dd><dt>{t('city')}</dt><dd>{d.city}</dd><dt>{t('address')}</dt><dd>{d.address}</dd>{d.notes.trim() && <><dt>{t('notesField')}</dt><dd>{d.notes}</dd></>}<dt>{t('payment')}</dt><dd>{t('payWhatsapp')}</dd></dl></div>
-        <button className="mc-teal-btn is-block is-whatsapp" onClick={send} data-testid="button-whatsapp-order"><FaWhatsapp/> {t('sendWhatsapp')}</button>
+        {orderError && <p role="alert" className="mc-form-error">{orderError}</p>}
+        <button className="mc-teal-btn is-block is-whatsapp" onClick={() => void send()} disabled={sending} data-testid="button-whatsapp-order">{sending ? 'Saving order…' : <><FaWhatsapp/> {t('sendWhatsapp')}</>}</button>
         <p className="mc-fine is-center">{t('receiptNote')}</p>
       </section>}
       <aside className="mc-bag-side">

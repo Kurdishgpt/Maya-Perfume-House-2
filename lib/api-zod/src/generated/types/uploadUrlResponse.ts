@@ -10,5 +10,8 @@ import type { UploadUrlRequest } from './uploadUrlRequest';
 export interface UploadUrlResponse {
   uploadURL: string;
   objectPath: string;
+  uploadToken?: string;
+  bucket?: string;
+  publicUrl?: string;
   metadata?: UploadUrlRequest;
 }

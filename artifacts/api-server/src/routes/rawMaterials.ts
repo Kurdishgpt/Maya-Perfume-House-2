@@ -12,6 +12,7 @@ import {
   UpdateRawMaterialBody, UpdateRawMaterialParams, UpdateRawMaterialResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { getSupabaseAdmin, getSupabaseConfigIssue } from "../lib/supabase";
 import { fetchHillenCategories, fetchHillenMaterial, fetchHillenPage, HillenError, hillenUrl, parseHillenMaterial, searchHillenMaterials, unsupportedHillenReason, type HillenMaterial } from "../lib/hillenCatalog";
 import { explainRawMaterials } from "../lib/rawMaterialAi";
 
@@ -20,7 +21,7 @@ const calls = new Map<string, { at: number; count: number }>();
 
 function api(row: typeof rawMaterialsTable.$inferSelect) {
   return {
-    id: row.id, source_id: row.sourceId, name: row.name, description: row.description,
+    id: row.id, supabase_id: null, source_id: row.sourceId, name: row.name, description: row.description,
     source_sku: row.sourceSku, source_description: row.sourceDescription,
     source_name: row.sourceName, source_category: row.sourceCategory,
     source_image_url: row.sourceImageUrl, source_available: row.sourceAvailable,
@@ -32,6 +33,141 @@ function api(row: typeof rawMaterialsTable.$inferSelect) {
     unit: row.sourceUnit, quantity_options: row.quantityOptions,
     imported_at: row.importedAt.toISOString(),
   };
+}
+
+type SupabaseMaterialRow = {
+  id: string;
+  legacy_id: number;
+  source_id: number;
+  source_sku: string | null;
+  source_name: string | null;
+  source_description: string | null;
+  source_category: string | null;
+  source_image_url: string | null;
+  source_available: boolean | null;
+  raw_material_category: string | null;
+  name: string;
+  description: string;
+  price: number | string;
+  currency: "USD" | "IQD";
+  source_price: number | string | null;
+  source_currency: "USD" | "IQD" | null;
+  image_url: string;
+  source_url: string | null;
+  supplier_available: boolean | null;
+  is_active: boolean;
+  source_unit: "g" | "item" | null;
+  quantity_options: unknown;
+  imported_at: string | null;
+  created_at: string;
+};
+
+function supabaseApi(row: SupabaseMaterialRow) {
+  return {
+    id: Number(row.legacy_id),
+    supabase_id: row.id,
+    source_id: row.source_id,
+    name: row.name,
+    description: row.description,
+    source_sku: row.source_sku ?? "",
+    source_description: row.source_description ?? "",
+    source_name: row.source_name ?? "",
+    source_category: row.source_category ?? "",
+    source_image_url: row.source_image_url ?? "",
+    source_available: row.source_available ?? false,
+    category: row.raw_material_category ?? row.source_category ?? "Other",
+    price: Number(row.price),
+    currency: row.currency,
+    source_price: Number(row.source_price ?? row.price),
+    source_currency: row.source_currency ?? row.currency,
+    image_url: row.image_url,
+    source_url: row.source_url ?? "",
+    supplier_available: row.supplier_available ?? false,
+    published: row.is_active,
+    unit: row.source_unit ?? "item",
+    quantity_options: Array.isArray(row.quantity_options) ? row.quantity_options : [],
+    imported_at: new Date(row.imported_at ?? row.created_at).toISOString(),
+  };
+}
+
+function supplierProductValues(material: HillenMaterial) {
+  const image = material.image_url ?? "";
+  return {
+    name: material.name,
+    slug: `hillen-${material.source_id}-${material.name}`
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 550),
+    description: material.description,
+    brand: "",
+    category: "raw_materials",
+    product_type: "raw_material",
+    price: material.price,
+    currency: material.currency,
+    image_url: image,
+    additional_images: image ? [image] : [],
+    size_ml: null,
+    stock_quantity: 0,
+    sku: null,
+    is_active: true,
+    source_id: material.source_id,
+    source_sku: material.source_sku,
+    source_name: material.name,
+    source_description: material.source_description,
+    source_category: material.source_category,
+    source_image_url: image,
+    raw_material_category: material.category,
+    source_price: material.price,
+    source_currency: material.currency,
+    source_url: material.source_url,
+    source_unit: material.unit,
+    quantity_options: material.quantity_options,
+    supplier_available: material.supplier_available,
+    source_available: material.supplier_available,
+    imported_at: new Date().toISOString(),
+  };
+}
+
+async function saveSupplierMaterial(material: HillenMaterial): Promise<SupabaseMaterialRow> {
+  const supabase = getSupabaseAdmin();
+  const fields = supplierProductValues(material);
+  const { data: existing, error: findError } = await supabase
+    .from("products")
+    .select("*")
+    .eq("source_id", material.source_id)
+    .maybeSingle();
+  if (findError) throw new Error("Could not check the existing Supabase catalog item.");
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("products")
+      .update({
+        source_sku: fields.source_sku,
+        source_name: fields.source_name,
+        source_description: fields.source_description,
+        source_category: fields.source_category,
+        source_image_url: fields.source_image_url,
+        source_price: fields.source_price,
+        source_currency: fields.source_currency,
+        source_url: fields.source_url,
+        source_unit: fields.source_unit,
+        quantity_options: fields.quantity_options,
+        supplier_available: fields.supplier_available,
+        source_available: fields.source_available,
+        imported_at: fields.imported_at,
+      })
+      .eq("source_id", material.source_id)
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("Could not refresh supplier details in Supabase.");
+    return data as SupabaseMaterialRow;
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert(fields)
+    .select("*")
+    .single();
+  if (error || !data) throw new Error("Could not save the raw material to Supabase.");
+  return data as SupabaseMaterialRow;
 }
 function values(material: HillenMaterial) {
   return {
@@ -62,9 +198,39 @@ function importJob(row: typeof rawMaterialImportRunsTable.$inferSelect) {
   };
 }
 
-router.get("/raw-materials", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(rawMaterialsTable).where(eq(rawMaterialsTable.published, true)).orderBy(asc(rawMaterialsTable.name));
-  res.json(ListRawMaterialsResponse.parse(rows.map(api)));
+router.get("/raw-materials", async (req, res): Promise<void> => {
+  if (getSupabaseConfigIssue()) {
+    try {
+      const rows = await db.select().from(rawMaterialsTable)
+        .where(eq(rawMaterialsTable.published, true))
+        .orderBy(asc(rawMaterialsTable.name));
+      req.log.warn("Supabase is not ready; serving the existing Replit raw-material catalog without changing it");
+      res.setHeader("X-Maya-Catalog-Source", "legacy");
+      res.json(ListRawMaterialsResponse.parse(rows.map(api)));
+    } catch (error) {
+      req.log.error({ err: error }, "Legacy raw-material catalog read failed");
+      res.status(503).json({ error: "Raw materials are temporarily unavailable." });
+    }
+    return;
+  }
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("products")
+      .select("*")
+      .eq("product_type", "raw_material")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+    if (error) {
+      req.log.error({ code: error.code }, "Supabase raw-material catalog read failed");
+      res.status(503).json({ error: "Raw materials are temporarily unavailable." });
+      return;
+    }
+    res.setHeader("X-Maya-Catalog-Source", "supabase");
+    res.json(ListRawMaterialsResponse.parse((data as SupabaseMaterialRow[]).map(supabaseApi)));
+  } catch (error) {
+    req.log.error({ err: error }, "Supabase raw-material request failed");
+    res.status(503).json({ error: "Raw materials are temporarily unavailable." });
+  }
 });
 
 router.use("/admin/raw-materials", requireAdmin, (req, res, next) => {
@@ -79,9 +245,36 @@ router.use("/admin/raw-materials", requireAdmin, (req, res, next) => {
   next();
 });
 
-router.get("/admin/raw-materials", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(rawMaterialsTable).orderBy(asc(rawMaterialsTable.name));
-  res.json(ListAdminRawMaterialsResponse.parse(rows.map(api)));
+router.get("/admin/raw-materials", async (req, res): Promise<void> => {
+  if (getSupabaseConfigIssue()) {
+    try {
+      const rows = await db.select().from(rawMaterialsTable).orderBy(asc(rawMaterialsTable.name));
+      req.log.warn("Supabase is not ready; serving the existing Replit raw-material catalog to the administrator");
+      res.setHeader("X-Maya-Catalog-Source", "legacy");
+      res.json(ListAdminRawMaterialsResponse.parse(rows.map(api)));
+    } catch (error) {
+      req.log.error({ err: error }, "Legacy admin raw-material read failed");
+      res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
+    }
+    return;
+  }
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("products")
+      .select("*")
+      .eq("product_type", "raw_material")
+      .order("name", { ascending: true });
+    if (error) {
+      req.log.error({ code: error.code }, "Supabase admin raw-material read failed");
+      res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
+      return;
+    }
+    res.setHeader("X-Maya-Catalog-Source", "supabase");
+    res.json(ListAdminRawMaterialsResponse.parse((data as SupabaseMaterialRow[]).map(supabaseApi)));
+  } catch (error) {
+    req.log.error({ err: error }, "Supabase admin raw-material request failed");
+    res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
+  }
 });
 
 router.get("/admin/raw-materials/categories", async (req, res): Promise<void> => {
@@ -174,6 +367,9 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
     const result = await fetchHillenPage(page, run.categoryId ?? undefined);
     const entries = result.products.map(parseHillenMaterial);
     const pageMaterials = [...new Map(entries.flatMap((entry) => entry ? [[entry.material.source_id, entry.material] as const] : [])).values()];
+    if (run.mode === "import") {
+      for (const material of pageMaterials) await saveSupplierMaterial(material);
+    }
     const pageIds = pageMaterials.map((material) => material.source_id);
     const existingRows = pageIds.length
       ? await db.select({ sourceId: rawMaterialsTable.sourceId }).from(rawMaterialsTable)
@@ -292,13 +488,36 @@ router.post("/admin/raw-materials", async (req, res): Promise<void> => {
   const input = AddHillenRawMaterialBody.safeParse(req.body);
   if (!input.success) { res.status(400).json({ error: "Select a verified Hillen99 material." }); return; }
   try {
-    const [existing] = await db.select().from(rawMaterialsTable).where(eq(rawMaterialsTable.sourceId, input.data.source_id));
-    if (existing) { res.json(AddHillenRawMaterialResponse.parse(api(existing))); return; }
+    const { data: existingSupabase, error: existingError } = await getSupabaseAdmin()
+      .from("products").select("*").eq("source_id", input.data.source_id).maybeSingle();
+    if (existingError) throw new Error("Could not check the saved Supabase material.");
+    if (existingSupabase) {
+      res.json(AddHillenRawMaterialResponse.parse(supabaseApi(existingSupabase as SupabaseMaterialRow)));
+      return;
+    }
+    const [existingLegacy] = await db.select().from(rawMaterialsTable).where(eq(rawMaterialsTable.sourceId, input.data.source_id));
     const { material } = await fetchHillenMaterial(input.data.source_id);
     await db.insert(rawMaterialsTable).values(values(material)).onConflictDoNothing({ target: rawMaterialsTable.sourceId });
-    const [saved] = await db.select().from(rawMaterialsTable).where(eq(rawMaterialsTable.sourceId, input.data.source_id));
-    if (!saved) throw new Error("Import did not persist");
-    res.json(AddHillenRawMaterialResponse.parse(api(saved)));
+    let saved = await saveSupplierMaterial(material);
+    if (existingLegacy) {
+      const { data: edited, error } = await getSupabaseAdmin()
+        .from("products")
+        .update({
+          name: existingLegacy.name,
+          description: existingLegacy.description,
+          raw_material_category: existingLegacy.category,
+          price: existingLegacy.price,
+          currency: existingLegacy.currency,
+          image_url: existingLegacy.imageUrl,
+          is_active: existingLegacy.published,
+        })
+        .eq("source_id", input.data.source_id)
+        .select("*")
+        .single();
+      if (error || !edited) throw new Error("Could not preserve the existing merchant-edited material.");
+      saved = edited as SupabaseMaterialRow;
+    }
+    res.json(AddHillenRawMaterialResponse.parse(supabaseApi(saved)));
   } catch (error) {
     req.log.warn({ reason: error instanceof HillenError ? error.message : "Import failed" }, "Single material import failed");
     res.status(error instanceof HillenError ? 502 : 500).json({ error: error instanceof HillenError ? error.message : "The material could not be imported." });
@@ -314,21 +533,57 @@ router.patch("/admin/raw-materials/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Enter valid material details and a nonnegative price." }); return;
   }
   const data = input.data;
-  const [row] = await db.update(rawMaterialsTable).set({
-    ...data,
-    ...(data.name !== undefined ? { name: data.name.trim() } : {}),
-    ...(data.category !== undefined ? { category: data.category.trim() } : {}),
-  }).where(eq(rawMaterialsTable.id, params.data.id)).returning();
-  if (!row) { res.status(404).json({ error: "Material not found." }); return; }
-  res.json(UpdateRawMaterialResponse.parse(api(row)));
+  const values: Record<string, unknown> = {};
+  if (data.name !== undefined) values.name = data.name.trim();
+  if (data.description !== undefined) values.description = data.description;
+  if (data.category !== undefined) values.raw_material_category = data.category.trim();
+  if (data.price !== undefined) values.price = data.price;
+  if (data.currency !== undefined) values.currency = data.currency;
+  if (data.published !== undefined) values.is_active = data.published;
+
+  try {
+    const { data: row, error } = await getSupabaseAdmin()
+      .from("products")
+      .update(values)
+      .eq("legacy_id", params.data.id)
+      .eq("product_type", "raw_material")
+      .select("*")
+      .maybeSingle();
+    if (error) {
+      req.log.error({ code: error.code }, "Supabase raw-material update failed");
+      res.status(503).json({ error: "The material could not be updated in the catalog." });
+      return;
+    }
+    if (!row) { res.status(404).json({ error: "Material not found." }); return; }
+    res.json(UpdateRawMaterialResponse.parse(supabaseApi(row as SupabaseMaterialRow)));
+  } catch (error) {
+    req.log.error({ err: error }, "Supabase raw-material update failed");
+    res.status(503).json({ error: "The material could not be updated in the catalog." });
+  }
 });
 
 router.delete("/admin/raw-materials/:id", async (req, res): Promise<void> => {
   const params = DeleteRawMaterialParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid material ID." }); return; }
-  const [row] = await db.delete(rawMaterialsTable).where(eq(rawMaterialsTable.id, params.data.id)).returning({ id: rawMaterialsTable.id });
-  if (!row) { res.status(404).json({ error: "Material not found." }); return; }
-  res.sendStatus(204);
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("products")
+      .delete()
+      .eq("legacy_id", params.data.id)
+      .eq("product_type", "raw_material")
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      req.log.error({ code: error.code }, "Supabase raw-material deletion failed");
+      res.status(503).json({ error: "The material could not be removed from the catalog." });
+      return;
+    }
+    if (!data) { res.status(404).json({ error: "Material not found." }); return; }
+    res.sendStatus(204);
+  } catch (error) {
+    req.log.error({ err: error }, "Supabase raw-material deletion failed");
+    res.status(503).json({ error: "The material could not be removed from the catalog." });
+  }
 });
 
 export default router;
