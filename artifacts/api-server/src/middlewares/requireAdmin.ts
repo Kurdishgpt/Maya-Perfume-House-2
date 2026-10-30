@@ -4,6 +4,18 @@ import type { NextFunction, Request, Response } from "express";
 const passcodeCookieName = "maya_admin_unlock";
 const passcodeCookieMaxAge = 30 * 60;
 
+// Netlify exposes invocation-scoped settings through its runtime API.
+function adminSetting(name: string): string | undefined {
+  const runtime = globalThis as typeof globalThis & {
+    Netlify?: { env?: { get: (key: string) => string | undefined } };
+  };
+  return runtime.Netlify?.env?.get(name) ?? process.env[name];
+}
+
+export function isAdminAccessConfigured(): boolean {
+  return Boolean(adminSetting("SESSION_SECRET") && adminSetting("ADMIN_PANEL_PASSWORD"));
+}
+
 function signPasscodeUnlock(expiresAt: number, secret: string): string {
   return createHmac("sha256", secret).update(String(expiresAt)).digest("base64url");
 }
@@ -17,7 +29,7 @@ function readCookie(req: Request): string | undefined {
 }
 
 export function isAdminPasscodeUnlocked(req: Request): boolean {
-  const secret = process.env.SESSION_SECRET;
+  const secret = adminSetting("SESSION_SECRET");
   const token = readCookie(req);
   if (!secret || !token) return false;
 
@@ -34,7 +46,7 @@ export function isAdminPasscodeUnlocked(req: Request): boolean {
 }
 
 export function setAdminPasscodeCookie(res: Response): boolean {
-  const secret = process.env.SESSION_SECRET;
+  const secret = adminSetting("SESSION_SECRET");
   if (!secret) return false;
 
   const expiresAt = Date.now() + passcodeCookieMaxAge * 1000;
@@ -64,7 +76,7 @@ export function clearAdminPasscodeCookie(res: Response): void {
 }
 
 export function verifyAdminPasscode(received: string): boolean {
-  const adminPasscode = process.env.ADMIN_PANEL_PASSWORD;
+  const adminPasscode = adminSetting("ADMIN_PANEL_PASSWORD");
   if (!adminPasscode) return false;
   const receivedDigest = createHash("sha256").update(received).digest();
   const expectedDigest = createHash("sha256").update(adminPasscode).digest();

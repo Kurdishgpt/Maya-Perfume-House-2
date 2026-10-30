@@ -1,35 +1,31 @@
 # Maya Collection on Netlify
 
-The repository is configured for a static Netlify site with the existing Express API served as a Netlify Function. The API keeps the existing `/api/...` routes; Netlify rewrites those requests to the `api` function. The React storefront stays a Vite build.
+The storefront uses the existing Express API through a Netlify Function. Structured store data now uses Netlify Database with Drizzle ORM. Product images use Netlify Blobs. The runtime no longer connects to Supabase or requires Supabase keys.
 
-## Deploy
+## Deploy and configure
 
-1. Push this repository to a Git provider supported by Netlify.
-2. In Netlify, create a site by importing that repository. Keep the repository root as the base directory; `netlify.toml` supplies the build, publish, function, API rewrite, and SPA fallback settings.
-3. Add the environment variables below in **Site configuration → Environment variables**. Do not put server secrets in Vite variables or commit them.
-4. Trigger a deploy. The build command runs the shared-library typecheck before building the storefront. Netlify bundles the function with esbuild.
-5. Test `/api/healthz`, `/api/supabase/status`, catalog reads, admin unlock, image upload, cart, and checkout before sharing the site.
+Keep the repository root as the base directory. The existing `netlify.toml` supplies the storefront build, publish directory, function directory, API rewrites, and SPA fallback.
 
-## Environment variables
+Configure `ADMIN_PANEL_PASSWORD` and `SESSION_SECRET` as server-only Netlify environment variables available to Functions in the context being deployed. Use a strong administrator password and a long random session signing secret. Redeploy after changing these settings. Never prefix either setting with `VITE_`.
 
-Required for the Supabase-backed production paths:
+Netlify supplies the managed database connection. Database schema exports are in `db/schema.ts`, and generated migrations are in `netlify/database/migrations/`. The platform applies these migrations during deployment; do not apply them manually. This change prepares tables for the catalog, supplier import history, carts, checkout orders, contact messages, settings, and persistent request limits.
 
-- `VITE_SUPABASE_URL` — the exact HTTPS Project URL from Supabase → Project Settings → API.
-- `VITE_SUPABASE_ANON_KEY` — public anon/publishable key; RLS must remain enabled.
-- `SUPABASE_SERVICE_ROLE_KEY` — server-only secret, never prefix with `VITE_`.
-- `ADMIN_PANEL_PASSWORD` — choose a strong admin passcode.
-- `SESSION_SECRET` — use a long random value for signing the admin session cookie.
+After deployment, `/api/admin/passcode` should return HTTP 200 with `unlocked: false` before login. HTTP 503 from this endpoint indicates missing administrator configuration. HTTP 404 indicates that the function or API redirects are missing. Once logged in, use the database connection check in Settings, which calls the protected `/api/database/status` endpoint.
 
-Also add `GEMINI_API_KEY` if the AI description tools are needed. Configure any provider credentials those tools require in Netlify as server-only values.
+Admin checks load separately from catalog integrations. A database integration startup failure does not prevent the access status endpoint from loading. Login attempts use persistent database request limits and therefore require the database migrations to be available.
 
-`DATABASE_URL` is only needed for routes that still read the legacy Replit database, including Hillen99 import-run progress and the one-time legacy transfer. If you add it, keep it server-only and confirm the database accepts connections from Netlify. Do not use `SUPABASE_DB_URL` as `DATABASE_URL`; the schemas are different.
+## Existing data
 
-The `PORT` and `BASE_PATH` build values are already configured in `netlify.toml`. `SUPABASE_DB_URL` is not needed by the running function; use the Supabase SQL Editor to apply `supabase/migrations/20261030123000_maya_collection_core.sql`.
+The new managed database starts with no catalog records. Existing Supabase records have not been transferred. Export the existing catalog separately and use the protected catalog CSV import in Settings to populate the new database. The CSV import does not transfer historical orders, contact messages, cart state, or uploaded image files; those require a separate transfer. The historical Supabase SQL files are not the Netlify migration source.
 
-## Current limitations to resolve before production use
+The API retains its existing response fields, including `supabase_id`, for compatibility with storefront carts and checkout. That field now contains the Netlify Database product UUID.
 
-- The Supabase URL currently configured in Replit did not validate as an HTTP/HTTPS project URL. Enter the correct URL in Netlify and Replit, then verify `/api/supabase/status` reports connected before relying on Supabase-backed operations.
-- Existing Replit Object Storage image paths cannot be served by Netlify Functions. New uploads use the Supabase image bucket; move any existing Replit-hosted product images to that bucket and update their product URLs.
-- Brave image search uses the Replit-connected integration and is not automatically available to a Netlify deployment. The AI image-search feature needs a provider credential and a Netlify-compatible API call before it can be used there.
-- Without `DATABASE_URL`, legacy Hillen99 import history and one-time Replit-to-Supabase transfer routes are unavailable. Move those run records to Supabase or configure the legacy database connection before using those routes.
-- Netlify publishing was not run from this workspace because no Netlify account connection is available here.
+## Product images
+
+Uploads now use authenticated API requests backed by Netlify Blobs. Supported image types are JPEG, PNG, WebP, and AVIF, up to 4 MB. Existing external image URLs remain references to their original locations; legacy Replit object paths are not transferred automatically.
+
+## Verification
+
+The managed database connection was verified with a read-only query. Shared library, API, and storefront typechecks passed. The deployment migrations were generated but not applied manually. Catalog writes, checkout transactions, and image uploads still require end-to-end verification after deployment.
+
+AI description and supplier search integrations retain their existing provider configuration requirements.

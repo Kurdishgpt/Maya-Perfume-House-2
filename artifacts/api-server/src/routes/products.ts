@@ -9,8 +9,7 @@ import {
 import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
 import { requireAdmin } from "../middlewares/requireAdmin";
-import { getSupabaseAdmin, getSupabaseConfigIssue } from "../lib/supabase";
-import { db, productsTable } from "@workspace/db";
+import { getStoreDatabase } from "../lib/storeDatabase";
 
 const router: IRouter = Router();
 
@@ -32,6 +31,7 @@ type ProductRow = {
   image_url: string;
   additional_images: string[];
   created_at: string;
+  ingredients: string[];
 };
 
 function toApiProduct(product: ProductRow) {
@@ -50,33 +50,10 @@ function toApiProduct(product: ProductRow) {
     top_notes: product.top_notes ?? [],
     heart_notes: product.middle_notes ?? [],
     base_notes: product.base_notes ?? [],
-    ingredients: [],
+    ingredients: product.ingredients ?? [],
     image_url: product.image_url,
     gallery_images: product.additional_images ?? [],
     created_at: product.created_at,
-  };
-}
-
-function toLegacyApiProduct(product: typeof productsTable.$inferSelect) {
-  return {
-    id: product.id,
-    supabase_id: null,
-    title: product.title,
-    brand: product.brand,
-    price: product.price,
-    currency: product.currency,
-    bottle_size_ml: product.bottleSizeMl,
-    stock: product.stock,
-    sku: product.sku,
-    category: product.category,
-    description: product.description,
-    top_notes: product.topNotes,
-    heart_notes: product.heartNotes,
-    base_notes: product.baseNotes,
-    ingredients: product.ingredients,
-    image_url: product.imageUrl,
-    gallery_images: product.galleryImages,
-    created_at: product.createdAt.toISOString(),
   };
 }
 
@@ -105,35 +82,24 @@ function responseError(error: { code?: string; message?: string }, fallback: str
 }
 
 router.get("/products", async (req, res): Promise<void> => {
-  if (getSupabaseConfigIssue()) {
-    try {
-      const rows = await db.select().from(productsTable);
-      req.log.warn("Supabase is not ready; serving the existing Replit catalog without changing it");
-      res.setHeader("X-Maya-Catalog-Source", "legacy");
-      res.json(ListProductsResponse.parse(rows.map(toLegacyApiProduct)));
-    } catch (error) {
-      req.log.error({ err: error }, "Legacy product catalog read failed");
-      res.status(503).json({ error: "The fragrance collection is temporarily unavailable." });
-    }
-    return;
-  }
+  
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const storeDatabase = getStoreDatabase();
+    const { data, error } = await storeDatabase
       .from("products")
       .select("*")
       .eq("product_type", "perfume")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     if (error) {
-      req.log.error({ code: error.code }, "Supabase product catalog read failed");
+      req.log.error({ code: error.code }, "Netlify Database product catalog read failed");
       res.status(503).json({ error: "The fragrance collection is temporarily unavailable." });
       return;
     }
-    res.setHeader("X-Maya-Catalog-Source", "supabase");
+    res.setHeader("X-Maya-Catalog-Source", "netlify-database");
     res.json(ListProductsResponse.parse((data as ProductRow[]).map(toApiProduct)));
   } catch (error) {
-    req.log.error({ err: error }, "Supabase product catalog request failed");
+    req.log.error({ err: error }, "Netlify Database product catalog request failed");
     res.status(503).json({ error: "The fragrance collection is temporarily unavailable." });
   }
 });
@@ -155,7 +121,7 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
   }
 
   try {
-    const { data: product, error } = await getSupabaseAdmin()
+    const { data: product, error } = await getStoreDatabase()
       .from("products")
       .insert({
         name: data.title.trim(),
@@ -169,6 +135,7 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
         image_url: data.image_url,
         additional_images: data.gallery_images,
         scent_family: data.ingredients[0] ?? null,
+        ingredients: data.ingredients,
         top_notes: data.top_notes,
         middle_notes: data.heart_notes,
         base_notes: data.base_notes,
@@ -182,14 +149,14 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
 
     if (error || !product) {
       const mapped = responseError(error ?? {}, "The product could not be created.");
-      req.log.error({ code: error?.code }, "Supabase product creation failed");
+      req.log.error({ code: error?.code }, "Netlify Database product creation failed");
       res.status(mapped.status).json({ error: mapped.message });
       return;
     }
 
     res.status(201).json(CreateProductResponse.parse(toApiProduct(product as ProductRow)));
   } catch (error) {
-    req.log.error({ err: error }, "Supabase product creation failed");
+    req.log.error({ err: error }, "Netlify Database product creation failed");
     res.status(500).json({ error: "The product could not be created." });
   }
 });
@@ -231,7 +198,7 @@ router.patch(
     if (data.top_notes !== undefined) values.top_notes = data.top_notes;
     if (data.heart_notes !== undefined) values.middle_notes = data.heart_notes;
     if (data.base_notes !== undefined) values.base_notes = data.base_notes;
-    if (data.ingredients !== undefined) values.scent_family = data.ingredients[0] ?? null;
+    if (data.ingredients !== undefined) { values.scent_family = data.ingredients[0] ?? null; values.ingredients = data.ingredients; }
     if (data.image_url !== undefined) values.image_url = data.image_url;
     if (data.gallery_images !== undefined) values.additional_images = data.gallery_images;
 
@@ -241,7 +208,7 @@ router.patch(
     }
 
     try {
-      const { data: product, error } = await getSupabaseAdmin()
+      const { data: product, error } = await getStoreDatabase()
         .from("products")
         .update(values)
         .eq("legacy_id", params.data.id)
@@ -251,7 +218,7 @@ router.patch(
 
       if (error) {
         const mapped = responseError(error, "The product could not be updated.");
-        req.log.error({ code: error.code }, "Supabase product update failed");
+        req.log.error({ code: error.code }, "Netlify Database product update failed");
         res.status(mapped.status).json({ error: mapped.message });
         return;
       }
@@ -261,7 +228,7 @@ router.patch(
       }
       res.json(UpdateProductResponse.parse(toApiProduct(product as ProductRow)));
     } catch (error) {
-      req.log.error({ err: error }, "Supabase product update failed");
+      req.log.error({ err: error }, "Netlify Database product update failed");
       res.status(500).json({ error: "The product could not be updated." });
     }
   },
@@ -278,7 +245,7 @@ router.delete(
     }
 
     try {
-      const { data, error } = await getSupabaseAdmin()
+      const { data, error } = await getStoreDatabase()
         .from("products")
         .delete()
         .eq("legacy_id", params.data.id)
@@ -286,7 +253,7 @@ router.delete(
         .select("id")
         .maybeSingle();
       if (error) {
-        req.log.error({ code: error.code }, "Supabase product deletion failed");
+        req.log.error({ code: error.code }, "Netlify Database product deletion failed");
         res.status(500).json({ error: "The product could not be deleted." });
         return;
       }
@@ -296,7 +263,7 @@ router.delete(
       }
       res.sendStatus(204);
     } catch (error) {
-      req.log.error({ err: error }, "Supabase product deletion failed");
+      req.log.error({ err: error }, "Netlify Database product deletion failed");
       res.status(500).json({ error: "The product could not be deleted." });
     }
   },

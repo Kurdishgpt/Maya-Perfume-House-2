@@ -1,3 +1,4 @@
+import { enforceRateLimit } from "../lib/rateLimit";
 import { asc, desc, eq, inArray, and, isNull, lt, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
@@ -12,30 +13,13 @@ import {
   UpdateRawMaterialBody, UpdateRawMaterialParams, UpdateRawMaterialResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
-import { getSupabaseAdmin, getSupabaseConfigIssue } from "../lib/supabase";
+import { getStoreDatabase } from "../lib/storeDatabase";
 import { fetchHillenCategories, fetchHillenMaterial, fetchHillenPage, HillenError, hillenUrl, parseHillenMaterial, searchHillenMaterials, unsupportedHillenReason, type HillenMaterial } from "../lib/hillenCatalog";
 import { explainRawMaterials } from "../lib/rawMaterialAi";
 
 const router: IRouter = Router();
-const calls = new Map<string, { at: number; count: number }>();
 
-function api(row: typeof rawMaterialsTable.$inferSelect) {
-  return {
-    id: row.id, supabase_id: null, source_id: row.sourceId, name: row.name, description: row.description,
-    source_sku: row.sourceSku, source_description: row.sourceDescription,
-    source_name: row.sourceName, source_category: row.sourceCategory,
-    source_image_url: row.sourceImageUrl, source_available: row.sourceAvailable,
-    category: row.category,
-    price: row.price, currency: row.currency,
-    source_price: row.sourcePrice, source_currency: row.sourceCurrency,
-    image_url: row.imageUrl, source_url: row.sourceUrl,
-    supplier_available: row.supplierAvailable, published: row.published,
-    unit: row.sourceUnit, quantity_options: row.quantityOptions,
-    imported_at: row.importedAt.toISOString(),
-  };
-}
-
-type SupabaseMaterialRow = {
+type StoreMaterialRow = {
   id: string;
   legacy_id: number;
   source_id: number;
@@ -62,7 +46,7 @@ type SupabaseMaterialRow = {
   created_at: string;
 };
 
-function supabaseApi(row: SupabaseMaterialRow) {
+function storeApi(row: StoreMaterialRow) {
   return {
     id: Number(row.legacy_id),
     supabase_id: row.id,
@@ -126,18 +110,18 @@ function supplierProductValues(material: HillenMaterial) {
   };
 }
 
-async function saveSupplierMaterial(material: HillenMaterial): Promise<SupabaseMaterialRow> {
-  const supabase = getSupabaseAdmin();
+async function saveSupplierMaterial(material: HillenMaterial): Promise<StoreMaterialRow> {
+  const storeDatabase = getStoreDatabase();
   const fields = supplierProductValues(material);
-  const { data: existing, error: findError } = await supabase
+  const { data: existing, error: findError } = await storeDatabase
     .from("products")
     .select("*")
     .eq("source_id", material.source_id)
     .maybeSingle();
-  if (findError) throw new Error("Could not check the existing Supabase catalog item.");
+  if (findError) throw new Error("Could not check the existing Netlify Database catalog item.");
 
   if (existing) {
-    const { data, error } = await supabase
+    const { data, error } = await storeDatabase
       .from("products")
       .update({
         source_sku: fields.source_sku,
@@ -157,17 +141,17 @@ async function saveSupplierMaterial(material: HillenMaterial): Promise<SupabaseM
       .eq("source_id", material.source_id)
       .select("*")
       .single();
-    if (error || !data) throw new Error("Could not refresh supplier details in Supabase.");
-    return data as SupabaseMaterialRow;
+    if (error || !data) throw new Error("Could not refresh supplier details in Netlify Database.");
+    return data as StoreMaterialRow;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await storeDatabase
     .from("products")
     .insert(fields)
     .select("*")
     .single();
-  if (error || !data) throw new Error("Could not save the raw material to Supabase.");
-  return data as SupabaseMaterialRow;
+  if (error || !data) throw new Error("Could not save the raw material to Netlify Database.");
+  return data as StoreMaterialRow;
 }
 function values(material: HillenMaterial) {
   return {
@@ -199,80 +183,51 @@ function importJob(row: typeof rawMaterialImportRunsTable.$inferSelect) {
 }
 
 router.get("/raw-materials", async (req, res): Promise<void> => {
-  if (getSupabaseConfigIssue()) {
-    try {
-      const rows = await db.select().from(rawMaterialsTable)
-        .where(eq(rawMaterialsTable.published, true))
-        .orderBy(asc(rawMaterialsTable.name));
-      req.log.warn("Supabase is not ready; serving the existing Replit raw-material catalog without changing it");
-      res.setHeader("X-Maya-Catalog-Source", "legacy");
-      res.json(ListRawMaterialsResponse.parse(rows.map(api)));
-    } catch (error) {
-      req.log.error({ err: error }, "Legacy raw-material catalog read failed");
-      res.status(503).json({ error: "Raw materials are temporarily unavailable." });
-    }
-    return;
-  }
+  
   try {
-    const { data, error } = await getSupabaseAdmin()
+    const { data, error } = await getStoreDatabase()
       .from("products")
       .select("*")
       .eq("product_type", "raw_material")
       .eq("is_active", true)
       .order("name", { ascending: true });
     if (error) {
-      req.log.error({ code: error.code }, "Supabase raw-material catalog read failed");
+      req.log.error({ code: error.code }, "Netlify Database raw-material catalog read failed");
       res.status(503).json({ error: "Raw materials are temporarily unavailable." });
       return;
     }
-    res.setHeader("X-Maya-Catalog-Source", "supabase");
-    res.json(ListRawMaterialsResponse.parse((data as SupabaseMaterialRow[]).map(supabaseApi)));
+    res.setHeader("X-Maya-Catalog-Source", "netlify-database");
+    res.json(ListRawMaterialsResponse.parse((data as StoreMaterialRow[]).map(storeApi)));
   } catch (error) {
-    req.log.error({ err: error }, "Supabase raw-material request failed");
+    req.log.error({ err: error }, "Netlify Database raw-material request failed");
     res.status(503).json({ error: "Raw materials are temporarily unavailable." });
   }
 });
 
-router.use("/admin/raw-materials", requireAdmin, (req, res, next) => {
+router.use("/admin/raw-materials", requireAdmin, async (req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE") { next(); return; }
-  const key = req.ip ?? "unknown";
-  const now = Date.now();
-  if (calls.size > 1000) for (const [ip, value] of calls) if (now - value.at >= 60_000) calls.delete(ip);
-  const entry = calls.get(key);
-  if (!entry || now - entry.at >= 60_000) calls.set(key, { at: now, count: 1 });
-  else if (++entry.count > 40) { res.status(429).json({ error: "Please wait before requesting more supplier data." }); return; }
+  if (!await enforceRateLimit(req, res, "supplier", 40, 60_000)) return;
   next();
 });
 
 router.get("/admin/raw-materials", async (req, res): Promise<void> => {
-  if (getSupabaseConfigIssue()) {
-    try {
-      const rows = await db.select().from(rawMaterialsTable).orderBy(asc(rawMaterialsTable.name));
-      req.log.warn("Supabase is not ready; serving the existing Replit raw-material catalog to the administrator");
-      res.setHeader("X-Maya-Catalog-Source", "legacy");
-      res.json(ListAdminRawMaterialsResponse.parse(rows.map(api)));
-    } catch (error) {
-      req.log.error({ err: error }, "Legacy admin raw-material read failed");
-      res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
-    }
-    return;
-  }
+  
   try {
-    const { data, error } = await getSupabaseAdmin()
+    const { data, error } = await getStoreDatabase()
       .from("products")
       .select("*")
       .eq("product_type", "raw_material")
       .order("name", { ascending: true });
     if (error) {
-      req.log.error({ code: error.code }, "Supabase admin raw-material read failed");
+      req.log.error({ code: error.code }, "Netlify Database admin raw-material read failed");
       res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
       return;
     }
-    res.setHeader("X-Maya-Catalog-Source", "supabase");
-    res.json(ListAdminRawMaterialsResponse.parse((data as SupabaseMaterialRow[]).map(supabaseApi)));
+    res.setHeader("X-Maya-Catalog-Source", "netlify-database");
+    res.json(ListAdminRawMaterialsResponse.parse((data as StoreMaterialRow[]).map(storeApi)));
   } catch (error) {
-    req.log.error({ err: error }, "Supabase admin raw-material request failed");
+    req.log.error({ err: error }, "Netlify Database admin raw-material request failed");
     res.status(503).json({ error: "Saved raw materials are temporarily unavailable." });
   }
 });
@@ -396,7 +351,7 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
               sourceSku: rawMaterialsTable.sourceSku,
             },
           })
-          .returning({ sourceId: rawMaterialsTable.sourceId });
+          .returning();
         // The first import sets both the public defaults and supplier snapshot.
         // On conflict, never overwrite merchant-edited name, description, price,
         // currency, category, image, or publish choice.
@@ -488,11 +443,11 @@ router.post("/admin/raw-materials", async (req, res): Promise<void> => {
   const input = AddHillenRawMaterialBody.safeParse(req.body);
   if (!input.success) { res.status(400).json({ error: "Select a verified Hillen99 material." }); return; }
   try {
-    const { data: existingSupabase, error: existingError } = await getSupabaseAdmin()
+    const { data: existingStore, error: existingError } = await getStoreDatabase()
       .from("products").select("*").eq("source_id", input.data.source_id).maybeSingle();
-    if (existingError) throw new Error("Could not check the saved Supabase material.");
-    if (existingSupabase) {
-      res.json(AddHillenRawMaterialResponse.parse(supabaseApi(existingSupabase as SupabaseMaterialRow)));
+    if (existingError) throw new Error("Could not check the saved Netlify Database material.");
+    if (existingStore) {
+      res.json(AddHillenRawMaterialResponse.parse(storeApi(existingStore as StoreMaterialRow)));
       return;
     }
     const [existingLegacy] = await db.select().from(rawMaterialsTable).where(eq(rawMaterialsTable.sourceId, input.data.source_id));
@@ -500,7 +455,7 @@ router.post("/admin/raw-materials", async (req, res): Promise<void> => {
     await db.insert(rawMaterialsTable).values(values(material)).onConflictDoNothing({ target: rawMaterialsTable.sourceId });
     let saved = await saveSupplierMaterial(material);
     if (existingLegacy) {
-      const { data: edited, error } = await getSupabaseAdmin()
+      const { data: edited, error } = await getStoreDatabase()
         .from("products")
         .update({
           name: existingLegacy.name,
@@ -515,9 +470,9 @@ router.post("/admin/raw-materials", async (req, res): Promise<void> => {
         .select("*")
         .single();
       if (error || !edited) throw new Error("Could not preserve the existing merchant-edited material.");
-      saved = edited as SupabaseMaterialRow;
+      saved = edited as StoreMaterialRow;
     }
-    res.json(AddHillenRawMaterialResponse.parse(supabaseApi(saved)));
+    res.json(AddHillenRawMaterialResponse.parse(storeApi(saved)));
   } catch (error) {
     req.log.warn({ reason: error instanceof HillenError ? error.message : "Import failed" }, "Single material import failed");
     res.status(error instanceof HillenError ? 502 : 500).json({ error: error instanceof HillenError ? error.message : "The material could not be imported." });
@@ -542,7 +497,7 @@ router.patch("/admin/raw-materials/:id", async (req, res): Promise<void> => {
   if (data.published !== undefined) values.is_active = data.published;
 
   try {
-    const { data: row, error } = await getSupabaseAdmin()
+    const { data: row, error } = await getStoreDatabase()
       .from("products")
       .update(values)
       .eq("legacy_id", params.data.id)
@@ -550,14 +505,14 @@ router.patch("/admin/raw-materials/:id", async (req, res): Promise<void> => {
       .select("*")
       .maybeSingle();
     if (error) {
-      req.log.error({ code: error.code }, "Supabase raw-material update failed");
+      req.log.error({ code: error.code }, "Netlify Database raw-material update failed");
       res.status(503).json({ error: "The material could not be updated in the catalog." });
       return;
     }
     if (!row) { res.status(404).json({ error: "Material not found." }); return; }
-    res.json(UpdateRawMaterialResponse.parse(supabaseApi(row as SupabaseMaterialRow)));
+    res.json(UpdateRawMaterialResponse.parse(storeApi(row as StoreMaterialRow)));
   } catch (error) {
-    req.log.error({ err: error }, "Supabase raw-material update failed");
+    req.log.error({ err: error }, "Netlify Database raw-material update failed");
     res.status(503).json({ error: "The material could not be updated in the catalog." });
   }
 });
@@ -566,7 +521,7 @@ router.delete("/admin/raw-materials/:id", async (req, res): Promise<void> => {
   const params = DeleteRawMaterialParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid material ID." }); return; }
   try {
-    const { data, error } = await getSupabaseAdmin()
+    const { data, error } = await getStoreDatabase()
       .from("products")
       .delete()
       .eq("legacy_id", params.data.id)
@@ -574,14 +529,14 @@ router.delete("/admin/raw-materials/:id", async (req, res): Promise<void> => {
       .select("id")
       .maybeSingle();
     if (error) {
-      req.log.error({ code: error.code }, "Supabase raw-material deletion failed");
+      req.log.error({ code: error.code }, "Netlify Database raw-material deletion failed");
       res.status(503).json({ error: "The material could not be removed from the catalog." });
       return;
     }
     if (!data) { res.status(404).json({ error: "Material not found." }); return; }
     res.sendStatus(204);
   } catch (error) {
-    req.log.error({ err: error }, "Supabase raw-material deletion failed");
+    req.log.error({ err: error }, "Netlify Database raw-material deletion failed");
     res.status(503).json({ error: "The material could not be removed from the catalog." });
   }
 });

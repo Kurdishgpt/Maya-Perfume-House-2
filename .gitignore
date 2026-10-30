@@ -54,3 +54,8 @@ Thumbs.db
 .cache/
 .local/
 .netlify/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example

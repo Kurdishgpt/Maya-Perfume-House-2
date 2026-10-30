@@ -1,3 +1,4 @@
+import { enforceRateLimit, clearRateLimit } from "../lib/rateLimit";
 import { Router, type IRouter } from "express";
 import {
   GetAdminPasscodeStatusResponse,
@@ -7,23 +8,20 @@ import {
 import {
   clearAdminPasscodeCookie,
   isAdminPasscodeUnlocked,
+  isAdminAccessConfigured,
   setAdminPasscodeCookie,
   verifyAdminPasscode,
 } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
-const maxAttempts = 5;
-const attemptWindowMs = 15 * 60 * 1000;
-const failedAttempts = new Map<string, { count: number; startedAt: number }>();
-
 router.use("/admin/passcode", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
 
 router.get("/admin/passcode", (req, res): void => {
-  if (!process.env.SESSION_SECRET) {
-    req.log.error("Admin session signing is not configured");
+  if (!isAdminAccessConfigured()) {
+    req.log.error("Admin password or session signing is not configured");
     res.status(503).json({ error: "Admin access is not configured." });
     return;
   }
@@ -35,38 +33,26 @@ router.get("/admin/passcode", (req, res): void => {
   );
 });
 
-router.post("/admin/passcode", (req, res): void => {
+router.post("/admin/passcode", async (req, res): Promise<void> => {
   const parsed = UnlockAdminPasscodeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Enter the admin passphrase." });
     return;
   }
-  if (!process.env.SESSION_SECRET) {
-    req.log.error("Admin session signing is not configured");
+  if (!isAdminAccessConfigured()) {
+    req.log.error("Admin password or session signing is not configured");
     res.status(503).json({ error: "Admin access is not configured." });
     return;
   }
 
-  const clientIp = req.ip || "unknown";
-  const now = Date.now();
-  const current = failedAttempts.get(clientIp);
-  if (current && now - current.startedAt < attemptWindowMs && current.count >= maxAttempts) {
-    res.status(429).json({ error: "Too many attempts. Wait 15 minutes and try again." });
-    return;
-  }
-  const attempts =
-    current && now - current.startedAt < attemptWindowMs
-      ? current
-      : { count: 0, startedAt: now };
+  if (!await enforceRateLimit(req, res, "admin", 5, 15 * 60 * 1000)) return;
 
   if (!verifyAdminPasscode(parsed.data.passcode)) {
-    attempts.count += 1;
-    failedAttempts.set(clientIp, attempts);
     res.status(403).json({ error: "That passphrase was not accepted." });
     return;
   }
 
-  failedAttempts.delete(clientIp);
+  await clearRateLimit(req, "admin");
   if (!setAdminPasscodeCookie(res)) {
     res.status(503).json({ error: "Admin access is not configured." });
     return;
