@@ -141,6 +141,8 @@ const ar: Record<string, string> = {
 const pageCopy: Record<Language, Record<string, string>> = {
   en: {
     mainNavigation:'Main navigation',
+    ourStoryHeading:'Our Story',
+    storyMarquee:'OUR STORY ✦ EVERY FRAGRANCE TELLS A STORY ✦ DISCOVER YOUR SIGNATURE SCENT ✦ LUXURY IN EVERY DROP ✦',
     perfect:'Unisex', shop_perfect:'Unisex Fragrances', search_perfect:'Search unisex perfumes...',
     shop_unisex:'Unisex Fragrances', search_unisex:'Search unisex perfumes...',
     order:'MAYA COLLECTION order',
@@ -198,6 +200,8 @@ const pageCopy: Record<Language, Record<string, string>> = {
   },
   ku: {
     mainNavigation:'ڕێنیشاندەری سەرەکی',
+    ourStoryHeading:'چیرۆکمان',
+    storyMarquee:'چیرۆکمان ✦ هەر بۆنێک چیرۆکێک دەگێڕێتەوە ✦ بۆنی تایبەت بە خۆت بدۆزەوە ✦ شاهانەیی لە هەر دڵۆپێکدا ✦',
     perfect:'یونیسێکس', shop_perfect:'بۆنی یونیسێکس', search_perfect:'گەڕان بۆ بۆنی یونیسێکس...',
     shop_unisex:'بۆنی یونیسێکس', search_unisex:'گەڕان بۆ بۆنی یونیسێکس...',
     order:'داواکاری MAYA COLLECTION',
@@ -255,6 +259,8 @@ const pageCopy: Record<Language, Record<string, string>> = {
   },
   ar: {
     mainNavigation:'التنقل الرئيسي',
+    ourStoryHeading:'حكايتنا',
+    storyMarquee:'حكايتنا ✦ كل عطر يروي حكاية ✦ اكتشف عطرك المميز ✦ الفخامة في كل قطرة ✦',
     perfect:'للجنسين', shop_perfect:'عطور للجنسين', search_perfect:'ابحث عن عطور للجنسين...',
     shop_unisex:'عطور للجنسين', search_unisex:'ابحث عن عطور للجنسين...',
     order:'طلب MAYA COLLECTION',
