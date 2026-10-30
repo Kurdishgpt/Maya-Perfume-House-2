@@ -50,11 +50,17 @@ export const LockAdminPasscodeResponse = zod.void()
 /**
  * @summary List the live storefront catalog
  */
+export const listProductsResponseBottleSizeMlMax = 10000;
+
+
+
 export const ListProductsResponseItem = zod.object({
   "id": zod.number().int(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "bottle_size_ml": zod.number().int().min(1).max(listProductsResponseBottleSizeMlMax).nullable(),
   "stock": zod.number().int(),
   "sku": zod.string(),
   "category": zod.string(),
@@ -77,6 +83,9 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
 
 export const createProductBodyPriceMin = 0;
 
+export const createProductBodyCurrencyDefault = `USD`;
+export const createProductBodyBottleSizeMlMax = 10000;
+
 export const createProductBodyStockMin = 0;
 
 
@@ -87,6 +96,8 @@ export const CreateProductBody = zod.object({
   "title": zod.string().min(1),
   "brand": zod.string().min(1),
   "price": zod.number().min(createProductBodyPriceMin),
+  "currency": zod.enum(['USD', 'IQD']).default(createProductBodyCurrencyDefault),
+  "bottle_size_ml": zod.number().int().min(1).max(createProductBodyBottleSizeMlMax).nullish(),
   "stock": zod.number().int().min(createProductBodyStockMin),
   "sku": zod.string().min(1),
   "category": zod.string().min(1),
@@ -99,11 +110,17 @@ export const CreateProductBody = zod.object({
   "gallery_images": zod.array(zod.string())
 })
 
+export const createProductResponseBottleSizeMlMax = 10000;
+
+
+
 export const CreateProductResponse = zod.object({
   "id": zod.number().int(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "bottle_size_ml": zod.number().int().min(1).max(createProductResponseBottleSizeMlMax).nullable(),
   "stock": zod.number().int(),
   "sku": zod.string(),
   "category": zod.string(),
@@ -132,6 +149,8 @@ export const UpdateProductParams = zod.object({
 
 export const updateProductBodyPriceMin = 0;
 
+export const updateProductBodyBottleSizeMlMax = 10000;
+
 export const updateProductBodyStockMin = 0;
 
 
@@ -142,6 +161,8 @@ export const UpdateProductBody = zod.object({
   "title": zod.string().min(1).optional(),
   "brand": zod.string().min(1).optional(),
   "price": zod.number().min(updateProductBodyPriceMin).optional(),
+  "currency": zod.enum(['USD', 'IQD']).optional(),
+  "bottle_size_ml": zod.number().int().min(1).max(updateProductBodyBottleSizeMlMax).nullish(),
   "stock": zod.number().int().min(updateProductBodyStockMin).optional(),
   "sku": zod.string().min(1).optional(),
   "category": zod.string().min(1).optional(),
@@ -154,11 +175,17 @@ export const UpdateProductBody = zod.object({
   "gallery_images": zod.array(zod.string()).optional()
 })
 
+export const updateProductResponseBottleSizeMlMax = 10000;
+
+
+
 export const UpdateProductResponse = zod.object({
   "id": zod.number().int(),
   "title": zod.string(),
   "brand": zod.string(),
   "price": zod.number(),
+  "currency": zod.enum(['USD', 'IQD']),
+  "bottle_size_ml": zod.number().int().min(1).max(updateProductResponseBottleSizeMlMax).nullable(),
   "stock": zod.number().int(),
   "sku": zod.string(),
   "category": zod.string(),

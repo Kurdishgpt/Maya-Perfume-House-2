@@ -4,6 +4,7 @@ import { RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
 import { CardSkeletons, ProductCard } from '@/components/store/product-card';
 import { inCategory, inFamily, type CategoryKey, type FamilyKey } from '@/lib/store';
+import { comparePrices } from '@/lib/money';
 import { useStore } from '@/lib/store-context';
 import { useBack } from '@/pages/store/use-back';
 
@@ -30,8 +31,8 @@ export default function Shop() {
     let list = products.filter((p) => inCategory(p, cat) && inFamily(p, family)
       && (!q || `${p.title} ${p.brand}`.toLowerCase().includes(q))
       && (!brand || p.brand === brand) && (!inStock || p.stock > 0));
-    if (sort === 'low') list = [...list].sort((a, b) => a.price - b.price);
-    if (sort === 'high') list = [...list].sort((a, b) => b.price - a.price);
+    if (sort === 'low') list = [...list].sort((a, b) => comparePrices(a, b));
+    if (sort === 'high') list = [...list].sort((a, b) => comparePrices(a, b, -1));
     return list;
   }, [products, cat, family, query, brand, inStock, sort]);
   const activeExtras = (sort !== 'featured' ? 1 : 0) + (brand ? 1 : 0) + (inStock ? 1 : 0);

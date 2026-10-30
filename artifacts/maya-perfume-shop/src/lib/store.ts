@@ -2,12 +2,11 @@ import type { Product as ApiProduct } from '@workspace/api-client-react';
 
 export type Language = 'en' | 'ku' | 'ar';
 export type StoreProduct = ApiProduct & { image_url: string; gallery_images: string[] };
-export type CartLine = { product: StoreProduct; quantity: number; size: number };
+export type CartLine = { product: StoreProduct; quantity: number; size: number | null };
 export type T = (key: string) => string;
 export type CategoryKey = 'all' | 'women' | 'men' | 'perfect';
 export type FamilyKey = 'all' | 'floral' | 'woody' | 'fruity' | 'oriental';
 
-export const IQD_PER_USD = 1500;
 export const storePhone = '+964 770 157 5609';
 export const storePhoneHref = 'tel:+9647701575609';
 export const storeAddress = 'Kolak Mall, Mawlawi Street, Sulaymaniyah, Iraq.';
@@ -15,12 +14,10 @@ export const storeMapLink = 'https://www.google.com/maps/search/?api=1&query=Kol
 export const whatsappNumber = '9647701575609';
 export const whatsappLink = `https://wa.me/${whatsappNumber}`;
 export const instagramLink = 'https://www.instagram.com/khansarayperfums/';
-export const sizes = [25, 50, 100, 150, 200];
 export const languages: { code: Language; label: string }[] = [
   { code: 'en', label: 'English' }, { code: 'ku', label: 'کوردی' }, { code: 'ar', label: 'العربية' },
 ];
 
-export const formatIQD = (usd: number) => `${new Intl.NumberFormat('en-US').format(Math.round(usd * IQD_PER_USD))} IQD`;
 
 const categoryPatterns: Record<Exclude<CategoryKey, 'all'>, RegExp> = {
   women: /\b(women|woman|womens|female|femme|her|ladies|lady)\b|women's/i,
@@ -49,7 +46,7 @@ const en: Record<string, string> = {
   filters:'Filters', fam_all:'All', fam_floral:'Floral', fam_woody:'Woody', fam_fruity:'Fruity', fam_oriental:'Oriental',
   sort:'Sort', sortFeatured:'Featured', sortLow:'Price: low to high', sortHigh:'Price: high to low', brand:'Brand', allBrands:'All brands', category:'Category', inStockOnly:'In stock only', results:'fragrances', clearFilters:'Clear filters', noMatch:'No fragrance matches yet. Try another search or filter.', apply:'Show results',
   add:'Add to Bag', added:'Added to your bag', viewBag:'View bag', stock:'Available', soldOut:'Currently unavailable', sku:'Code', volume:'Size', quantity:'Quantity', notes:'Fragrance notes', top:'Top', heart:'Heart', base:'Base', ingredientsTitle:'Ingredients', description:'The story of this scent',
-  currencyNote:'Approximate local price · 1 USD = 1,500 IQD', exchange:'Approximate conversion only. Not a live exchange rate.',
+  currencyNote:'Prices stay in their listed currency. No automatic conversion.', sizeUnknown:'Size not specified',
   yourBag:'Your Bag', emptyBag:'Your bag is waiting for a scent that feels like you.', emptyWish:'Your wishlist is a little quiet.', browse:'Browse the collection', saved:'Saved fragrances', remove:'Remove',
   subtotal:'Subtotal', delivery:'Delivery', deliveryValue:'Confirmed on WhatsApp', totalBefore:'Total before delivery', proceed:'Proceed to Checkout',
   checkoutTitle:'Checkout', stepDetails:'Details', stepReview:'Review', stepDone:'Sent', name:'Full name', phone:'Phone number', city:'City', address:'Delivery address', notesField:'Delivery notes (optional)',
@@ -67,7 +64,7 @@ const en: Record<string, string> = {
   shippingTitle:'Delivery across Kurdistan', shippingBody:'We deliver to all cities and towns in Kurdistan. Delivery cost and timing are confirmed with you on WhatsApp before your order is final.',
   returnsTitle:'Returns and refunds', returnsBody:'For questions about an order, an exchange or a refund, contact our team on WhatsApp or call the store. Each request is handled personally.',
   privacyTitle:'Your privacy', privacyBody:'Your bag, wishlist and language are saved only in this browser. Order details are shared only when you choose to send them to us on WhatsApp.',
-  termsTitle:'Terms and conditions', termsBody:'Prices are shown in IQD as an approximate conversion. Every order is confirmed by Maya Collection on WhatsApp before it is final.',
+  termsTitle:'Terms and conditions', termsBody:'Prices are shown in the currency listed for each product (USD or IQD), without automatic conversion. Every order is confirmed by Maya Collection on WhatsApp before it is final.',
   item:'item', items:'items', whatsappUs:'Message us on WhatsApp', callUs:'Call the store',
 };
 
@@ -83,7 +80,7 @@ const ku: Record<string, string> = {
   filters:'فلتەر', fam_all:'هەموو', fam_floral:'گوڵاوی', fam_woody:'داراوی', fam_fruity:'میوەیی', fam_oriental:'ڕۆژهەڵاتی',
   sort:'ڕیزکردن', sortFeatured:'تایبەت', sortLow:'نرخ: کەم بۆ زۆر', sortHigh:'نرخ: زۆر بۆ کەم', brand:'براند', allBrands:'هەموو براندەکان', category:'پۆل', inStockOnly:'تەنها بەردەستەکان', results:'بۆن', clearFilters:'سڕینەوەی فلتەر', noMatch:'هیچ بۆنێک نەدۆزرایەوە. گەڕانێکی تر تاقی بکەوە.', apply:'پیشاندانی ئەنجام',
   add:'زیادکردن بۆ سەبەتە', added:'زیادکرا بۆ سەبەتەکەت', viewBag:'بینینی سەبەتە', stock:'بەردەستە', soldOut:'ئێستا بەردەست نییە', sku:'کۆد', volume:'قەبارە', quantity:'ژمارە', notes:'تێبینییەکانی بۆن', top:'سەرەتا', heart:'ناوەڕاست', base:'بنەڕەت', ingredientsTitle:'پێکهاتەکان', description:'چیرۆکی ئەم بۆنە',
-  currencyNote:'نرخی نزیکەیی بە دینار · ١ دۆلار = ١٬٥٠٠ دینار', exchange:'گۆڕینی نزیکەییە، نرخی ڕاستەوخۆی بازاڕ نییە.',
+  currencyNote:'نرخەکان بە دراوی دیاریکراو دەمێننەوە. گۆڕینی خۆکار نییە.', sizeUnknown:'قەبارە دیاری نەکراوە',
   yourBag:'سەبەتەکەت', emptyBag:'سەبەتەکەت چاوەڕێی بۆنێکی تایبەتە.', emptyWish:'هێشتا هیچ بۆنێکت پاشەکەوت نەکردووە.', browse:'گەڕان لە کۆمەڵەکە', saved:'بۆنە دڵخوازەکان', remove:'لابردن',
   subtotal:'کۆی لاوەکی', delivery:'گەیاندن', deliveryValue:'لە واتسئاپ دیاری دەکرێت', totalBefore:'کۆ پێش گەیاندن', proceed:'بەردەوامبوون بۆ داواکردن',
   checkoutTitle:'داواکردن', stepDetails:'زانیاری', stepReview:'پێداچوونەوە', stepDone:'نێردرا', name:'ناوی تەواو', phone:'ژمارەی تەلەفۆن', city:'شار', address:'ناونیشانی گەیاندن', notesField:'تێبینی گەیاندن (ئارەزوومەندانە)',
@@ -101,7 +98,7 @@ const ku: Record<string, string> = {
   shippingTitle:'گەیاندن بۆ سەرانسەری کوردستان', shippingBody:'بۆ هەموو شار و شارۆچکەکانی کوردستان دەگەیەنین. نرخ و کاتی گەیاندن لە واتسئاپ پێش کۆتاییهاتنی داواکە دیاری دەکرێت.',
   returnsTitle:'گەڕاندنەوە و پارە', returnsBody:'بۆ هەر پرسیارێک دەربارەی داوا، گۆڕین یان گەڕاندنەوەی پارە، لە واتسئاپ یان بە تەلەفۆن پەیوەندیمان پێوە بکە.',
   privacyTitle:'تایبەتمەندیت', privacyBody:'سەبەتە، دڵخوازەکان و زمانەکەت تەنها لەم وێبگەڕەدا پاشەکەوت دەکرێن. زانیاری داوا تەنها کاتێک دەنێردرێت کە خۆت لە واتسئاپ بینێریت.',
-  termsTitle:'مەرج و ڕێساکان', termsBody:'نرخەکان بە دیناری عێراقی وەک گۆڕینێکی نزیکەیی پیشان دەدرێن. هەموو داوایەک لە واتسئاپ لەلایەن کۆڵێکشنی مایا پشتڕاست دەکرێتەوە.',
+  termsTitle:'مەرج و ڕێساکان', termsBody:'نرخەکان بە دراوی دیاریکراوی هەر بەرهەمێک (دۆلار یان دینار) پیشان دەدرێن، بەبێ گۆڕینی خۆکار. هەموو داوایەک لە واتسئاپ لەلایەن کۆڵێکشنی مایا پشتڕاست دەکرێتەوە.',
   item:'دانە', items:'دانە', whatsappUs:'نامە بنێرە لە واتسئاپ', callUs:'پەیوەندی بە فرۆشگا',
 };
 
@@ -117,7 +114,7 @@ const ar: Record<string, string> = {
   filters:'الفلاتر', fam_all:'الكل', fam_floral:'زهري', fam_woody:'خشبي', fam_fruity:'فاكهي', fam_oriental:'شرقي',
   sort:'الترتيب', sortFeatured:'مميز', sortLow:'السعر: من الأقل', sortHigh:'السعر: من الأعلى', brand:'العلامة', allBrands:'كل العلامات', category:'الفئة', inStockOnly:'المتوفر فقط', results:'عطر', clearFilters:'مسح الفلاتر', noMatch:'لا يوجد عطر مطابق. جرّب بحثاً أو فلتراً آخر.', apply:'عرض النتائج',
   add:'أضف إلى الحقيبة', added:'أُضيف إلى حقيبتك', viewBag:'عرض الحقيبة', stock:'متوفر', soldOut:'غير متوفر حالياً', sku:'الرمز', volume:'الحجم', quantity:'الكمية', notes:'نوتات العطر', top:'المقدمة', heart:'القلب', base:'القاعدة', ingredientsTitle:'المكونات', description:'حكاية هذا العطر',
-  currencyNote:'سعر تقريبي بالدينار · 1 دولار = 1,500 دينار', exchange:'تحويل تقريبي وليس سعر صرف مباشر.',
+  currencyNote:'تبقى الأسعار بعملتها المحددة دون تحويل تلقائي.', sizeUnknown:'الحجم غير محدد',
   yourBag:'حقيبتك', emptyBag:'حقيبتك بانتظار عطر يشبهك.', emptyWish:'قائمة المفضلة فارغة حالياً.', browse:'تصفح المجموعة', saved:'العطور المفضلة', remove:'إزالة',
   subtotal:'المجموع الفرعي', delivery:'التوصيل', deliveryValue:'يُحدد عبر واتساب', totalBefore:'الإجمالي قبل التوصيل', proceed:'متابعة الطلب',
   checkoutTitle:'إتمام الطلب', stepDetails:'البيانات', stepReview:'المراجعة', stepDone:'أُرسل', name:'الاسم الكامل', phone:'رقم الهاتف', city:'المدينة', address:'عنوان التوصيل', notesField:'ملاحظات التوصيل (اختياري)',
@@ -135,7 +132,7 @@ const ar: Record<string, string> = {
   shippingTitle:'التوصيل في كل كردستان', shippingBody:'نوصل إلى جميع مدن وبلدات كردستان. تُحدد تكلفة التوصيل وموعده معك عبر واتساب قبل تأكيد الطلب.',
   returnsTitle:'الإرجاع والاسترداد', returnsBody:'لأي سؤال حول طلب أو استبدال أو استرداد، تواصل مع فريقنا عبر واتساب أو اتصل بالمتجر.',
   privacyTitle:'خصوصيتك', privacyBody:'تُحفظ حقيبتك ومفضلتك ولغتك في هذا المتصفح فقط. لا تُشارك بيانات الطلب إلا عندما ترسلها إلينا بنفسك عبر واتساب.',
-  termsTitle:'الشروط والأحكام', termsBody:'تُعرض الأسعار بالدينار العراقي كتحويل تقريبي. يُؤكد كل طلب من مايا كوليكشن عبر واتساب قبل اعتماده.',
+  termsTitle:'الشروط والأحكام', termsBody:'تُعرض الأسعار بعملة كل منتج (دولار أو دينار عراقي) دون تحويل تلقائي. يُؤكد كل طلب من مايا كوليكشن عبر واتساب قبل اعتماده.',
   item:'قطعة', items:'قطع', whatsappUs:'راسلنا على واتساب', callUs:'اتصل بالمتجر',
 };
 

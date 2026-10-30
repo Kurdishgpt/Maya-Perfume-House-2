@@ -9,6 +9,8 @@ export const productsTable = pgTable(
     title: text("title").notNull(),
     brand: text("brand").notNull(),
     price: numeric("price", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("USD"),
+    bottleSizeMl: integer("bottle_size_ml"),
     stock: integer("stock").notNull().default(0),
     sku: text("sku").notNull(),
     category: text("category").notNull(),

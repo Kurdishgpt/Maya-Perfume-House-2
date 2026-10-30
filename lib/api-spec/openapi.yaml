@@ -391,6 +391,8 @@ components:
         - title
         - brand
         - price
+        - currency
+        - bottle_size_ml
         - stock
         - sku
         - category
@@ -411,6 +413,13 @@ components:
           type: string
         price:
           type: number
+        currency:
+          type: string
+          enum: [USD, IQD]
+        bottle_size_ml:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 10000
         stock:
           type: integer
         sku:
@@ -470,6 +479,14 @@ components:
         price:
           type: number
           minimum: 0
+        currency:
+          type: string
+          enum: [USD, IQD]
+          default: USD
+        bottle_size_ml:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 10000
         stock:
           type: integer
           minimum: 0
@@ -515,6 +532,13 @@ components:
         price:
           type: number
           minimum: 0
+        currency:
+          type: string
+          enum: [USD, IQD]
+        bottle_size_ml:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 10000
         stock:
           type: integer
           minimum: 0

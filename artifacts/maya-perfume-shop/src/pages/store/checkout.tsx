@@ -3,7 +3,8 @@ import { useLocation } from 'wouter';
 import { Check, MessageCircle, Pencil } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { PageBar } from '@/components/store/header';
-import { formatIQD, whatsappNumber } from '@/lib/store';
+import { whatsappNumber } from '@/lib/store';
+import { formatMoney, formatTotals } from '@/lib/money';
 import { useStore } from '@/lib/store-context';
 import { BagSummary } from '@/pages/store/bag';
 import { EmptyState } from '@/pages/store/wishlist';
@@ -31,8 +32,8 @@ export default function Checkout() {
     setStep('review'); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const send = () => {
-    const rows = cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size} ml x ${l.quantity} = ${formatIQD(l.product.price * l.quantity)}`).join('\n');
-    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatIQD(subtotal)}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
+    const rows = cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`).join('\n');
+    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatTotals(subtotal)}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     setLink(url);
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -75,7 +76,7 @@ export default function Checkout() {
       </section>}
       <aside className="mc-bag-side">
         <div className="mc-review-card"><h3>{t('orderSummary')}</h3>
-          <ul className="mc-mini-lines">{cart.map((l) => <li key={`${l.product.id}-${l.size}`}><img src={l.product.image_url || '/images/hero-fragrance.png'} alt=""/><span><strong>{l.product.title}</strong><small dir="ltr">{l.size} ml x {l.quantity}</small></span><em dir="ltr">{formatIQD(l.product.price * l.quantity)}</em></li>)}</ul>
+          <ul className="mc-mini-lines">{cart.map((l) => <li key={`${l.product.id}-${l.size}`}><img src={l.product.image_url || '/images/hero-fragrance.png'} alt=""/><span><strong>{l.product.title}</strong><small dir="ltr">{l.size ? `${l.size} ml` : t('sizeUnknown')} x {l.quantity}</small></span><em dir="ltr">{formatMoney(l.product.price * l.quantity, l.product.currency)}</em></li>)}</ul>
           <BagSummary compact/>
         </div>
       </aside>

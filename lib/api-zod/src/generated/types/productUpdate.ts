@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductUpdateCurrency } from './productUpdateCurrency';
 
 export interface ProductUpdate {
   /** @minLength 1 */
@@ -13,6 +14,13 @@ export interface ProductUpdate {
   brand?: string;
   /** @minimum 0 */
   price?: number;
+  currency?: ProductUpdateCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml?: number | null;
   /** @minimum 0 */
   stock?: number;
   /** @minLength 1 */

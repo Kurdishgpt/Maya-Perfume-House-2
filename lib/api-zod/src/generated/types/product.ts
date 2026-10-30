@@ -5,12 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductCurrency } from './productCurrency';
 
 export interface Product {
   id: number;
   title: string;
   brand: string;
   price: number;
+  currency: ProductCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml: number | null;
   stock: number;
   sku: string;
   category: string;

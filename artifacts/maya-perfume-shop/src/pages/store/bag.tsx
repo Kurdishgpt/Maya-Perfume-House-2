@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { ArrowRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
-import { formatIQD } from '@/lib/store';
+import { formatMoney, formatTotals } from '@/lib/money';
 import { useStore } from '@/lib/store-context';
 import { EmptyState } from '@/pages/store/wishlist';
 import { useBack } from '@/pages/store/use-back';
@@ -9,9 +9,9 @@ import { useBack } from '@/pages/store/use-back';
 export function BagSummary({ compact = false }: { compact?: boolean }) {
   const { t, subtotal } = useStore();
   return <div className={`mc-summary ${compact ? 'is-compact' : ''}`}>
-    <div><span>{t('subtotal')}</span><strong dir="ltr" data-testid="text-subtotal">{formatIQD(subtotal)}</strong></div>
+    <div><span>{t('subtotal')}</span><strong dir="ltr" data-testid="text-subtotal">{formatTotals(subtotal)}</strong></div>
     <div><span>{t('delivery')}</span><em>{t('deliveryValue')}</em></div>
-    <div className="is-total"><span>{t('totalBefore')}</span><strong dir="ltr" data-testid="text-total">{formatIQD(subtotal)}</strong></div>
+    <div className="is-total"><span>{t('totalBefore')}</span><strong dir="ltr" data-testid="text-total">{formatTotals(subtotal)}</strong></div>
     <small>{t('currencyNote')}</small>
   </div>;
 }
@@ -28,7 +28,7 @@ export default function Bag() {
           <Link href={`/product/${product.id}`} className="mc-line-img"><img src={product.image_url || '/images/hero-fragrance.png'} alt={product.title}/></Link>
           <div className="mc-line-copy">
             <Link href={`/product/${product.id}`}><strong>{product.title}</strong></Link>
-            <span dir="ltr">{size} ml · {formatIQD(product.price)}</span>
+            <span dir="ltr">{size ? `${size} ml` : t('sizeUnknown')} · {formatMoney(product.price, product.currency)}</span>
             <div className="mc-line-actions">
               <div className="mc-qty is-small">
                 <button onClick={() => changeQty(product.id, size, -1)} aria-label="-" data-testid={`button-minus-${product.id}-${size}`}><Minus size={14}/></button>
@@ -38,7 +38,7 @@ export default function Bag() {
               <button className="mc-remove" onClick={() => removeLine(product.id, size)} aria-label={`${t('remove')} ${product.title}`} data-testid={`button-remove-${product.id}-${size}`}><Trash2 size={16}/></button>
             </div>
           </div>
-          <strong className="mc-line-total" dir="ltr">{formatIQD(product.price * quantity)}</strong>
+          <strong className="mc-line-total" dir="ltr">{formatMoney(product.price * quantity, product.currency)}</strong>
         </li>)}
       </ul>
       <aside className="mc-bag-side">

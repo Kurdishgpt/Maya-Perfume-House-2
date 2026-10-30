@@ -1,18 +1,28 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useListProducts, type Product as ApiProduct } from '@workspace/api-client-react';
 import { copy, type CartLine, type Language, type StoreProduct, type T } from '@/lib/store';
+import { totalByCurrency, type MoneyTotals } from '@/lib/money';
 
 type StoreValue = {
   language: Language; setLanguage: (l: Language) => void; t: T; rtl: boolean;
   products: StoreProduct[]; loading: boolean; isError: boolean; refetch: () => void;
   wishlist: number[]; toggleWish: (id: number) => void;
-  cart: CartLine[]; add: (p: ApiProduct, size: number, qty?: number) => void;
-  changeQty: (id: number, size: number, delta: number) => void; removeLine: (id: number, size: number) => void; clearCart: () => void;
-  count: number; subtotal: number; bagPulse: number;
+  cart: CartLine[]; add: (p: ApiProduct, size: number | null, qty?: number) => void;
+  changeQty: (id: number, size: number | null, delta: number) => void; removeLine: (id: number, size: number | null) => void; clearCart: () => void;
+  count: number; subtotal: MoneyTotals; bagPulse: number;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
 const read = <V,>(key: string, fallback: V): V => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) as V : fallback; } catch { return fallback; } };
+function synchronizeCart(cart: CartLine[], products: StoreProduct[]) {
+  return cart.reduce<CartLine[]>((lines, line) => {
+    const product = products.find((p) => p.id === line.product.id) ?? line.product;
+    const existing = lines.find((entry) => entry.product.id === product.id);
+    if (existing) existing.quantity += line.quantity;
+    else lines.push({ ...line, product, size: product.bottle_size_ml ?? null });
+    return lines;
+  }, []);
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => { const v = localStorage.getItem('maya-language'); return v === 'ku' || v === 'ar' ? v : 'en'; });
@@ -29,7 +39,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('maya-cart', JSON.stringify(cart)); }, [cart]);
   const products = (catalog.data ?? []) as StoreProduct[];
   // Keep bag lines in sync with live catalog data (price, image, title) when available.
-  const liveCart = useMemo(() => cart.map((line) => { const live = products.find((p) => p.id === line.product.id); return live ? { ...line, product: live } : line; }), [cart, products]);
+  const liveCart = useMemo(() => synchronizeCart(cart, products), [cart, products]);
   const value: StoreValue = {
     language, setLanguage, rtl: language !== 'en',
     t: (key) => copy[language][key] || copy.en[key] || key,
@@ -38,14 +48,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cart: liveCart,
     add: (product, size, quantity = 1) => { setBagPulse((n) => n + 1); setCart((old) => {
       const item = product as StoreProduct;
-      const found = old.find((l) => l.product.id === item.id && l.size === size);
-      return found ? old.map((l) => l === found ? { ...l, quantity: l.quantity + quantity } : l) : [...old, { product: item, quantity, size }];
+      const found = old.find((l) => l.product.id === item.id);
+      return found ? [...old.filter((l) => l.product.id !== item.id), {
+        product: item, size: item.bottle_size_ml ?? null,
+        quantity: old.filter((l) => l.product.id === item.id).reduce((sum, l) => sum + l.quantity, 0) + quantity,
+      }] : [...old, { product: item, quantity, size }];
     }); },
-    changeQty: (id, size, delta) => setCart((old) => old.map((l) => l.product.id === id && l.size === size ? { ...l, quantity: l.quantity + delta } : l).filter((l) => l.quantity > 0)),
-    removeLine: (id, size) => setCart((old) => old.filter((l) => !(l.product.id === id && l.size === size))),
+    changeQty: (id, _size, delta) => setCart((old) => synchronizeCart(old, products).map((l) => l.product.id === id ? { ...l, quantity: l.quantity + delta } : l).filter((l) => l.quantity > 0)),
+    removeLine: (id) => setCart((old) => old.filter((l) => l.product.id !== id)),
     clearCart: () => setCart([]),
     count: liveCart.reduce((n, l) => n + l.quantity, 0),
-    subtotal: liveCart.reduce((n, l) => n + l.product.price * l.quantity, 0),
+    subtotal: totalByCurrency(liveCart.map((l) => ({ ...l.product, quantity: l.quantity }))),
     bagPulse,
   };
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

@@ -19,6 +19,8 @@ function toApiProduct(product: DbProduct) {
     title: product.title,
     brand: product.brand,
     price: product.price,
+    currency: product.currency,
+    bottle_size_ml: product.bottleSizeMl,
     stock: product.stock,
     sku: product.sku,
     category: product.category,
@@ -65,6 +67,8 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
         title: data.title.trim(),
         brand: data.brand.trim(),
         price: data.price,
+        currency: data.currency ?? "USD",
+        bottleSizeMl: data.bottle_size_ml ?? null,
         stock: data.stock,
         sku: data.sku.trim(),
         category: data.category.trim(),
@@ -115,6 +119,8 @@ router.patch(
     if (data.title !== undefined) values.title = data.title.trim();
     if (data.brand !== undefined) values.brand = data.brand.trim();
     if (data.price !== undefined) values.price = data.price;
+    if (data.currency !== undefined) values.currency = data.currency;
+    if (data.bottle_size_ml !== undefined) values.bottleSizeMl = data.bottle_size_ml;
     if (data.stock !== undefined) values.stock = data.stock;
     if (data.sku !== undefined) values.sku = data.sku.trim();
     if (data.category !== undefined) values.category = data.category.trim();

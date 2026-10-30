@@ -9,11 +9,26 @@ export interface HealthStatus {
   status: string;
 }
 
+export type ProductCurrency = typeof ProductCurrency[keyof typeof ProductCurrency];
+
+
+export const ProductCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
 export interface Product {
   id: number;
   title: string;
   brand: string;
   price: number;
+  currency: ProductCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml: number | null;
   stock: number;
   sku: string;
   category: string;
@@ -27,6 +42,14 @@ export interface Product {
   created_at: string;
 }
 
+export type ProductInputCurrency = typeof ProductInputCurrency[keyof typeof ProductInputCurrency];
+
+
+export const ProductInputCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
 export interface ProductInput {
   /** @minLength 1 */
   title: string;
@@ -34,6 +57,13 @@ export interface ProductInput {
   brand: string;
   /** @minimum 0 */
   price: number;
+  currency?: ProductInputCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml?: number | null;
   /** @minimum 0 */
   stock: number;
   /** @minLength 1 */
@@ -49,6 +79,14 @@ export interface ProductInput {
   gallery_images: string[];
 }
 
+export type ProductUpdateCurrency = typeof ProductUpdateCurrency[keyof typeof ProductUpdateCurrency];
+
+
+export const ProductUpdateCurrency = {
+  USD: 'USD',
+  IQD: 'IQD',
+} as const;
+
 export interface ProductUpdate {
   /** @minLength 1 */
   title?: string;
@@ -56,6 +94,13 @@ export interface ProductUpdate {
   brand?: string;
   /** @minimum 0 */
   price?: number;
+  currency?: ProductUpdateCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml?: number | null;
   /** @minimum 0 */
   stock?: number;
   /** @minLength 1 */

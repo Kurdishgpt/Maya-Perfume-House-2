@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductInputCurrency } from './productInputCurrency';
 
 export interface ProductInput {
   /** @minLength 1 */
@@ -13,6 +14,13 @@ export interface ProductInput {
   brand: string;
   /** @minimum 0 */
   price: number;
+  currency?: ProductInputCurrency;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  bottle_size_ml?: number | null;
   /** @minimum 0 */
   stock: number;
   /** @minLength 1 */

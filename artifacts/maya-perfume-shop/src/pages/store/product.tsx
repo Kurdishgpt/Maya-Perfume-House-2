@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { Check, Heart, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
-import { formatIQD, sizes } from '@/lib/store';
+import { formatMoney } from '@/lib/money';
 import { useStore } from '@/lib/store-context';
 import { useBack } from '@/pages/store/use-back';
 
@@ -12,7 +12,6 @@ export default function ProductPage() {
   const back = useBack('/collection');
   const product = products.find((p) => p.id === Number(params.id));
   const [active, setActive] = useState(0);
-  const [size, setSize] = useState(50);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -23,7 +22,7 @@ export default function ProductPage() {
 
   const saved = wishlist.includes(product.id);
   const images = [product.image_url, ...(product.gallery_images || [])].filter(Boolean);
-  const onAdd = () => { add(product, size, qty); setAdded(true); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setAdded(false), 2600); };
+  const onAdd = () => { add(product, product.bottle_size_ml ?? null, qty); setAdded(true); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setAdded(false), 2600); };
   const noteRows = [['top', product.top_notes], ['heart', product.heart_notes], ['base', product.base_notes]] as const;
 
   return <div className="mc-page mc-product">
@@ -36,9 +35,9 @@ export default function ProductPage() {
       <div className="mc-info">
         <span className="mc-kicker">{[product.brand, product.category].filter(Boolean).join(' · ')}</span>
         <h2 className="mc-product-title" data-testid="text-product-title">{product.title}</h2>
-        <div className="mc-price-row"><strong dir="ltr" data-testid="text-product-price">{formatIQD(product.price)}</strong>
+        <div className="mc-price-row"><strong dir="ltr" data-testid="text-product-price">{formatMoney(product.price, product.currency)}</strong>
           <span className={`mc-stock ${product.stock > 0 ? '' : 'is-out'}`} data-testid="text-product-stock">{product.stock > 0 ? `${t('stock')} · ${product.stock}` : t('soldOut')}</span></div>
-        <p className="mc-fine">{t('currencyNote')}. {t('exchange')}</p>
+        <p className="mc-fine">{t('currencyNote')}</p>
         {product.description && <p className="mc-desc">{product.description}</p>}
 
         <div className="mc-notes">
@@ -48,7 +47,7 @@ export default function ProductPage() {
         </div>
 
         <h3 className="mc-label">{t('volume')}</h3>
-        <div className="mc-sizes">{sizes.map((s) => <button key={s} onClick={() => setSize(s)} className={size === s ? 'is-active' : ''} aria-pressed={size === s} data-testid={`button-size-${s}`} dir="ltr">{s} ml</button>)}</div>
+        <div className="mc-sizes" data-testid="text-product-size"><span dir="ltr">{product.bottle_size_ml ? `${product.bottle_size_ml} ml` : t('sizeUnknown')}</span></div>
         <p className="mc-fine">{t('sku')}: {product.sku}</p>
 
         <div className="mc-buy">
