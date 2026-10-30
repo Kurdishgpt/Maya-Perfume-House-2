@@ -20,6 +20,8 @@ Required for the Supabase-backed production paths:
 - `ADMIN_PANEL_PASSWORD` — choose a strong admin passcode.
 - `SESSION_SECRET` — use a long random value for signing the admin session cookie.
 
+For admin access, make `ADMIN_PANEL_PASSWORD` and `SESSION_SECRET` available to the **Functions** scope in the deployment context being tested (production or Deploy Preview). Build-only settings are not available to API requests. Redeploy after changing these settings. The admin status endpoint at `/api/admin/passcode` should return HTTP 200 with `unlocked: false` before login; HTTP 503 means one of these server settings is missing. HTTP 404 means the API function or its redirects are not available on that deployment.
+
 Also add `GEMINI_API_KEY` if the AI description tools are needed. Configure any provider credentials those tools require in Netlify as server-only values.
 
 `DATABASE_URL` is only needed for routes that still read the legacy Replit database, including Hillen99 import-run progress and the one-time legacy transfer. If you add it, keep it server-only and confirm the database accepts connections from Netlify. Do not use `SUPABASE_DB_URL` as `DATABASE_URL`; the schemas are different.

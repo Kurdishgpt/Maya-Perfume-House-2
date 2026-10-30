@@ -7,6 +7,7 @@ import {
 import {
   clearAdminPasscodeCookie,
   isAdminPasscodeUnlocked,
+  isAdminAccessConfigured,
   setAdminPasscodeCookie,
   verifyAdminPasscode,
 } from "../middlewares/requireAdmin";
@@ -22,8 +23,8 @@ router.use("/admin/passcode", (_req, res, next) => {
 });
 
 router.get("/admin/passcode", (req, res): void => {
-  if (!process.env.SESSION_SECRET) {
-    req.log.error("Admin session signing is not configured");
+  if (!isAdminAccessConfigured()) {
+    req.log.error("Admin password or session signing is not configured");
     res.status(503).json({ error: "Admin access is not configured." });
     return;
   }
@@ -41,8 +42,8 @@ router.post("/admin/passcode", (req, res): void => {
     res.status(400).json({ error: "Enter the admin passphrase." });
     return;
   }
-  if (!process.env.SESSION_SECRET) {
-    req.log.error("Admin session signing is not configured");
+  if (!isAdminAccessConfigured()) {
+    req.log.error("Admin password or session signing is not configured");
     res.status(503).json({ error: "Admin access is not configured." });
     return;
   }

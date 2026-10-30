@@ -1,6 +1,6 @@
 import express, { type Express } from "express";
 import pinoHttp from "pino-http";
-import router from "./routes";
+import adminRouter from "./routes/admin";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -27,6 +27,15 @@ app.use(
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+// Access checks must remain available even if a catalog integration cannot start.
+app.use("/api", adminRouter);
+app.use("/api", async (req, res, next) => {
+  try {
+    const { default: router } = await import("./routes");
+    router(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default app;
