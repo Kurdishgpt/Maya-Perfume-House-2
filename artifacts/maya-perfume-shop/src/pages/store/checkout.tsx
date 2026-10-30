@@ -34,7 +34,7 @@ export default function Checkout() {
   const send = () => {
     const rows = [
       ...cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`),
-      ...rawMaterialCart.map((line) => `- Raw material: ${line.name} (Hillen99 #${line.source_id}) - ${line.quantity} ${line.unit === 'g' ? 'g' : 'item(s)'} x ${formatMoney(line.price, line.currency)} per ${line.unit === 'g' ? 'g' : 'item'} = ${formatMoney(line.price * line.quantity, line.currency)} (estimate)`),
+      ...rawMaterialCart.map((line) => `- Raw material: ${line.name} (${line.category}) - ${line.quantity} ${line.unit === 'g' ? 'g' : 'item(s)'} x ${formatMoney(line.price, line.currency)} per ${line.unit === 'g' ? 'g' : 'item'} = ${formatMoney(line.price * line.quantity, line.currency)} (estimate)`),
     ].join('\n');
     const rawMaterialNote = rawMaterialCart.length
       ? '\n\nMaya will confirm raw-material availability and final prices before the order is finalized.'

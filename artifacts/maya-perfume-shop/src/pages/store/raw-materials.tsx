@@ -3,7 +3,7 @@ import { getListRawMaterialsQueryKey, getListRawMaterialsQueryOptions } from '@w
 import type { RawMaterial } from '@workspace/api-client-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { FlaskConical, RefreshCw, Search, ChevronLeft, ChevronRight, ExternalLink, ShoppingBag } from 'lucide-react';
+import { FlaskConical, RefreshCw, Search, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
 import { useStore } from '@/lib/store-context';
 import { formatMoney } from '@/lib/money';
@@ -17,6 +17,13 @@ function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
   const [added, setAdded] = useState(false);
   const safe = Math.max(1, Math.round(quantity) || 1);
   const unitLabel = m.unit === 'g' ? 'gram' : 'item';
+  const customerDescription = (value?: string | null) => (value ?? '')
+    .replace(/\b(?:listed by|by|from)\s+Hillen99(?:\s+as a set)?/gi, '')
+    .replace(/\bHillen99\b/gi, '')
+    .replace(/\bis\s*\./gi, '.')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;:])/g, '$1')
+    .trim();
   const addToBag = () => { addRawMaterial(m, safe); setAdded(true); };
   return <article className="mc-raw-card" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }} data-testid={`card-raw-material-${m.id}`}>
     <div className="mc-raw-top">
@@ -27,18 +34,17 @@ function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
         <div className="mc-raw-price" dir="ltr" data-testid={`text-raw-price-${m.id}`}>{formatMoney(m.price, m.currency)} <small>/ {unitLabel}</small></div>
       </div>
     </div>
-    {m.description && <p className="mc-raw-desc">{m.description}</p>}
+    {m.description && <p className="mc-raw-desc">{customerDescription(m.description)}</p>}
     <details className="mc-raw-details" data-testid={`details-raw-material-${m.id}`}>
-      <summary>Specifications and supplier description</summary>
+      <summary>Specifications and description</summary>
       <div className="mc-raw-detail-copy">
-        {m.source_sku && <p><strong>Supplier SKU:</strong> {m.source_sku}</p>}
-        {m.source_category && <p><strong>Supplier category:</strong> {m.source_category}</p>}
+        {m.source_sku && <p><strong>SKU:</strong> {m.source_sku}</p>}
+        {m.source_category && <p><strong>Category:</strong> {m.source_category}</p>}
         <p><strong>Unit:</strong> per {unitLabel}</p>
         {m.quantity_options.length > 0 && <p><strong>Supplier options:</strong> {m.quantity_options.map((option) =>
           `${option.label}: ${option.value}${option.price != null ? ` (${formatMoney(option.price, option.currency === 'IQD' ? 'IQD' : 'USD')})` : ''}`,
         ).join(' · ')}</p>}
-        <p className="mc-raw-original">{m.source_description || m.description}</p>
-        {m.source_url && <a href={m.source_url} target="_blank" rel="noreferrer">View original Hillen99 listing <ExternalLink size={12}/></a>}
+        <p className="mc-raw-original">{customerDescription(m.source_description || m.description)}</p>
       </div>
     </details>
     <div className="mc-raw-ask">
@@ -46,7 +52,7 @@ function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
       <button className="mc-raw-wa" type="button" onClick={addToBag} data-testid={`button-add-raw-bag-${m.id}`}><ShoppingBag size={16}/>{added ? 'Added to Bag' : 'Add to Bag'}</button>
     </div>
     {added && <p className="mc-raw-added" role="status">Added to your bag. <Link href="/bag">View bag</Link></p>}
-    <div className="mc-raw-note">Estimate for {safe} {m.unit === 'g' ? 'g' : 'item(s)'}: <span dir="ltr">{formatMoney(m.price * safe, m.currency)}</span>. Availability and final price are confirmed personally by Maya. Source: {m.source_url ? <a href={m.source_url} target="_blank" rel="noreferrer">Hillen99</a> : 'Hillen99'}.</div>
+    <div className="mc-raw-note">Estimate for {safe} {m.unit === 'g' ? 'g' : 'item(s)'}: <span dir="ltr">{formatMoney(m.price * safe, m.currency)}</span>. Availability and final price are confirmed personally by Maya.</div>
   </article>;
 }
 
@@ -78,7 +84,7 @@ export default function RawMaterialsPage() {
     <section className="mc-raw-intro">
       <span className="mc-kicker" dir="ltr">MAYA COLLECTION · RAW MATERIALS</span>
       <h2>Perfumery ingredients and sets, at supplier prices.</h2>
-      <p>Source prices and currencies are shown as listed by Hillen99. Ingredient prices are per gram; sets are priced per item. Add materials to your bag; Maya confirms availability and the final price at checkout. Nothing is ordered automatically.</p>
+      <p>Ingredient prices are per gram; sets are priced per item. Add materials to your bag; Maya confirms availability and the final price at checkout. Nothing is ordered automatically.</p>
     </section>
     <div className="mc-raw-tools">
       <label className="mc-raw-search"><Search size={16}/><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, CAS, SKU or keywords" aria-label="Search name, CAS number, or keywords" data-testid="input-raw-search"/></label>

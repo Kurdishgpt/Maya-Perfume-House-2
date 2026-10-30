@@ -17,13 +17,14 @@ import { contactMessagesTable, db, storeContactSettingsTable } from "@workspace/
 import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
+const defaultStoreHours = "10:00 AM – 10:00 PM";
 const submitWindowMs = 15 * 60 * 1000;
 const submitLimit = 5;
 const submissionsByIp = new Map<string, { startedAt: number; count: number }>();
 
 function settingsResponse(row: typeof storeContactSettingsTable.$inferSelect | undefined) {
   return {
-    store_hours: row?.storeHours.trim() || null,
+    store_hours: row ? row.storeHours.trim() || null : defaultStoreHours,
     updated_at: row?.updatedAt.toISOString() ?? null,
   };
 }

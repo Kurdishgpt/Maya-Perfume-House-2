@@ -44,7 +44,7 @@ export default function Bag() {
           <div className="mc-line-img">{line.image_url ? <img src={line.image_url} alt={line.name}/> : <FlaskConical size={24}/>}</div>
           <div className="mc-line-copy">
             <strong>{line.name}</strong>
-            <span>{line.category} · Hillen99 #{line.source_id}</span>
+            <span>{line.category}</span>
             <span dir="ltr">{line.quantity} {line.unit === 'g' ? 'g' : 'item(s)'} · {formatMoney(line.price, line.currency)} / {line.unit === 'g' ? 'g' : 'item'}</span>
             <div className="mc-line-actions">
               <div className="mc-qty is-small">

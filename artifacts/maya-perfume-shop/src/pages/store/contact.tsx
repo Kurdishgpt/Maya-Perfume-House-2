@@ -113,8 +113,10 @@ export default function ContactPage() {
 
     <section className="mc-contact-map-card">
        <div className="mc-contact-section-heading"><span className="mc-contact-icon is-small"><MapPin/></span><div><h2>Find Us on Map</h2><p>Map preview centered on the verified location. Directions open your Google Maps destination.</p></div></div>
-      <div className="mc-map-preview" aria-label="Interactive map centered on the verified store location">
-        <iframe title="Map preview centered on the verified Maya Collection location" src={CONTACT_CONFIG.mapEmbedUrl} loading="eager" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/>
+      <div className="mc-map-preview">
+        <img src={CONTACT_CONFIG.mapPreviewImage} alt="OpenStreetMap preview centered on the location from the supplied Google Maps link" loading="lazy"/>
+        <span className="mc-map-pin" aria-label="Verified location"><MapPin size={30} fill="currentColor"/></span>
+        <a className="mc-map-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
       </div>
        <a className="mc-map-directions" href={CONTACT_CONFIG.mapUrl} target="_blank" rel="noreferrer"><Send/>Open in Google Maps<ArrowUpRight/></a>
     </section>
