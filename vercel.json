@@ -1,6 +1,6 @@
 {
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run typecheck:libs && pnpm --filter @workspace/maya-perfume-shop run build",
+  "buildCommand": "pnpm -w run typecheck:libs && pnpm --filter @workspace/maya-perfume-shop run build",
   "outputDirectory": "artifacts/maya-perfume-shop/dist/public",
   "rewrites": [
     { "source": "/welcome", "destination": "/index.html" },
