@@ -24,7 +24,7 @@ export function getSupabaseAdmin(): SupabaseClient {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (getSupabaseConfigIssue() !== null || !url || !serviceRoleKey) {
     throw new Error(
-      "Supabase server access is not configured correctly. Check VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Replit Secrets.",
+      "Supabase server access is not configured. Set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the hosting environment.",
     );
   }
 

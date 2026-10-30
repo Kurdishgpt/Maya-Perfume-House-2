@@ -20,7 +20,7 @@ let client: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient {
   if (!url || !anonKey || !supabaseUrlValid) {
     throw new Error(
-      "Supabase is not configured correctly. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Replit Secrets, then restart the web workflow.",
+      "Supabase is not configured correctly. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the hosting environment, then rebuild the site.",
     );
   }
   client ??= createClient(url, anonKey, {

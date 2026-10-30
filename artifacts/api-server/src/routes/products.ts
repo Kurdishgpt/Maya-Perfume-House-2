@@ -10,7 +10,7 @@ import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { getSupabaseAdmin, getSupabaseConfigIssue } from "../lib/supabase";
-import { db, productsTable } from "@workspace/db";
+import { db, isLegacyDatabaseConfigured, productsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -106,6 +106,10 @@ function responseError(error: { code?: string; message?: string }, fallback: str
 
 router.get("/products", async (req, res): Promise<void> => {
   if (getSupabaseConfigIssue()) {
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "The fragrance collection is unavailable until Supabase is configured." });
+      return;
+    }
     try {
       const rows = await db.select().from(productsTable);
       req.log.warn("Supabase is not ready; serving the existing Replit catalog without changing it");

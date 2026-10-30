@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import {
   contactMessagesTable,
   db,
+  isLegacyDatabaseConfigured,
   productsTable,
   rawMaterialsTable,
   rawMaterialImportRunsTable,
@@ -39,6 +40,12 @@ function chunks<T>(items: T[], size: number): T[][] {
 router.post("/admin/supabase/migrate-legacy", requireAdmin, async (req, res): Promise<void> => {
   if (!isSupabaseConfigured()) {
     res.status(503).json({ error: "Supabase server configuration is missing." });
+    return;
+  }
+  if (!isLegacyDatabaseConfigured) {
+    res.status(503).json({
+      error: "The legacy source database is not configured in this deployment. No data was changed.",
+    });
     return;
   }
 

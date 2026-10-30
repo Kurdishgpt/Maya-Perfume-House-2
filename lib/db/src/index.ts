@@ -4,18 +4,11 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const databaseUrl = process.env.DATABASE_URL;
-const isServerlessRuntime =
-  process.env.NETLIFY === "true" || process.env.VERCEL === "1";
+const databaseUrl = process.env.DATABASE_URL?.trim();
 
-if (!databaseUrl && !isServerlessRuntime) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+export const isLegacyDatabaseConfigured = Boolean(databaseUrl);
 
 // Supabase-backed serverless functions do not need the legacy Replit DB pool.
-// Legacy-only routes still require DATABASE_URL when they are used.
 export const pool = databaseUrl
   ? new Pool({ connectionString: databaseUrl })
   : new Pool();

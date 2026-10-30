@@ -13,7 +13,7 @@ import {
   UpdateAdminContactSettingsBody,
   UpdateAdminContactSettingsResponse,
 } from "@workspace/api-zod";
-import { contactMessagesTable, db, storeContactSettingsTable } from "@workspace/db";
+import { contactMessagesTable, db, isLegacyDatabaseConfigured, storeContactSettingsTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
 
@@ -107,6 +107,10 @@ router.get("/contact/settings", async (_req, res): Promise<void> => {
       res.json(GetPublicContactSettingsResponse.parse(supabaseSettingsResponse(data)));
       return;
     }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "Contact information is unavailable until Supabase is configured." });
+      return;
+    }
     const [row] = await db.select().from(storeContactSettingsTable).where(eq(storeContactSettingsTable.id, 1)).limit(1);
     res.setHeader("Cache-Control", "no-store");
     res.json(GetPublicContactSettingsResponse.parse(settingsResponse(row)));
@@ -157,6 +161,10 @@ router.post("/contact/messages", async (req, res): Promise<void> => {
       res.status(201).json(SubmitContactMessageResponse.parse({ id: Number(data.id), received: true }));
       return;
     }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "Contact messages are unavailable until Supabase is configured." });
+      return;
+    }
     const [saved] = await db.insert(contactMessagesTable).values({
       fullName,
       email,
@@ -193,6 +201,10 @@ router.get("/admin/contact/settings", async (_req, res): Promise<void> => {
       res.json(GetAdminContactSettingsResponse.parse(supabaseSettingsResponse(data)));
       return;
     }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "Contact settings are unavailable until Supabase is configured." });
+      return;
+    }
     const [row] = await db.select().from(storeContactSettingsTable).where(eq(storeContactSettingsTable.id, 1)).limit(1);
     res.json(GetAdminContactSettingsResponse.parse(settingsResponse(row)));
   } catch (error) {
@@ -219,6 +231,10 @@ router.patch("/admin/contact/settings", async (req, res): Promise<void> => {
         .single();
       if (error || !data) throw new Error("Supabase store hours could not be saved.");
       res.json(UpdateAdminContactSettingsResponse.parse(supabaseSettingsResponse(data)));
+      return;
+    }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "Contact settings are unavailable until Supabase is configured." });
       return;
     }
     const [row] = await db.insert(storeContactSettingsTable)
@@ -253,6 +269,10 @@ router.get("/admin/contact/messages", async (req, res): Promise<void> => {
         is_read: row.is_read,
         created_at: row.created_at,
       }))));
+      return;
+    }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "The contact inbox is unavailable until Supabase is configured." });
       return;
     }
     const rows = await db.select().from(contactMessagesTable).orderBy(desc(contactMessagesTable.createdAt));
@@ -296,6 +316,10 @@ router.patch("/admin/contact/messages/:id", async (req, res): Promise<void> => {
       })));
       return;
     }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "The contact inbox is unavailable until Supabase is configured." });
+      return;
+    }
     const [row] = await db.update(contactMessagesTable)
       .set({ isRead: body.data.is_read })
       .where(eq(contactMessagesTable.id, params.data.id))
@@ -332,6 +356,10 @@ router.delete("/admin/contact/messages/:id", async (req, res): Promise<void> => 
         return;
       }
       res.status(204).end();
+      return;
+    }
+    if (!isLegacyDatabaseConfigured) {
+      res.status(503).json({ error: "The contact inbox is unavailable until Supabase is configured." });
       return;
     }
     const deleted = await db.delete(contactMessagesTable).where(eq(contactMessagesTable.id, params.data.id)).returning({ id: contactMessagesTable.id });

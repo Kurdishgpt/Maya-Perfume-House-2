@@ -1,6 +1,6 @@
 [build]
 base = "."
-command = "pnpm run typecheck:libs && PORT=22746 BASE_PATH=/ pnpm --filter @workspace/maya-perfume-shop run build"
+command = "pnpm run typecheck:libs && pnpm --filter @workspace/api-server run typecheck && PORT=22746 BASE_PATH=/ pnpm --filter @workspace/maya-perfume-shop run build"
 publish = "artifacts/maya-perfume-shop/dist/public"
 functions = "artifacts/api-server/netlify/functions"
 

@@ -19,7 +19,7 @@ router.get("/supabase/status", async (req, res): Promise<void> => {
         }
       : {
           status: "not_configured",
-          message: "Add the Supabase URL and server key to Replit Secrets.",
+          message: "Set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the hosting environment.",
         });
     return;
   }
