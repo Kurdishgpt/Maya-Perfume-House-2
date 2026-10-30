@@ -4,13 +4,19 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl && process.env.NETLIFY !== "true") {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Supabase-backed Netlify functions do not need the legacy Replit DB pool.
+// Legacy-only routes still require DATABASE_URL when they are used.
+export const pool = databaseUrl
+  ? new Pool({ connectionString: databaseUrl })
+  : new Pool();
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

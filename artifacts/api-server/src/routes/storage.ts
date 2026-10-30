@@ -2,15 +2,19 @@ import { RequestUploadUrlBody, RequestUploadUrlResponse } from "@workspace/api-z
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
 import { randomUUID } from "node:crypto";
-import {
-  ObjectNotFoundError,
-  ObjectStorageService,
-} from "../lib/objectStorage";
+import type { ObjectStorageService } from "../lib/objectStorage";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
 
 const router: IRouter = Router();
-const objectStorage = new ObjectStorageService();
+let objectStorage: ObjectStorageService | null = null;
+async function getLegacyObjectStorage(): Promise<ObjectStorageService> {
+  if (!objectStorage) {
+    const { ObjectStorageService: Service } = await import("../lib/objectStorage");
+    objectStorage = new Service();
+  }
+  return objectStorage;
+}
 const acceptedImageTypes = new Set([
   "image/jpeg",
   "image/png",
@@ -58,8 +62,9 @@ router.post(
         }));
         return;
       }
-      const uploadURL = await objectStorage.getObjectEntityUploadURL();
-      const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
+      const legacyStorage = await getLegacyObjectStorage();
+      const uploadURL = await legacyStorage.getObjectEntityUploadURL();
+      const objectPath = legacyStorage.normalizeObjectEntityPath(uploadURL);
       res.json(
         RequestUploadUrlResponse.parse({
           uploadURL,
@@ -77,11 +82,16 @@ router.post(
 router.get(
   "/storage/objects/*path",
   async (req: Request, res: Response): Promise<void> => {
+    if (process.env.NETLIFY === "true") {
+      res.status(404).json({ error: "This legacy Replit image is not available on Netlify. Upload it to the Supabase image bucket." });
+      return;
+    }
     try {
+      const legacyStorage = await getLegacyObjectStorage();
       const rawPath = req.params.path;
       const path = Array.isArray(rawPath) ? rawPath.join("/") : rawPath;
-      const objectFile = await objectStorage.getObjectEntityFile(`/objects/${path}`);
-      const response = await objectStorage.downloadObject(objectFile);
+      const objectFile = await legacyStorage.getObjectEntityFile(`/objects/${path}`);
+      const response = await legacyStorage.downloadObject(objectFile);
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
 
@@ -93,7 +103,7 @@ router.get(
         res.end();
       }
     } catch (error) {
-      if (error instanceof ObjectNotFoundError) {
+      if (error instanceof Error && error.name === "ObjectNotFoundError") {
         res.status(404).json({ error: "Image not found." });
         return;
       }
