@@ -18,7 +18,7 @@ import { requireAdmin } from "../middlewares/requireAdmin";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
 
 const router: IRouter = Router();
-const defaultStoreHours = "10:00 AM – 10:00 PM";
+const defaultStoreHours = "9:00 AM – 6:00 PM";
 const submitWindowMs = 15 * 60 * 1000;
 const submitLimit = 5;
 const submissionsByIp = new Map<string, { startedAt: number; count: number }>();

@@ -207,7 +207,7 @@ create table if not exists public.site_settings (
   contact_email text not null default 'MayaCollection@gmail.com',
   contact_phone text not null default '0770 157 5609',
   map_url text not null default 'https://maps.app.goo.gl/A43JFTGSwtdNo95W6',
-  store_hours text not null default '10:00 AM – 10:00 PM',
+  store_hours text not null default '9:00 AM – 6:00 PM',
   delivery_information text not null default '',
   shipping_fee_usd numeric(14, 4) check (shipping_fee_usd is null or shipping_fee_usd >= 0),
   shipping_fee_iqd numeric(14, 4) check (shipping_fee_iqd is null or shipping_fee_iqd >= 0),
