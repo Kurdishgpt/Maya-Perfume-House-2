@@ -65,6 +65,8 @@ export function clearAdminPasscodeCookie(res: Response): void {
 }
 
 export function verifyAdminPasscode(received: string): boolean {
+  const adminPasscode = process.env.ADMIN_PANEL_PASSWORD;
+  if (!adminPasscode) return false;
   const receivedDigest = createHash("sha256").update(received).digest();
   const expectedDigest = createHash("sha256").update(adminPasscode).digest();
   return timingSafeEqual(receivedDigest, expectedDigest);
