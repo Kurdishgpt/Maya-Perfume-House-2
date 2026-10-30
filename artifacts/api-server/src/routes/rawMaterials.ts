@@ -5,14 +5,14 @@ import { db, rawMaterialImportRunsTable, rawMaterialsTable } from "@workspace/db
 import {
   AddHillenRawMaterialBody, AddHillenRawMaterialResponse,
   CreateRawMaterialImportBody, CreateRawMaterialImportResponse, DeleteRawMaterialParams,
-  GetRawMaterialImportParams, GetRawMaterialImportResponse, ImportHillenMaterialsBody, ImportHillenMaterialsResponse,
+  GetRawMaterialImportParams, GetRawMaterialImportResponse,
   ListHillenRawMaterialCategoriesResponse, ListRawMaterialImportsResponse,
   ListAdminRawMaterialsResponse, ListRawMaterialsResponse,
   ResearchRawMaterialsBody, ResearchRawMaterialsResponse,
   UpdateRawMaterialBody, UpdateRawMaterialParams, UpdateRawMaterialResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
-import { fetchHillenCategories, fetchHillenMaterial, fetchHillenPage, HillenError, parseHillenMaterial, searchHillenMaterials, type HillenMaterial } from "../lib/hillenCatalog";
+import { fetchHillenCategories, fetchHillenMaterial, fetchHillenPage, HillenError, hillenUrl, parseHillenMaterial, searchHillenMaterials, unsupportedHillenReason, type HillenMaterial } from "../lib/hillenCatalog";
 import { explainRawMaterials } from "../lib/rawMaterialAi";
 
 const router: IRouter = Router();
@@ -22,7 +22,10 @@ function api(row: typeof rawMaterialsTable.$inferSelect) {
   return {
     id: row.id, source_id: row.sourceId, name: row.name, description: row.description,
     source_sku: row.sourceSku, source_description: row.sourceDescription,
-    category: row.category, price: row.price, currency: row.currency,
+    source_name: row.sourceName, source_category: row.sourceCategory,
+    source_image_url: row.sourceImageUrl, source_available: row.sourceAvailable,
+    category: row.category,
+    price: row.price, currency: row.currency,
     source_price: row.sourcePrice, source_currency: row.sourceCurrency,
     image_url: row.imageUrl, source_url: row.sourceUrl,
     supplier_available: row.supplierAvailable, published: row.published,
@@ -34,7 +37,7 @@ function values(material: HillenMaterial) {
   return {
     sourceId: material.source_id, sourceSku: material.source_sku, name: material.name,
     sourceName: material.name, sourceDescription: material.source_description,
-    sourceCategory: material.category, sourceImageUrl: material.image_url,
+    sourceCategory: material.source_category, sourceImageUrl: material.image_url,
     sourceAvailable: material.supplier_available,
     description: material.description, category: material.category,
     price: material.price, currency: material.currency,
@@ -99,6 +102,17 @@ router.post("/admin/raw-materials/imports", async (req, res): Promise<void> => {
   const input = CreateRawMaterialImportBody.safeParse(req.body);
   if (!input.success) { res.status(400).json({ error: "Select dry run or import, and a valid discovered source category." }); return; }
   const categoryId = input.data.category_id ?? null;
+  if (input.data.mode === "import") {
+    const [preview] = input.data.dry_run_id
+      ? await db.select().from(rawMaterialImportRunsTable).where(eq(rawMaterialImportRunsTable.id, input.data.dry_run_id))
+      : [];
+    const categoryMatches = preview?.categoryId === categoryId;
+    const reviewFresh = preview?.completedAt && Date.now() - preview.completedAt.getTime() < 12 * 60 * 60 * 1000;
+    if (!preview || preview.mode !== "dry-run" || preview.status !== "complete" || !categoryMatches || !reviewFresh) {
+      res.status(400).json({ error: "Complete and review a fresh dry run for this category before importing." });
+      return;
+    }
+  }
   let categoryName = "All categories";
   if (categoryId !== null) {
     try {
@@ -167,7 +181,7 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
       : [];
     const existingIds = new Set(existingRows.map((row) => row.sourceId));
     const sourceIds = new Set([...run.sourceIds, ...pageIds]);
-    const categories = new Set([...run.categories, ...pageMaterials.flatMap((item) => item.category.split(" / ").map((name) => name.trim()).filter(Boolean))]);
+    const categories = new Set([...run.categories, ...pageMaterials.flatMap((item) => item.source_category.split(" / ").map((name) => name.trim()).filter(Boolean))]);
     const newlySeenIds = pageIds.filter((sourceId) => !run.sourceIds.includes(sourceId));
     const unsupported = entries.filter((entry) => !entry).length;
     const records = pageMaterials.map(values);
@@ -209,9 +223,17 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
       const actualUpdated = run.mode === "import" ? refreshedCount : refreshedCount;
       const errors = [
         ...run.errors.filter((item) => item.page !== page),
-        ...Array.from({ length: unsupported }, () => ({
-          page, url: pageUrl, message: "Skipped a supplier listing with a missing/invalid price, ID, source URL, or unsupported non-simple package.",
-        })),
+        ...entries.flatMap((entry, index) => {
+          if (entry) return [];
+          const product = result.products[index] as { id?: unknown; name?: unknown; permalink?: unknown };
+          const id = Number.isSafeInteger(product?.id) ? product.id : null;
+          const name = typeof product?.name === "string" ? product.name.replace(/<[^>]*>/g, "").slice(0, 100) : "";
+          const sourceUrl = hillenUrl(product?.permalink) || pageUrl;
+          return [{
+            page, url: sourceUrl,
+            message: `Skipped Hillen99${id === null ? "" : ` #${id}`}${name ? ` (${name})` : ""}: ${unsupportedHillenReason(product)}.`,
+          }];
+        }),
       ].slice(-250);
       const [updatedRun] = await tx.update(rawMaterialImportRunsTable).set({
         status: complete ? "complete" : failedPages.length ? "partial" : "running",
@@ -237,7 +259,7 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
     const reason = error instanceof HillenError ? error.message : "This page could not be saved; retrying it will not change merchant prices.";
     const failures = [...new Set([...run.failedPages, page])].sort((a, b) => a - b);
     const [saved] = await db.update(rawMaterialImportRunsTable).set({
-      status: "partial", nextPage, totalPages: run.totalPages, failedPages: failures,
+      status: "partial", nextPage: run.nextPage, totalPages: run.totalPages, failedPages: failures,
       errors: [...run.errors.filter((item) => item.page !== page),
         { page, url: pageUrl, message: reason }].slice(-250),
       leaseToken: null, leaseUntil: null, updatedAt: new Date(), completedAt: null,
@@ -245,31 +267,6 @@ router.post("/admin/raw-materials/imports/:id/step", async (req, res): Promise<v
     req.log.warn({ runId: id, page, reason }, "Raw material import page failed and was recorded for retry");
     if (saved) { res.json(GetRawMaterialImportResponse.parse(importJob(saved))); return; }
     res.status(502).json({ error: reason });
-  }
-});
-
-router.post("/admin/raw-materials/import", async (req, res): Promise<void> => {
-  const input = ImportHillenMaterialsBody.safeParse(req.body);
-  if (!input.success) { res.status(400).json({ error: "Enter a valid supplier catalog page." }); return; }
-  try {
-    const { products, total, totalPages } = await fetchHillenPage(input.data.page);
-    const parsed = products.map(parseHillenMaterial);
-    const valid = parsed.flatMap((item) => item ? [values(item.material)] : []);
-    const created = valid.length ? await db.insert(rawMaterialsTable).values(valid)
-      .onConflictDoNothing({ target: rawMaterialsTable.sourceId }).returning({ id: rawMaterialsTable.id }) : [];
-    const issues = parsed.flatMap((item, index) => item ? [] : [
-      `Supplier item ${(products[index] as { id?: unknown })?.id ?? index + 1} skipped: unsupported item type, missing price, or invalid supplier data.`,
-    ]);
-    res.json(ImportHillenMaterialsResponse.parse({
-      page: input.data.page, total_pages: totalPages, total, created: created.length,
-      skipped: products.length - created.length, processed: products.length,
-      complete: input.data.page >= totalPages, issues,
-    }));
-  } catch (error) {
-    req.log.warn({ reason: error instanceof HillenError ? error.message : "Database import failed" }, "Raw material import failed");
-    res.status(error instanceof HillenError ? 502 : 500).json({
-      error: error instanceof HillenError ? error.message : "This page could not be saved. Retry safely; earlier pages and existing prices are preserved.",
-    });
   }
 });
 

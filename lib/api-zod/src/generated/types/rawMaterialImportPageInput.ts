@@ -6,10 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HillenImportInput {
+export interface RawMaterialImportPageInput {
   /**
      * @minimum 1
      * @maximum 1000
      */
   page: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  category_id?: number | null;
 }

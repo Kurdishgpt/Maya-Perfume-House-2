@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RawMaterialCandidateCurrency } from './rawMaterialCandidateCurrency';
+import type { RawMaterialCandidateQuantityOptionsItem } from './rawMaterialCandidateQuantityOptionsItem';
+import type { RawMaterialCandidateUnit } from './rawMaterialCandidateUnit';
 
 export interface RawMaterialCandidate {
   source_id: number;
+  /** @nullable */
+  source_sku: string | null;
   name: string;
   description: string;
   category: string;
@@ -17,4 +21,8 @@ export interface RawMaterialCandidate {
   image_url: string;
   source_url: string;
   supplier_available: boolean;
+  source_description: string;
+  source_category: string;
+  unit: RawMaterialCandidateUnit;
+  quantity_options: RawMaterialCandidateQuantityOptionsItem[];
 }

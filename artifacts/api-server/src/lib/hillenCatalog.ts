@@ -2,9 +2,10 @@ export const HILLEN_ORIGIN = "https://hillen99.com";
 export const HILLEN_PAGE_SIZE = 100;
 
 export type HillenMaterial = {
-  source_id: number; source_sku: string | null; name: string; description: string; source_description: string; category: string;
+  source_id: number; source_sku: string | null; name: string; description: string; source_description: string;
+  category: string; source_category: string;
   price: number; currency: "USD" | "IQD"; image_url: string;
-  source_url: string; supplier_available: boolean; unit: string; quantity_options: Array<{ label: string; value: string; price?: number; currency?: string; unit?: string }>;
+  source_url: string; supplier_available: boolean; unit: "g" | "item"; quantity_options: Array<{ label: string; value: string; price?: number; currency?: string; unit?: string }>;
 };
 export type HillenCategory = { id: number; name: string; slug: string; count: number };
 type SupplierProduct = {
@@ -40,6 +41,24 @@ export function hillenUrl(value: unknown) {
   } catch { return ""; }
 }
 
+export function unsupportedHillenReason(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "invalid supplier listing";
+  const product = value as SupplierProduct;
+  if (!Number.isSafeInteger(product.id) || product.id! <= 0) return "missing supplier product ID";
+  if (typeof product.name !== "string" || !plainText(product.name)) return "missing product name";
+  if (product.type !== "simple") return `unsupported supplier product type (${typeof product.type === "string" ? product.type : "unknown"})`;
+  if (/\b(pipette|scale|bottles?)\b/i.test(`${product.name} ${product.slug ?? ""}`)) {
+    return "equipment listing, not a per-gram perfume material";
+  }
+  const price = product.prices;
+  if (!price || typeof price.price !== "string" || !/^\d+$/.test(price.price) ||
+      !Number.isInteger(price.currency_minor_unit) || price.currency_minor_unit! < 0 ||
+      price.currency_minor_unit! > 6 || !["USD", "IQD"].includes(price.currency_code ?? "") ||
+      price.price_range != null) return "supplier price, currency, or unit could not be verified";
+  if (!hillenUrl(product.permalink)) return "supplier product link is missing or outside Hillen99";
+  return "unsupported supplier listing; price per gram could not be verified";
+}
+
 export function parseHillenMaterial(value: unknown): { material: HillenMaterial; evidence: string } | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const product = value as SupplierProduct;
@@ -48,23 +67,26 @@ export function parseHillenMaterial(value: unknown): { material: HillenMaterial;
       product.type !== "simple" || !price || typeof price.price !== "string" || !/^\d+$/.test(price.price) ||
       !Number.isInteger(price.currency_minor_unit) || price.currency_minor_unit! < 0 || price.currency_minor_unit! > 6 ||
       !["USD", "IQD"].includes(price.currency_code ?? "") || price.price_range != null) return null;
-  // Equipment/bundles are not per-gram raw materials.
-  if (/\b(kit|bundle|bag|pipette|scale|bottles?)\b|حقيبة|مجموعة أدوات/i.test(`${product.name} ${product.slug ?? ""}`)) return null;
+  // Multi-item sets are priced per set, not per gram; keep their unit explicit.
+  if (/\b(pipette|scale|bottles?)\b/i.test(`${product.name} ${product.slug ?? ""}`)) return null;
   const amount = Number(price.price) / 10 ** price.currency_minor_unit!;
   const sourceUrl = hillenUrl(product.permalink);
   if (!Number.isFinite(amount) || amount < 0 || amount > 99999999 || !sourceUrl) return null;
   const name = plainText(product.name).slice(0, 500);
   if (!name) return null;
-  const category = (Array.isArray(product.categories) ? product.categories
+  const perItem = /\b(kit|bundle|bag)\b|حقيبة|مجموعة تعليمية/i.test(`${name} ${product.slug ?? ""}`);
+  const unit: "g" | "item" = perItem ? "item" : "g";
+  const sourceCategory = (Array.isArray(product.categories) ? product.categories
     .map((c) => plainText(typeof c.name === "string" ? c.name : ""))
-    .filter((name) => name && name !== ".").join(" / ") : "").slice(0, 150) || "Raw Material";
+    .filter(Boolean).join(" / ") : "").slice(0, 150);
+  const category = (sourceCategory.split(" / ").filter((name) => name && name !== ".").join(" / ") || "Raw Material").slice(0, 150);
   const evidence = plainText(typeof product.short_description === "string" && product.short_description
     ? product.short_description : typeof product.description === "string" ? product.description : "").slice(0, 1800);
   const fullEvidence = plainText(typeof product.description === "string" ? product.description : "").slice(0, 18_000);
   const categories = Array.isArray(product.attributes) ? product.attributes.flatMap((attribute) =>
     (attribute.terms ?? []).filter((term): term is { name: string } => typeof term.name === "string")
       .map((term) => ({ label: attribute.name || "Option", value: term.name, unit: /g(?:ram)?/i.test(term.name) ? "g" : undefined }))) : [];
-  const quantityOptions = Array.isArray(product.variations) ? product.variations.flatMap((variation) => {
+  const variationOptions = Array.isArray(product.variations) ? product.variations.flatMap((variation) => {
     const priceValue = variation.price && /^\d+$/.test(variation.price) && price.currency_minor_unit !== undefined
       ? Number(variation.price) / 10 ** price.currency_minor_unit : undefined;
     return (variation.attributes ?? []).map((attribute) => ({
@@ -72,55 +94,71 @@ export function parseHillenMaterial(value: unknown): { material: HillenMaterial;
       ...(priceValue !== undefined ? { price: priceValue, currency: price.currency_code } : {}),
       ...(product.weight ? { unit: product.weight } : {}),
     })).filter((option) => option.value);
-  }) : categories;
+  }) : [];
+  const quantityOptions = [...new Map([...categories, ...variationOptions]
+    .map((option) => {
+      const optionPrice = "price" in option ? option.price : undefined;
+      return [`${option.label}|${option.value}|${optionPrice ?? ""}`, option] as const;
+    })).values()];
   const cas = evidence.match(/\b\d{2,7}-\d{2}-\d\b/)?.[0];
   return {
     material: {
       source_id: product.id!, name, category, price: amount, currency: price.currency_code as "USD" | "IQD",
       // Original factual copy, not wholesale republication of supplier marketing text.
-      description: `${name} — ${category} perfumery material listed by Hillen99.${cas ? ` CAS: ${cas}.` : ""} Consult the supplier documentation before use.`,
+      source_category: sourceCategory, description: perItem
+        ? `${name} is listed by Hillen99 as a set.${cas ? ` CAS: ${cas}.` : ""} Confirm the included items and price with the supplier.`
+        : `${name} — ${category} perfumery material listed by Hillen99.${cas ? ` CAS: ${cas}.` : ""} Consult the supplier documentation before use.`,
       source_sku: typeof product.sku === "string" && product.sku.trim() ? product.sku.trim().slice(0, 200) : null,
       image_url: hillenUrl(Array.isArray(product.images) ? product.images[0]?.src : ""),
       source_url: sourceUrl, supplier_available: product.is_in_stock === true,
-      source_description: fullEvidence, unit: "g", quantity_options: quantityOptions.slice(0, 50),
+      source_description: fullEvidence, unit, quantity_options: quantityOptions.slice(0, 50),
     },
     evidence,
   };
 }
 
-export class HillenError extends Error {}
+export class HillenError extends Error {
+  readonly retryable: boolean;
+  constructor(message: string, retryable = false) { super(message); this.retryable = retryable; }
+}
 
 async function supplierRequest(path: string, fetcher: typeof fetch = fetch) {
-  try {
-    const response = await fetcher(`${HILLEN_ORIGIN}/wp-json/wc/store/v1/${path}`, {
-      headers: { Accept: "application/json" }, redirect: "error", signal: AbortSignal.timeout(8_000),
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new HillenError(response.status === 429
-        ? "Hillen99 is limiting requests. Please wait before retrying."
-        : "Hillen99 could not provide the catalog. Please retry; already imported pages are saved.");
-    }
-    const reader = response.body?.getReader();
-    if (!reader) throw new HillenError("Hillen99 returned an empty response.");
-    const chunks: Uint8Array[] = [];
-    let bytes = 0;
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      bytes += chunk.value.byteLength;
-      if (bytes > 3_000_000) {
-        await reader.cancel();
-        throw new HillenError("The supplier response is too large. Please try again later.");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetcher(`${HILLEN_ORIGIN}/wp-json/wc/store/v1/${path}`, {
+        headers: { Accept: "application/json" }, redirect: "error", signal: AbortSignal.timeout(5_000),
+      });
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new HillenError(
+          response.status === 429
+            ? "Hillen99 is limiting requests. Wait briefly, then retry."
+            : "Hillen99 could not provide this catalog page. Retry; completed pages are saved.",
+          response.status === 408 || response.status >= 500,
+        );
       }
-      chunks.push(chunk.value);
+      const reader = response.body?.getReader();
+      if (!reader) throw new HillenError("Hillen99 returned an empty response.");
+      const chunks: Uint8Array[] = [];
+      let bytes = 0;
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > 3_000_000) {
+          await reader.cancel();
+          throw new HillenError("The supplier response is too large to process safely.");
+        }
+        chunks.push(chunk.value);
+      }
+      return { data: JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown, headers: response.headers };
+    } catch (error) {
+      if (error instanceof HillenError && !error.retryable) throw error;
+      if (attempt === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
-    const data: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    return { data, headers: response.headers };
-  } catch (error) {
-    if (error instanceof HillenError) throw error;
-    throw new HillenError("The Hillen99 connection timed out or was interrupted. Please retry; existing imports are preserved.");
   }
+  throw new HillenError("Could not reach Hillen99 after a quick retry. Your saved materials are unchanged; try again.");
 }
 
 export async function fetchHillenPage(page: number, categoryId?: number) {

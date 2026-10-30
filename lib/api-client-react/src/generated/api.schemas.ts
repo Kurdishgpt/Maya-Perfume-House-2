@@ -17,8 +17,26 @@ export const RawMaterialCandidateCurrency = {
   IQD: 'IQD',
 } as const;
 
+export type RawMaterialCandidateUnit = typeof RawMaterialCandidateUnit[keyof typeof RawMaterialCandidateUnit];
+
+
+export const RawMaterialCandidateUnit = {
+  g: 'g',
+  item: 'item',
+} as const;
+
+export type RawMaterialCandidateQuantityOptionsItem = {
+  label: string;
+  value: string;
+  price?: number;
+  currency?: string;
+  unit?: string;
+};
+
 export interface RawMaterialCandidate {
   source_id: number;
+  /** @nullable */
+  source_sku: string | null;
   name: string;
   description: string;
   category: string;
@@ -27,6 +45,10 @@ export interface RawMaterialCandidate {
   image_url: string;
   source_url: string;
   supplier_available: boolean;
+  source_description: string;
+  source_category: string;
+  unit: RawMaterialCandidateUnit;
+  quantity_options: RawMaterialCandidateQuantityOptionsItem[];
 }
 
 export type RawMaterialSourceCurrency = typeof RawMaterialSourceCurrency[keyof typeof RawMaterialSourceCurrency];
@@ -39,6 +61,10 @@ export const RawMaterialSourceCurrency = {
 
 export type RawMaterial = RawMaterialCandidate & {
   id: number;
+  source_name: string;
+  source_category: string;
+  source_image_url: string;
+  source_available: boolean;
   source_price: number;
   source_currency: RawMaterialSourceCurrency;
   published: boolean;
@@ -80,31 +106,101 @@ export interface RawMaterialUpdate {
   published?: boolean;
 }
 
-export interface HillenImportInput {
-  /**
-     * @minimum 1
-     * @maximum 1000
-     */
-  page: number;
-}
-
-export interface HillenImportResult {
-  page: number;
-  total_pages: number;
-  total: number;
-  created: number;
-  skipped: number;
-  processed: number;
-  complete: boolean;
-  issues: string[];
-}
-
 export interface RawMaterialQuery {
   /**
      * @minLength 2
      * @maxLength 120
      */
   query: string;
+}
+
+export interface HillenCategory {
+  id: number;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export type RawMaterialImportInputMode = typeof RawMaterialImportInputMode[keyof typeof RawMaterialImportInputMode];
+
+
+export const RawMaterialImportInputMode = {
+  'dry-run': 'dry-run',
+  import: 'import',
+} as const;
+
+export interface RawMaterialImportInput {
+  mode: RawMaterialImportInputMode;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  category_id?: number | null;
+  /** @maxLength 150 */
+  category_name?: string;
+  /** @minimum 1 */
+  dry_run_id?: number;
+}
+
+export interface RawMaterialImportPageInput {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  page: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  category_id?: number | null;
+}
+
+export interface RawMaterialImportError {
+  page: number;
+  url: string;
+  message: string;
+}
+
+export type RawMaterialImportMode = typeof RawMaterialImportMode[keyof typeof RawMaterialImportMode];
+
+
+export const RawMaterialImportMode = {
+  'dry-run': 'dry-run',
+  import: 'import',
+} as const;
+
+export type RawMaterialImportStatus = typeof RawMaterialImportStatus[keyof typeof RawMaterialImportStatus];
+
+
+export const RawMaterialImportStatus = {
+  running: 'running',
+  complete: 'complete',
+  partial: 'partial',
+} as const;
+
+export interface RawMaterialImport {
+  id: number;
+  mode: RawMaterialImportMode;
+  status: RawMaterialImportStatus;
+  /** @nullable */
+  category_id: number | null;
+  category_name: string;
+  next_page: number;
+  total_pages: number;
+  discovered: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  processed: number;
+  source_ids: number[];
+  categories: string[];
+  processed_pages: number[];
+  failed_pages: number[];
+  errors: RawMaterialImportError[];
+  created_at: string;
+  updated_at: string;
+  /** @nullable */
+  completed_at: string | null;
 }
 
 export interface RawMaterialResearch {

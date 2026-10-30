@@ -322,6 +322,7 @@ export const GetStorageObjectResponse = zod.unknown()
  */
 export const ListRawMaterialsResponseItem = zod.object({
   "source_id": zod.number().int(),
+  "source_sku": zod.string().nullable(),
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
@@ -329,9 +330,23 @@ export const ListRawMaterialsResponseItem = zod.object({
   "currency": zod.enum(['USD', 'IQD']),
   "image_url": zod.string(),
   "source_url": zod.string(),
-  "supplier_available": zod.boolean()
+  "supplier_available": zod.boolean(),
+  "source_description": zod.string(),
+  "source_category": zod.string(),
+  "unit": zod.enum(['g', 'item']),
+  "quantity_options": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "unit": zod.string().optional()
+}))
 }).and(zod.object({
   "id": zod.number().int(),
+  "source_name": zod.string(),
+  "source_category": zod.string(),
+  "source_image_url": zod.string(),
+  "source_available": zod.boolean(),
   "source_price": zod.number(),
   "source_currency": zod.enum(['USD', 'IQD']),
   "published": zod.boolean(),
@@ -345,6 +360,7 @@ export const ListRawMaterialsResponse = zod.array(ListRawMaterialsResponseItem)
  */
 export const ListAdminRawMaterialsResponseItem = zod.object({
   "source_id": zod.number().int(),
+  "source_sku": zod.string().nullable(),
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
@@ -352,9 +368,23 @@ export const ListAdminRawMaterialsResponseItem = zod.object({
   "currency": zod.enum(['USD', 'IQD']),
   "image_url": zod.string(),
   "source_url": zod.string(),
-  "supplier_available": zod.boolean()
+  "supplier_available": zod.boolean(),
+  "source_description": zod.string(),
+  "source_category": zod.string(),
+  "unit": zod.enum(['g', 'item']),
+  "quantity_options": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "unit": zod.string().optional()
+}))
 }).and(zod.object({
   "id": zod.number().int(),
+  "source_name": zod.string(),
+  "source_category": zod.string(),
+  "source_image_url": zod.string(),
+  "source_available": zod.boolean(),
   "source_price": zod.number(),
   "source_currency": zod.enum(['USD', 'IQD']),
   "published": zod.boolean(),
@@ -375,6 +405,7 @@ export const AddHillenRawMaterialBody = zod.object({
 
 export const AddHillenRawMaterialResponse = zod.object({
   "source_id": zod.number().int(),
+  "source_sku": zod.string().nullable(),
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
@@ -382,9 +413,23 @@ export const AddHillenRawMaterialResponse = zod.object({
   "currency": zod.enum(['USD', 'IQD']),
   "image_url": zod.string(),
   "source_url": zod.string(),
-  "supplier_available": zod.boolean()
+  "supplier_available": zod.boolean(),
+  "source_description": zod.string(),
+  "source_category": zod.string(),
+  "unit": zod.enum(['g', 'item']),
+  "quantity_options": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "unit": zod.string().optional()
+}))
 }).and(zod.object({
   "id": zod.number().int(),
+  "source_name": zod.string(),
+  "source_category": zod.string(),
+  "source_image_url": zod.string(),
+  "source_available": zod.boolean(),
   "source_price": zod.number(),
   "source_currency": zod.enum(['USD', 'IQD']),
   "published": zod.boolean(),
@@ -424,6 +469,7 @@ export const UpdateRawMaterialBody = zod.object({
 
 export const UpdateRawMaterialResponse = zod.object({
   "source_id": zod.number().int(),
+  "source_sku": zod.string().nullable(),
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
@@ -431,9 +477,23 @@ export const UpdateRawMaterialResponse = zod.object({
   "currency": zod.enum(['USD', 'IQD']),
   "image_url": zod.string(),
   "source_url": zod.string(),
-  "supplier_available": zod.boolean()
+  "supplier_available": zod.boolean(),
+  "source_description": zod.string(),
+  "source_category": zod.string(),
+  "unit": zod.enum(['g', 'item']),
+  "quantity_options": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "unit": zod.string().optional()
+}))
 }).and(zod.object({
   "id": zod.number().int(),
+  "source_name": zod.string(),
+  "source_category": zod.string(),
+  "source_image_url": zod.string(),
+  "source_available": zod.boolean(),
   "source_price": zod.number(),
   "source_currency": zod.enum(['USD', 'IQD']),
   "published": zod.boolean(),
@@ -455,26 +515,167 @@ export const DeleteRawMaterialResponse = zod.void()
 
 
 /**
- * @summary Import one catalog page while preserving existing materials
+ * @summary List previous dry-run and import jobs
  */
-export const importHillenMaterialsBodyPageMax = 1000;
-
-
-
-export const ImportHillenMaterialsBody = zod.object({
-  "page": zod.number().int().min(1).max(importHillenMaterialsBodyPageMax)
-})
-
-export const ImportHillenMaterialsResponse = zod.object({
-  "page": zod.number().int(),
+export const ListRawMaterialImportsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "mode": zod.enum(['dry-run', 'import']),
+  "status": zod.enum(['running', 'complete', 'partial']),
+  "category_id": zod.number().int().nullable(),
+  "category_name": zod.string(),
+  "next_page": zod.number().int(),
   "total_pages": zod.number().int(),
-  "total": zod.number().int(),
+  "discovered": zod.number().int(),
   "created": zod.number().int(),
+  "updated": zod.number().int(),
   "skipped": zod.number().int(),
   "processed": zod.number().int(),
-  "complete": zod.boolean(),
-  "issues": zod.array(zod.string())
+  "source_ids": zod.array(zod.number().int()),
+  "categories": zod.array(zod.string()),
+  "processed_pages": zod.array(zod.number().int()),
+  "failed_pages": zod.array(zod.number().int()),
+  "errors": zod.array(zod.object({
+  "page": zod.number().int(),
+  "url": zod.string(),
+  "message": zod.string()
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
 })
+export const ListRawMaterialImportsResponse = zod.array(ListRawMaterialImportsResponseItem)
+
+
+/**
+ * @summary Start a dry-run or source import
+ */
+
+export const createRawMaterialImportBodyCategoryNameMax = 150;
+
+
+
+
+export const CreateRawMaterialImportBody = zod.object({
+  "mode": zod.enum(['dry-run', 'import']),
+  "category_id": zod.number().int().min(1).nullish(),
+  "category_name": zod.string().max(createRawMaterialImportBodyCategoryNameMax).optional(),
+  "dry_run_id": zod.number().int().min(1).optional()
+})
+
+export const CreateRawMaterialImportResponse = zod.object({
+  "id": zod.number().int(),
+  "mode": zod.enum(['dry-run', 'import']),
+  "status": zod.enum(['running', 'complete', 'partial']),
+  "category_id": zod.number().int().nullable(),
+  "category_name": zod.string(),
+  "next_page": zod.number().int(),
+  "total_pages": zod.number().int(),
+  "discovered": zod.number().int(),
+  "created": zod.number().int(),
+  "updated": zod.number().int(),
+  "skipped": zod.number().int(),
+  "processed": zod.number().int(),
+  "source_ids": zod.array(zod.number().int()),
+  "categories": zod.array(zod.string()),
+  "processed_pages": zod.array(zod.number().int()),
+  "failed_pages": zod.array(zod.number().int()),
+  "errors": zod.array(zod.object({
+  "page": zod.number().int(),
+  "url": zod.string(),
+  "message": zod.string()
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Read saved import progress
+ */
+
+
+
+export const GetRawMaterialImportParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetRawMaterialImportResponse = zod.object({
+  "id": zod.number().int(),
+  "mode": zod.enum(['dry-run', 'import']),
+  "status": zod.enum(['running', 'complete', 'partial']),
+  "category_id": zod.number().int().nullable(),
+  "category_name": zod.string(),
+  "next_page": zod.number().int(),
+  "total_pages": zod.number().int(),
+  "discovered": zod.number().int(),
+  "created": zod.number().int(),
+  "updated": zod.number().int(),
+  "skipped": zod.number().int(),
+  "processed": zod.number().int(),
+  "source_ids": zod.array(zod.number().int()),
+  "categories": zod.array(zod.string()),
+  "processed_pages": zod.array(zod.number().int()),
+  "failed_pages": zod.array(zod.number().int()),
+  "errors": zod.array(zod.object({
+  "page": zod.number().int(),
+  "url": zod.string(),
+  "message": zod.string()
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Process or resume the next saved import page
+ */
+
+
+
+export const StepRawMaterialImportParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const StepRawMaterialImportResponse = zod.object({
+  "id": zod.number().int(),
+  "mode": zod.enum(['dry-run', 'import']),
+  "status": zod.enum(['running', 'complete', 'partial']),
+  "category_id": zod.number().int().nullable(),
+  "category_name": zod.string(),
+  "next_page": zod.number().int(),
+  "total_pages": zod.number().int(),
+  "discovered": zod.number().int(),
+  "created": zod.number().int(),
+  "updated": zod.number().int(),
+  "skipped": zod.number().int(),
+  "processed": zod.number().int(),
+  "source_ids": zod.array(zod.number().int()),
+  "categories": zod.array(zod.string()),
+  "processed_pages": zod.array(zod.number().int()),
+  "failed_pages": zod.array(zod.number().int()),
+  "errors": zod.array(zod.object({
+  "page": zod.number().int(),
+  "url": zod.string(),
+  "message": zod.string()
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Discover every non-empty supplier category
+ */
+export const ListHillenRawMaterialCategoriesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "count": zod.number().int()
+})
+export const ListHillenRawMaterialCategoriesResponse = zod.array(ListHillenRawMaterialCategoriesResponseItem)
 
 
 /**
@@ -493,6 +694,7 @@ export const ResearchRawMaterialsResponse = zod.object({
   "answer": zod.string(),
   "matches": zod.array(zod.object({
   "source_id": zod.number().int(),
+  "source_sku": zod.string().nullable(),
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
@@ -500,7 +702,17 @@ export const ResearchRawMaterialsResponse = zod.object({
   "currency": zod.enum(['USD', 'IQD']),
   "image_url": zod.string(),
   "source_url": zod.string(),
-  "supplier_available": zod.boolean()
+  "supplier_available": zod.boolean(),
+  "source_description": zod.string(),
+  "source_category": zod.string(),
+  "unit": zod.enum(['g', 'item']),
+  "quantity_options": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "price": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "unit": zod.string().optional()
+}))
 })),
   "warning": zod.string()
 })

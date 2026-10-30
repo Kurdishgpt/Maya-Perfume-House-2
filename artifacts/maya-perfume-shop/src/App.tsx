@@ -21,6 +21,7 @@ import Wishlist from '@/pages/store/wishlist';
 import Bag from '@/pages/store/bag';
 import Checkout from '@/pages/store/checkout';
 import InfoPage from '@/pages/store/info';
+import RawMaterialsPage from '@/pages/store/raw-materials';
 import { recordNavigation } from '@/pages/store/use-back';
 
 const queryClient = new QueryClient();
@@ -44,7 +45,7 @@ function StoreShell() {
         <Route path="/bag" component={Bag}/>
         <Route path="/checkout" component={Checkout}/>
         <Route path="/about"><InfoPage label="about" titleKey="aboutTitle" bodyKey="aboutBody" image="/images/story-bottle.jpg"/></Route>
-        <Route path="/raw-material"><InfoPage label="ingredients" titleKey="rawTitle" bodyKey="rawBody" image="/images/ingredients.png"/></Route>
+        <Route path="/raw-material" component={RawMaterialsPage}/>
         <Route path="/contact"><InfoPage label="contact" titleKey="contactTitle" bodyKey="contactBody"/></Route>
         <Route path="/faq"><InfoPage label="faq" titleKey="faqTitle" bodyKey="faqBody"/></Route>
         <Route path="/shipping"><InfoPage label="shipping" titleKey="shippingTitle" bodyKey="shippingBody"/></Route>

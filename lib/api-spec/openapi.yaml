@@ -553,7 +553,7 @@ components:
         - status
     RawMaterialCandidate:
       type: object
-      required: [source_id, source_sku, name, description, source_description, category, price, currency, image_url, source_url, supplier_available, unit, quantity_options]
+      required: [source_id, source_sku, name, description, source_description, category, source_category, price, currency, image_url, source_url, supplier_available, unit, quantity_options]
       properties:
         source_id: { type: integer }
         source_sku: { type: [string, "null"] }
@@ -566,7 +566,8 @@ components:
         source_url: { type: string }
         supplier_available: { type: boolean }
         source_description: { type: string }
-        unit: { type: string, enum: [g] }
+        source_category: { type: string }
+        unit: { type: string, enum: [g, item] }
         quantity_options:
           type: array
           items:
@@ -582,9 +583,13 @@ components:
       allOf:
         - { $ref: "#/components/schemas/RawMaterialCandidate" }
         - type: object
-          required: [id, source_price, source_currency, published, imported_at]
+          required: [id, source_name, source_category, source_image_url, source_available, source_price, source_currency, published, imported_at]
           properties:
             id: { type: integer }
+            source_name: { type: string }
+            source_category: { type: string }
+            source_image_url: { type: string }
+            source_available: { type: boolean }
             source_price: { type: number }
             source_currency: { type: string, enum: [USD, IQD] }
             published: { type: boolean }
@@ -603,23 +608,6 @@ components:
         price: { type: number, minimum: 0, maximum: 99999999 }
         currency: { type: string, enum: [USD, IQD] }
         published: { type: boolean }
-    HillenImportInput:
-      type: object
-      required: [page]
-      properties:
-        page: { type: integer, minimum: 1, maximum: 1000 }
-    HillenImportResult:
-      type: object
-      required: [page, total_pages, total, created, skipped, processed, complete, issues]
-      properties:
-        page: { type: integer }
-        total_pages: { type: integer }
-        total: { type: integer }
-        created: { type: integer }
-        skipped: { type: integer }
-        processed: { type: integer }
-        complete: { type: boolean }
-        issues: { type: array, items: { type: string } }
     RawMaterialQuery:
       type: object
       required: [query]
@@ -640,6 +628,7 @@ components:
         mode: { type: string, enum: [dry-run, import] }
         category_id: { type: [integer, "null"], minimum: 1 }
         category_name: { type: string, maxLength: 150 }
+        dry_run_id: { type: integer, minimum: 1 }
     RawMaterialImportPageInput:
       type: object
       required: [page]

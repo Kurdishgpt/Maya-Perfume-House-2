@@ -32,14 +32,15 @@ import type {
   FragranceImageSearch,
   FragranceSuggestion,
   HealthStatus,
-  HillenImportInput,
-  HillenImportResult,
+  HillenCategory,
   HillenMaterialInput,
   Product,
   ProductInput,
   ProductUpdate,
   RawMaterial,
   RawMaterialErrorResponse,
+  RawMaterialImport,
+  RawMaterialImportInput,
   RawMaterialQuery,
   RawMaterialResearch,
   RawMaterialUpdate,
@@ -1609,18 +1610,119 @@ export const useDeleteRawMaterial = <TError = ErrorType<RawMaterialErrorResponse
       return useMutation(getDeleteRawMaterialMutationOptions(options), queryClient);
     }
 
-export const getImportHillenMaterialsUrl = () => {
+export const getListRawMaterialImportsUrl = () => {
 
 
 
 
-  return `/api/admin/raw-materials/import`
+  return `/api/admin/raw-materials/imports`
 }
 
 /**
- * @summary Import one catalog page while preserving existing materials
+ * @summary List previous dry-run and import jobs
  */
-export const importHillenMaterials = async (hillenImportInput: HillenImportInput, options?: Parameters<typeof customFetch>[1]): Promise<HillenImportResult> => {
+export const listRawMaterialImports = async ( options?: Parameters<typeof customFetch>[1]): Promise<RawMaterialImport[]> => {
+
+  return customFetch<RawMaterialImport[]>(getListRawMaterialImportsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRawMaterialImportsQueryKey = () => {
+    return [
+    `/api/admin/raw-materials/imports`
+    ] as const;
+    }
+
+
+export const getListRawMaterialImportsQueryOptions = <TData = Awaited<ReturnType<typeof listRawMaterialImports>>, TError = ErrorType<RawMaterialErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRawMaterialImportsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRawMaterialImports>>> = ({ signal }) => listRawMaterialImports({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListRawMaterialImportsQueryResult = NonNullable<Awaited<ReturnType<typeof listRawMaterialImports>>>
+export type ListRawMaterialImportsQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useListRawMaterialImports<TData = Awaited<ReturnType<typeof listRawMaterialImports>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRawMaterialImports>>,
+          TError,
+          Awaited<ReturnType<typeof listRawMaterialImports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRawMaterialImports<TData = Awaited<ReturnType<typeof listRawMaterialImports>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRawMaterialImports>>,
+          TError,
+          Awaited<ReturnType<typeof listRawMaterialImports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRawMaterialImports<TData = Awaited<ReturnType<typeof listRawMaterialImports>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List previous dry-run and import jobs
+ */
+
+export function useListRawMaterialImports<TData = Awaited<ReturnType<typeof listRawMaterialImports>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRawMaterialImports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListRawMaterialImportsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateRawMaterialImportUrl = () => {
+
+
+
+
+  return `/api/admin/raw-materials/imports`
+}
+
+/**
+ * @summary Start a dry-run or source import
+ */
+export const createRawMaterialImport = async (rawMaterialImportInput: RawMaterialImportInput, options?: Parameters<typeof customFetch>[1]): Promise<RawMaterialImport> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1636,12 +1738,12 @@ export const importHillenMaterials = async (hillenImportInput: HillenImportInput
     }
     return headers;
   };
-return customFetch<HillenImportResult>(getImportHillenMaterialsUrl(),
+return customFetch<RawMaterialImport>(getCreateRawMaterialImportUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(hillenImportInput)
+    body: JSON.stringify(rawMaterialImportInput)
   }
 );}
 
@@ -1649,13 +1751,13 @@ return customFetch<HillenImportResult>(getImportHillenMaterialsUrl(),
 
 
 
-export const getImportHillenMaterialsMutationKey = () => ['importHillenMaterials'] as const;
+export const getCreateRawMaterialImportMutationKey = () => ['createRawMaterialImport'] as const;
 
-export const getImportHillenMaterialsMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHillenMaterials>>, TError,ImportHillenMaterialsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof importHillenMaterials>>, TError,ImportHillenMaterialsMutationVariables, TContext> => {
+export const getCreateRawMaterialImportMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRawMaterialImport>>, TError,CreateRawMaterialImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRawMaterialImport>>, TError,CreateRawMaterialImportMutationVariables, TContext> => {
 
-const mutationKey = getImportHillenMaterialsMutationKey();
+const mutationKey = getCreateRawMaterialImportMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1665,10 +1767,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importHillenMaterials>>, ImportHillenMaterialsMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRawMaterialImport>>, CreateRawMaterialImportMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  importHillenMaterials(data,requestOptions)
+          return  createRawMaterialImport(data,requestOptions)
         }
 
 
@@ -1678,24 +1780,300 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type ImportHillenMaterialsMutationResult = NonNullable<Awaited<ReturnType<typeof importHillenMaterials>>>
-    export type ImportHillenMaterialsMutationBody = BodyType<HillenImportInput>
-    export type ImportHillenMaterialsMutationError = ErrorType<RawMaterialErrorResponse>
-    export type ImportHillenMaterialsMutationVariables = {data: BodyType<HillenImportInput>}
+    export type CreateRawMaterialImportMutationResult = NonNullable<Awaited<ReturnType<typeof createRawMaterialImport>>>
+    export type CreateRawMaterialImportMutationBody = BodyType<RawMaterialImportInput>
+    export type CreateRawMaterialImportMutationError = ErrorType<RawMaterialErrorResponse>
+    export type CreateRawMaterialImportMutationVariables = {data: BodyType<RawMaterialImportInput>}
 
     /**
- * @summary Import one catalog page while preserving existing materials
+ * @summary Start a dry-run or source import
  */
-export const useImportHillenMaterials = <TError = ErrorType<RawMaterialErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHillenMaterials>>, TError,ImportHillenMaterialsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreateRawMaterialImport = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRawMaterialImport>>, TError,CreateRawMaterialImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof importHillenMaterials>>,
+        Awaited<ReturnType<typeof createRawMaterialImport>>,
         TError,
-        ImportHillenMaterialsMutationVariables,
+        CreateRawMaterialImportMutationVariables,
         TContext
       > => {
-      return useMutation(getImportHillenMaterialsMutationOptions(options), queryClient);
+      return useMutation(getCreateRawMaterialImportMutationOptions(options), queryClient);
     }
+
+export const getGetRawMaterialImportUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/raw-materials/imports/${id}`
+}
+
+/**
+ * @summary Read saved import progress
+ */
+export const getRawMaterialImport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<RawMaterialImport> => {
+
+  return customFetch<RawMaterialImport>(getGetRawMaterialImportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRawMaterialImportQueryKey = (id: number,) => {
+    return [
+    `/api/admin/raw-materials/imports/${id}`
+    ] as const;
+    }
+
+
+export const getGetRawMaterialImportQueryOptions = <TData = Awaited<ReturnType<typeof getRawMaterialImport>>, TError = ErrorType<RawMaterialErrorResponse>>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRawMaterialImportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRawMaterialImport>>> = ({ signal }) => getRawMaterialImport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRawMaterialImportQueryResult = NonNullable<Awaited<ReturnType<typeof getRawMaterialImport>>>
+export type GetRawMaterialImportQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useGetRawMaterialImport<TData = Awaited<ReturnType<typeof getRawMaterialImport>>, TError = ErrorType<RawMaterialErrorResponse>>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRawMaterialImport>>,
+          TError,
+          Awaited<ReturnType<typeof getRawMaterialImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRawMaterialImport<TData = Awaited<ReturnType<typeof getRawMaterialImport>>, TError = ErrorType<RawMaterialErrorResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRawMaterialImport>>,
+          TError,
+          Awaited<ReturnType<typeof getRawMaterialImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRawMaterialImport<TData = Awaited<ReturnType<typeof getRawMaterialImport>>, TError = ErrorType<RawMaterialErrorResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read saved import progress
+ */
+
+export function useGetRawMaterialImport<TData = Awaited<ReturnType<typeof getRawMaterialImport>>, TError = ErrorType<RawMaterialErrorResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRawMaterialImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetRawMaterialImportQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStepRawMaterialImportUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/raw-materials/imports/${id}/step`
+}
+
+/**
+ * @summary Process or resume the next saved import page
+ */
+export const stepRawMaterialImport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<RawMaterialImport> => {
+
+  return customFetch<RawMaterialImport>(getStepRawMaterialImportUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStepRawMaterialImportMutationKey = () => ['stepRawMaterialImport'] as const;
+
+export const getStepRawMaterialImportMutationOptions = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stepRawMaterialImport>>, TError,StepRawMaterialImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stepRawMaterialImport>>, TError,StepRawMaterialImportMutationVariables, TContext> => {
+
+const mutationKey = getStepRawMaterialImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stepRawMaterialImport>>, StepRawMaterialImportMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  stepRawMaterialImport(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StepRawMaterialImportMutationResult = NonNullable<Awaited<ReturnType<typeof stepRawMaterialImport>>>
+
+    export type StepRawMaterialImportMutationError = ErrorType<RawMaterialErrorResponse>
+    export type StepRawMaterialImportMutationVariables = {id: number}
+
+    /**
+ * @summary Process or resume the next saved import page
+ */
+export const useStepRawMaterialImport = <TError = ErrorType<RawMaterialErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stepRawMaterialImport>>, TError,StepRawMaterialImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof stepRawMaterialImport>>,
+        TError,
+        StepRawMaterialImportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStepRawMaterialImportMutationOptions(options), queryClient);
+    }
+
+export const getListHillenRawMaterialCategoriesUrl = () => {
+
+
+
+
+  return `/api/admin/raw-materials/categories`
+}
+
+/**
+ * @summary Discover every non-empty supplier category
+ */
+export const listHillenRawMaterialCategories = async ( options?: Parameters<typeof customFetch>[1]): Promise<HillenCategory[]> => {
+
+  return customFetch<HillenCategory[]>(getListHillenRawMaterialCategoriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHillenRawMaterialCategoriesQueryKey = () => {
+    return [
+    `/api/admin/raw-materials/categories`
+    ] as const;
+    }
+
+
+export const getListHillenRawMaterialCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError = ErrorType<RawMaterialErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHillenRawMaterialCategoriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>> = ({ signal }) => listHillenRawMaterialCategories({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListHillenRawMaterialCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>>
+export type ListHillenRawMaterialCategoriesQueryError = ErrorType<RawMaterialErrorResponse>
+
+
+export function useListHillenRawMaterialCategories<TData = Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listHillenRawMaterialCategories>>,
+          TError,
+          Awaited<ReturnType<typeof listHillenRawMaterialCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListHillenRawMaterialCategories<TData = Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listHillenRawMaterialCategories>>,
+          TError,
+          Awaited<ReturnType<typeof listHillenRawMaterialCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListHillenRawMaterialCategories<TData = Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Discover every non-empty supplier category
+ */
+
+export function useListHillenRawMaterialCategories<TData = Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError = ErrorType<RawMaterialErrorResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listHillenRawMaterialCategories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListHillenRawMaterialCategoriesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getResearchRawMaterialsUrl = () => {
 

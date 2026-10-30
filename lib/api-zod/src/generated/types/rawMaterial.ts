@@ -10,6 +10,10 @@ import type { RawMaterialSourceCurrency } from './rawMaterialSourceCurrency';
 
 export type RawMaterial = RawMaterialCandidate & {
   id: number;
+  source_name: string;
+  source_category: string;
+  source_image_url: string;
+  source_available: boolean;
   source_price: number;
   source_currency: RawMaterialSourceCurrency;
   published: boolean;
