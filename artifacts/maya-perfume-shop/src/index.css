@@ -439,7 +439,6 @@ button, a, input, textarea, select { -webkit-tap-highlight-color:transparent; }
 
 /* Welcome */
 .mc-welcome { position:relative; min-height:100dvh; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; background:var(--mc-teal-dk); color:var(--mc-white); transition:opacity .42s ease, transform .42s var(--mc-ease); }
-.mc-wel-language { position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); inset-inline-end:14px; z-index:6; }
 .mc-welcome.is-leaving { opacity:0; transform:scale(1.03); }
 .mc-welcome-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 62%; animation:mcKen 14s ease-out both; }
 @keyframes mcKen { from { transform:scale(1.08); } to { transform:scale(1); } }
