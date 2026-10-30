@@ -1,14 +1,17 @@
 export const HILLEN_ORIGIN = "https://hillen99.com";
-export const HILLEN_PAGE_SIZE = 50;
+export const HILLEN_PAGE_SIZE = 100;
 
 export type HillenMaterial = {
-  source_id: number; name: string; description: string; category: string;
+  source_id: number; source_sku: string | null; name: string; description: string; source_description: string; category: string;
   price: number; currency: "USD" | "IQD"; image_url: string;
-  source_url: string; supplier_available: boolean;
+  source_url: string; supplier_available: boolean; unit: string; quantity_options: Array<{ label: string; value: string; price?: number; currency?: string; unit?: string }>;
 };
+export type HillenCategory = { id: number; name: string; slug: string; count: number };
 type SupplierProduct = {
-  id?: number; name?: string; type?: string; slug?: string; permalink?: string;
+  id?: number; name?: string; sku?: string; type?: string; slug?: string; permalink?: string;
   description?: string; short_description?: string; is_in_stock?: boolean;
+  weight?: string; attributes?: Array<{ name?: string; terms?: Array<{ name?: string }> }>;
+  variations?: Array<{ id?: number; attributes?: Array<{ name?: string; value?: string }>; price?: string }>;
   prices?: { price?: string; currency_code?: string; currency_minor_unit?: number; price_range?: unknown };
   categories?: Array<{ name?: string }>; images?: Array<{ src?: string }>;
 };
@@ -55,15 +58,31 @@ export function parseHillenMaterial(value: unknown): { material: HillenMaterial;
   const category = (Array.isArray(product.categories) ? product.categories
     .map((c) => plainText(typeof c.name === "string" ? c.name : ""))
     .filter((name) => name && name !== ".").join(" / ") : "").slice(0, 150) || "Raw Material";
-  const evidence = plainText(typeof product.description === "string" ? product.description : "").slice(0, 1800);
+  const evidence = plainText(typeof product.short_description === "string" && product.short_description
+    ? product.short_description : typeof product.description === "string" ? product.description : "").slice(0, 1800);
+  const fullEvidence = plainText(typeof product.description === "string" ? product.description : "").slice(0, 18_000);
+  const categories = Array.isArray(product.attributes) ? product.attributes.flatMap((attribute) =>
+    (attribute.terms ?? []).filter((term): term is { name: string } => typeof term.name === "string")
+      .map((term) => ({ label: attribute.name || "Option", value: term.name, unit: /g(?:ram)?/i.test(term.name) ? "g" : undefined }))) : [];
+  const quantityOptions = Array.isArray(product.variations) ? product.variations.flatMap((variation) => {
+    const priceValue = variation.price && /^\d+$/.test(variation.price) && price.currency_minor_unit !== undefined
+      ? Number(variation.price) / 10 ** price.currency_minor_unit : undefined;
+    return (variation.attributes ?? []).map((attribute) => ({
+      label: attribute.name || "Option", value: attribute.value || "",
+      ...(priceValue !== undefined ? { price: priceValue, currency: price.currency_code } : {}),
+      ...(product.weight ? { unit: product.weight } : {}),
+    })).filter((option) => option.value);
+  }) : categories;
   const cas = evidence.match(/\b\d{2,7}-\d{2}-\d\b/)?.[0];
   return {
     material: {
       source_id: product.id!, name, category, price: amount, currency: price.currency_code as "USD" | "IQD",
       // Original factual copy, not wholesale republication of supplier marketing text.
       description: `${name} — ${category} perfumery material listed by Hillen99.${cas ? ` CAS: ${cas}.` : ""} Consult the supplier documentation before use.`,
+      source_sku: typeof product.sku === "string" && product.sku.trim() ? product.sku.trim().slice(0, 200) : null,
       image_url: hillenUrl(Array.isArray(product.images) ? product.images[0]?.src : ""),
       source_url: sourceUrl, supplier_available: product.is_in_stock === true,
+      source_description: fullEvidence, unit: "g", quantity_options: quantityOptions.slice(0, 50),
     },
     evidence,
   };
@@ -104,8 +123,10 @@ async function supplierRequest(path: string, fetcher: typeof fetch = fetch) {
   }
 }
 
-export async function fetchHillenPage(page: number) {
-  const { data, headers } = await supplierRequest(`products?per_page=${HILLEN_PAGE_SIZE}&page=${page}&orderby=id&order=asc`);
+export async function fetchHillenPage(page: number, categoryId?: number) {
+  const params = new URLSearchParams({ per_page: String(HILLEN_PAGE_SIZE), page: String(page), orderby: "id", order: "asc" });
+  if (categoryId !== undefined) params.set("category", String(categoryId));
+  const { data, headers } = await supplierRequest(`products?${params}`);
   const total = Number(headers.get("x-wp-total"));
   const totalPages = Number(headers.get("x-wp-totalpages"));
   if (!Array.isArray(data) || !Number.isSafeInteger(total) || total < 0 ||
@@ -113,6 +134,25 @@ export async function fetchHillenPage(page: number) {
     throw new HillenError("Hillen99 returned an incomplete catalog page. Import stopped without changing saved items.");
   }
   return { products: data, total, totalPages };
+}
+
+export async function fetchHillenCategories(): Promise<HillenCategory[]> {
+  const { data, headers } = await supplierRequest("products/categories?per_page=100&page=1&hide_empty=true");
+  if (!Array.isArray(data)) throw new HillenError("Hillen99 returned invalid product categories.");
+  const pages = Math.max(1, Math.min(100, Number(headers.get("x-wp-totalpages")) || 1));
+  const all: unknown[] = [...data];
+  for (let page = 2; page <= pages; page++) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const next = await supplierRequest(`products/categories?per_page=100&page=${page}&hide_empty=true`);
+    if (!Array.isArray(next.data)) throw new HillenError("Hillen99 returned an incomplete product category page.");
+    all.push(...next.data);
+  }
+  return all.flatMap((value) => {
+    if (!value || typeof value !== "object") return [];
+    const category = value as { id?: number; name?: string; slug?: string; count?: number };
+    if (!Number.isSafeInteger(category.id) || !category.id || typeof category.name !== "string" || !category.slug) return [];
+    return [{ id: category.id, name: plainText(category.name).slice(0, 150), slug: category.slug, count: Number.isSafeInteger(category.count) ? category.count! : 0 }];
+  });
 }
 
 export async function fetchHillenMaterial(id: number) {

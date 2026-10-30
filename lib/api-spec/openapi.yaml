@@ -447,23 +447,78 @@ paths:
       responses:
         default: { $ref: "#/components/responses/RawMaterialError" }
         "204": { description: Deleted. }
-  /admin/raw-materials/import:
-    post:
-      operationId: importHillenMaterials
+  /admin/raw-materials/imports:
+    get:
+      operationId: listRawMaterialImports
       tags: [raw-materials]
-      summary: Import one catalog page while preserving existing materials
+      summary: List previous dry-run and import jobs
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Recent resumable import history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RawMaterialImport" }
+    post:
+      operationId: createRawMaterialImport
+      tags: [raw-materials]
+      summary: Start a dry-run or source import
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/HillenImportInput" }
+            schema: { $ref: "#/components/schemas/RawMaterialImportInput" }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "201":
+          description: Import job created and saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RawMaterialImport" }
+  /admin/raw-materials/imports/{id}:
+    get:
+      operationId: getRawMaterialImport
+      tags: [raw-materials]
+      summary: Read saved import progress
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
       responses:
         default: { $ref: "#/components/responses/RawMaterialError" }
         "200":
-          description: Page result; continue until complete.
+          description: Saved job state.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/HillenImportResult" }
+              schema: { $ref: "#/components/schemas/RawMaterialImport" }
+  /admin/raw-materials/imports/{id}/step:
+    post:
+      operationId: stepRawMaterialImport
+      tags: [raw-materials]
+      summary: Process or resume the next saved import page
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Latest saved progress after one page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RawMaterialImport" }
+  /admin/raw-materials/categories:
+    get:
+      operationId: listHillenRawMaterialCategories
+      tags: [raw-materials]
+      summary: Discover every non-empty supplier category
+      responses:
+        default: { $ref: "#/components/responses/RawMaterialError" }
+        "200":
+          description: Live supplier categories and product counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HillenCategory" }
   /admin/raw-materials/research:
     post:
       operationId: researchRawMaterials
@@ -498,9 +553,10 @@ components:
         - status
     RawMaterialCandidate:
       type: object
-      required: [source_id, name, description, category, price, currency, image_url, source_url, supplier_available]
+      required: [source_id, source_sku, name, description, source_description, category, price, currency, image_url, source_url, supplier_available, unit, quantity_options]
       properties:
         source_id: { type: integer }
+        source_sku: { type: [string, "null"] }
         name: { type: string }
         description: { type: string }
         category: { type: string }
@@ -509,6 +565,19 @@ components:
         image_url: { type: string }
         source_url: { type: string }
         supplier_available: { type: boolean }
+        source_description: { type: string }
+        unit: { type: string, enum: [g] }
+        quantity_options:
+          type: array
+          items:
+            type: object
+            required: [label, value]
+            properties:
+              label: { type: string }
+              value: { type: string }
+              price: { type: number }
+              currency: { type: string }
+              unit: { type: string }
     RawMaterial:
       allOf:
         - { $ref: "#/components/schemas/RawMaterialCandidate" }
@@ -556,6 +625,58 @@ components:
       required: [query]
       properties:
         query: { type: string, minLength: 2, maxLength: 120 }
+    HillenCategory:
+      type: object
+      required: [id, name, slug, count]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        count: { type: integer }
+    RawMaterialImportInput:
+      type: object
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [dry-run, import] }
+        category_id: { type: [integer, "null"], minimum: 1 }
+        category_name: { type: string, maxLength: 150 }
+    RawMaterialImportPageInput:
+      type: object
+      required: [page]
+      properties:
+        page: { type: integer, minimum: 1, maximum: 1000 }
+        category_id: { type: [integer, "null"], minimum: 1 }
+    RawMaterialImportError:
+      type: object
+      required: [page, url, message]
+      properties:
+        page: { type: integer }
+        url: { type: string }
+        message: { type: string }
+    RawMaterialImport:
+      type: object
+      required: [id, mode, status, category_id, category_name, next_page, total_pages, discovered, created, updated, skipped, processed, source_ids, categories, processed_pages, failed_pages, errors, created_at, updated_at, completed_at]
+      properties:
+        id: { type: integer }
+        mode: { type: string, enum: [dry-run, import] }
+        status: { type: string, enum: [running, complete, partial] }
+        category_id: { type: [integer, "null"] }
+        category_name: { type: string }
+        next_page: { type: integer }
+        total_pages: { type: integer }
+        discovered: { type: integer }
+        created: { type: integer }
+        updated: { type: integer }
+        skipped: { type: integer }
+        processed: { type: integer }
+        source_ids: { type: array, items: { type: integer } }
+        categories: { type: array, items: { type: string } }
+        processed_pages: { type: array, items: { type: integer } }
+        failed_pages: { type: array, items: { type: integer } }
+        errors: { type: array, items: { $ref: "#/components/schemas/RawMaterialImportError" } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        completed_at: { type: [string, "null"], format: date-time }
     RawMaterialResearch:
       type: object
       required: [answer, matches, warning]
