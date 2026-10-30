@@ -2,26 +2,22 @@ import { useMemo, useState } from 'react';
 import { getListRawMaterialsQueryKey, getListRawMaterialsQueryOptions } from '@workspace/api-client-react';
 import type { RawMaterial } from '@workspace/api-client-react';
 import { useQuery } from '@tanstack/react-query';
-import { FlaskConical, RefreshCw, Search, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+import { Link } from 'wouter';
+import { FlaskConical, RefreshCw, Search, ChevronLeft, ChevronRight, ExternalLink, ShoppingBag } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
 import { useStore } from '@/lib/store-context';
-import { whatsappNumber } from '@/lib/store';
 import { formatMoney } from '@/lib/money';
 import { useBack } from '@/pages/store/use-back';
 import './raw-materials.css';
 
-function enquiryLink(m: RawMaterial, quantity: number) {
-  const unit = m.unit === 'g' ? 'g' : 'item';
-  const text = `Hello Maya Collection, I would like to ask about this raw material:\n${m.name} (${m.category})\nReference: Hillen99 #${m.source_id}\nListed price: ${formatMoney(m.price, m.currency)} per ${unit}\nQuantity: ${quantity} ${unit}\nCould you confirm availability and the final price?`;
-  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
-}
-
 function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
+  const { addRawMaterial } = useStore();
   const [quantity, setQuantity] = useState(m.unit === 'g' ? 10 : 1);
   const [imageFailed, setImageFailed] = useState(false);
+  const [added, setAdded] = useState(false);
   const safe = Math.max(1, Math.round(quantity) || 1);
   const unitLabel = m.unit === 'g' ? 'gram' : 'item';
+  const addToBag = () => { addRawMaterial(m, safe); setAdded(true); };
   return <article className="mc-raw-card" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }} data-testid={`card-raw-material-${m.id}`}>
     <div className="mc-raw-top">
       <div className="mc-raw-img">{m.image_url && !imageFailed ? <img src={m.image_url} alt={m.name} loading="lazy" onError={() => setImageFailed(true)}/> : <FlaskConical size={22}/>}</div>
@@ -46,9 +42,10 @@ function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
       </div>
     </details>
     <div className="mc-raw-ask">
-      <label>{m.unit === 'g' ? 'Grams' : 'Items'}<input type="number" min={1} step={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} aria-label={`${m.unit === 'g' ? 'Grams' : 'Items'} of ${m.name}`} data-testid={`input-raw-grams-${m.id}`}/></label>
-      <a className="mc-raw-wa" href={enquiryLink(m, safe)} target="_blank" rel="noreferrer" data-testid={`link-raw-whatsapp-${m.id}`}><FaWhatsapp/> Ask on WhatsApp</a>
+      <label>{m.unit === 'g' ? 'Grams' : 'Items'}<input type="number" min={1} step={1} value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)); setAdded(false); }} aria-label={`${m.unit === 'g' ? 'Grams' : 'Items'} of ${m.name}`} data-testid={`input-raw-grams-${m.id}`}/></label>
+      <button className="mc-raw-wa" type="button" onClick={addToBag} data-testid={`button-add-raw-bag-${m.id}`}><ShoppingBag size={16}/>{added ? 'Added to Bag' : 'Add to Bag'}</button>
     </div>
+    {added && <p className="mc-raw-added" role="status">Added to your bag. <Link href="/bag">View bag</Link></p>}
     <div className="mc-raw-note">Estimate for {safe} {m.unit === 'g' ? 'g' : 'item(s)'}: <span dir="ltr">{formatMoney(m.price * safe, m.currency)}</span>. Availability and final price are confirmed personally by Maya. Source: {m.source_url ? <a href={m.source_url} target="_blank" rel="noreferrer">Hillen99</a> : 'Hillen99'}.</div>
   </article>;
 }
@@ -81,7 +78,7 @@ export default function RawMaterialsPage() {
     <section className="mc-raw-intro">
       <span className="mc-kicker" dir="ltr">MAYA COLLECTION · RAW MATERIALS</span>
       <h2>Perfumery ingredients and sets, at supplier prices.</h2>
-      <p>Source prices and currencies are shown as listed by Hillen99. Ingredient prices are per gram; sets are priced per item. Send an enquiry and Maya will confirm availability and the final price. Nothing is ordered automatically.</p>
+      <p>Source prices and currencies are shown as listed by Hillen99. Ingredient prices are per gram; sets are priced per item. Add materials to your bag; Maya confirms availability and the final price at checkout. Nothing is ordered automatically.</p>
     </section>
     <div className="mc-raw-tools">
       <label className="mc-raw-search"><Search size={16}/><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, CAS, SKU or keywords" aria-label="Search name, CAS number, or keywords" data-testid="input-raw-search"/></label>

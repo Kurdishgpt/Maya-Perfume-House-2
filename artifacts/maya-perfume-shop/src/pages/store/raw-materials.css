@@ -28,7 +28,9 @@
 .mc-raw-ask { display:flex; gap:8px; align-items:center; }
 .mc-raw-ask label { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--mc-mute); }
 .mc-raw-ask input { width:70px; height:40px; border:1px solid var(--mc-line); border-radius:10px; padding:0 8px; font:inherit; background:#fff; color:var(--mc-ink); }
-.mc-raw-wa { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; border-radius:999px; background:var(--mc-teal); color:var(--mc-champ)!important; font-size:12px; font-weight:600; text-decoration:none; }
+.mc-raw-wa { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 12px; border:0; border-radius:999px; background:var(--mc-teal); color:var(--mc-champ)!important; font:inherit; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; }
+.mc-raw-added { margin:7px 0 0; color:var(--mc-teal); font-size:11px; }
+.mc-raw-added a { color:var(--mc-teal); font-weight:700; text-decoration:underline; }
 .mc-raw-skel { height:170px; border-radius:16px; background:linear-gradient(90deg,var(--mc-pale),#f4efe2,var(--mc-pale)); background-size:200% 100%; animation:mcRawSk 1.4s linear infinite; }
 @keyframes mcRawSk { to { background-position:-200% 0; } }
 .mc-raw-sort { display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--mc-mute); font-size:12px; }

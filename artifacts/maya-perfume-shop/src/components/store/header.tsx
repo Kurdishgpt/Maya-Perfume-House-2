@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ArrowRight, Heart, Menu, Search, ShoppingBag, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Wordmark } from '@/components/store/brand';
 import { LanguageMenu } from '@/components/store/language-menu';
@@ -9,7 +9,7 @@ import { storePhone, storePhoneHref, whatsappLink } from '@/lib/store';
 
 const menuLinks = [
   { href: '/collection', key: 'collection' },
-  { href: '/about', key: 'about' }, { href: '/contact', key: 'contact' }, { href: '/admin', key: 'admin' },
+  { href: '/contact', key: 'contact' }, { href: '/admin', key: 'admin' },
 ] as const;
 
 export function Header() {
@@ -26,9 +26,6 @@ export function Header() {
       <button className="mc-header-btn" onClick={() => setOpen(true)} aria-label={t('menu')} aria-expanded={open} data-testid="button-header-menu"><Menu/></button>
       {isHome ? <span/> : <Wordmark compact/>}
         <div className="mc-header-tools">
-          <Link href="/collection" className="mc-header-btn" aria-label="Search collection" data-testid="link-header-search"><Search/></Link>
-          <Link href="/wishlist" className="mc-header-btn" aria-label={t('wishlist')} data-testid="link-header-wishlist"><Heart/></Link>
-          <Link href="/bag" className="mc-header-btn" aria-label={t('bags')} data-testid="link-header-bag"><ShoppingBag/></Link>
           <LanguageMenu/>
         </div>
     </header>

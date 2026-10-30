@@ -45,7 +45,7 @@ function StoreShell() {
         <Route path="/wishlist" component={Wishlist}/>
         <Route path="/bag" component={Bag}/>
         <Route path="/checkout" component={Checkout}/>
-        <Route path="/about"><InfoPage label="about" titleKey="aboutTitle" bodyKey="aboutBody" image="/images/story-bottle.jpg"/></Route>
+        <Route path="/about"><Redirect to="/" replace/></Route>
         <Route path="/raw-material" component={RawMaterialsPage}/>
          <Route path="/contact" component={ContactPage}/>
         <Route path="/faq"><InfoPage label="faq" titleKey="faqTitle" bodyKey="faqBody"/></Route>

@@ -23,7 +23,7 @@ export function Footer() {
         </Section>
         <Section title={t('pages')} id="pages">
           <Link href="/">{t('home')}</Link><Link href="/welcome" data-testid="link-footer-welcome">{t('welcomePage')}</Link><Link href="/collection">{t('collection')}</Link>
-          <Link href="/about">{t('about')}</Link><Link href="/contact">{t('contact')}</Link><Link href="/privacy">{t('privacy')}</Link><Link href="/terms">{t('terms')}</Link>
+          <Link href="/contact">{t('contact')}</Link><Link href="/privacy">{t('privacy')}</Link><Link href="/terms">{t('terms')}</Link>
           <Link href="/admin" data-testid="link-admin">{t('admin')}</Link>
         </Section>
         <Section title={t('support')} id="support">

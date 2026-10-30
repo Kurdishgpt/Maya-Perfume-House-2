@@ -1,13 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useListProducts, type Product as ApiProduct } from '@workspace/api-client-react';
+import { useListProducts, type Product as ApiProduct, type RawMaterial } from '@workspace/api-client-react';
 import { copy, type CartLine, type Language, type StoreProduct, type T } from '@/lib/store';
 import { totalByCurrency, type MoneyTotals } from '@/lib/money';
+
+export type RawMaterialBagLine = Pick<RawMaterial, 'id' | 'source_id' | 'name' | 'category' | 'price' | 'currency' | 'unit' | 'image_url'> & { quantity: number };
 
 type StoreValue = {
   language: Language; setLanguage: (l: Language) => void; t: T; rtl: boolean;
   products: StoreProduct[]; loading: boolean; isError: boolean; refetch: () => void;
   wishlist: number[]; toggleWish: (id: number) => void;
   cart: CartLine[]; add: (p: ApiProduct, size: number | null, qty?: number) => void;
+  rawMaterialCart: RawMaterialBagLine[]; addRawMaterial: (material: RawMaterial, quantity: number) => void;
+  changeRawMaterialQty: (id: number, delta: number) => void; removeRawMaterial: (id: number) => void;
   changeQty: (id: number, size: number | null, delta: number) => void; removeLine: (id: number, size: number | null) => void; clearCart: () => void;
   count: number; subtotal: MoneyTotals; bagPulse: number;
 };
@@ -29,6 +33,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const catalog = useListProducts({ query: { staleTime: 0, refetchOnMount: 'always', refetchOnWindowFocus: true, refetchInterval: 60000 } });
   const [wishlist, setWishlist] = useState<number[]>(() => read('maya-wishlist', []));
   const [cart, setCart] = useState<CartLine[]>(() => read('maya-cart', []));
+  const [rawMaterialCart, setRawMaterialCart] = useState<RawMaterialBagLine[]>(() => read('maya-raw-material-cart', []));
   const [bagPulse, setBagPulse] = useState(0);
   useEffect(() => {
     localStorage.setItem('maya-language', language);
@@ -37,6 +42,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [language]);
   useEffect(() => { localStorage.setItem('maya-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('maya-cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('maya-raw-material-cart', JSON.stringify(rawMaterialCart)); }, [rawMaterialCart]);
   const products = (catalog.data ?? []) as StoreProduct[];
   // Keep bag lines in sync with live catalog data (price, image, title) when available.
   const liveCart = useMemo(() => synchronizeCart(cart, products), [cart, products]);
@@ -46,6 +52,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, loading: catalog.isLoading, isError: catalog.isError, refetch: () => { void catalog.refetch(); },
     wishlist, toggleWish: (id) => setWishlist((old) => old.includes(id) ? old.filter((x) => x !== id) : [...old, id]),
     cart: liveCart,
+    rawMaterialCart,
     add: (product, size, quantity = 1) => { setBagPulse((n) => n + 1); setCart((old) => {
       const item = product as StoreProduct;
       const found = old.find((l) => l.product.id === item.id);
@@ -54,11 +61,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         quantity: old.filter((l) => l.product.id === item.id).reduce((sum, l) => sum + l.quantity, 0) + quantity,
       }] : [...old, { product: item, quantity, size }];
     }); },
+    addRawMaterial: (material, quantity) => {
+      const safeQuantity = Number.isFinite(quantity) ? Math.max(1, Math.round(quantity)) : 1;
+      setBagPulse((n) => n + 1);
+      setRawMaterialCart((old) => {
+        const existing = old.find((line) => line.id === material.id);
+        const item: RawMaterialBagLine = {
+          id: material.id,
+          source_id: material.source_id,
+          name: material.name,
+          category: material.category,
+          price: material.price,
+          currency: material.currency,
+          unit: material.unit,
+          image_url: material.image_url,
+          quantity: safeQuantity + (existing?.quantity ?? 0),
+        };
+        return existing ? old.map((line) => line.id === material.id ? item : line) : [...old, item];
+      });
+    },
+    changeRawMaterialQty: (id, delta) => setRawMaterialCart((old) => old.map((line) =>
+      line.id === id ? { ...line, quantity: line.quantity + delta } : line,
+    ).filter((line) => line.quantity > 0)),
+    removeRawMaterial: (id) => setRawMaterialCart((old) => old.filter((line) => line.id !== id)),
     changeQty: (id, _size, delta) => setCart((old) => synchronizeCart(old, products).map((l) => l.product.id === id ? { ...l, quantity: l.quantity + delta } : l).filter((l) => l.quantity > 0)),
     removeLine: (id) => setCart((old) => old.filter((l) => l.product.id !== id)),
-    clearCart: () => setCart([]),
-    count: liveCart.reduce((n, l) => n + l.quantity, 0),
-    subtotal: totalByCurrency(liveCart.map((l) => ({ ...l.product, quantity: l.quantity }))),
+    clearCart: () => { setCart([]); setRawMaterialCart([]); },
+    count: liveCart.reduce((n, l) => n + l.quantity, 0)
+      + rawMaterialCart.reduce((n, line) => n + (line.unit === 'g' ? 1 : line.quantity), 0),
+    subtotal: totalByCurrency([
+      ...liveCart.map((l) => ({ ...l.product, quantity: l.quantity })),
+      ...rawMaterialCart.map(({ price, currency, quantity }) => ({ price, currency, quantity })),
+    ]),
     bagPulse,
   };
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

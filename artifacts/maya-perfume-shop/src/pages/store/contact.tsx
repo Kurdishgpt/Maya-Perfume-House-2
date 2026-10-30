@@ -112,10 +112,9 @@ export default function ContactPage() {
     </section>
 
     <section className="mc-contact-map-card">
-       <div className="mc-contact-section-heading"><span className="mc-contact-icon is-small"><MapPin/></span><div><h2>Find Us on Map</h2><p>Decorative map preview — open Google Maps for the exact location.</p></div></div>
-      <div className="mc-map-preview" aria-label="Decorative map preview. Open directions for the store location.">
-        <div className="mc-map-grid"/><span className="mc-map-river"/><span className="mc-map-park park-a"/><span className="mc-map-park park-b"/>
-        <a href={CONTACT_CONFIG.mapUrl} target="_blank" rel="noreferrer" className="mc-map-open" aria-label="Open map directions"><ArrowUpRight/></a>
+       <div className="mc-contact-section-heading"><span className="mc-contact-icon is-small"><MapPin/></span><div><h2>Find Us on Map</h2><p>Map preview centered on the verified location. Directions open your Google Maps destination.</p></div></div>
+      <div className="mc-map-preview" aria-label="Interactive map centered on the verified store location">
+        <iframe title="Map preview centered on the verified Maya Collection location" src={CONTACT_CONFIG.mapEmbedUrl} loading="eager" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/>
       </div>
        <a className="mc-map-directions" href={CONTACT_CONFIG.mapUrl} target="_blank" rel="noreferrer"><Send/>Open in Google Maps<ArrowUpRight/></a>
     </section>

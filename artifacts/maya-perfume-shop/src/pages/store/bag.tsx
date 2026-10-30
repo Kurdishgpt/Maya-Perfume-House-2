@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { ArrowRight, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, FlaskConical, Minus, Plus, Trash2 } from 'lucide-react';
 import { PageBar } from '@/components/store/header';
 import { formatMoney, formatTotals } from '@/lib/money';
 import { useStore } from '@/lib/store-context';
@@ -17,12 +17,12 @@ export function BagSummary({ compact = false }: { compact?: boolean }) {
 }
 
 export default function Bag() {
-  const { t, cart, count, changeQty, removeLine } = useStore();
+  const { t, cart, rawMaterialCart, count, changeQty, removeLine, changeRawMaterialQty, removeRawMaterial } = useStore();
   const back = useBack('/');
   const [, navigate] = useLocation();
   return <div className="mc-page mc-bag">
     <PageBar title={t('yourBag')} onBack={back} right={count ? <span className="mc-pill">{count}</span> : undefined}/>
-    {!cart.length ? <EmptyState icon="bag" text={t('emptyBag')} action={t('browse')}/> : <div className="mc-bag-layout">
+    {!cart.length && !rawMaterialCart.length ? <EmptyState icon="bag" text={t('emptyBag')} action={t('browse')}/> : <div className="mc-bag-layout">
       <ul className="mc-lines">
         {cart.map(({ product, quantity, size }) => <li key={`${product.id}-${size}`} className="mc-line" data-testid={`line-${product.id}-${size}`}>
           <Link href={`/product/${product.id}`} className="mc-line-img"><img src={product.image_url || '/images/hero-fragrance.png'} alt={product.title}/></Link>
@@ -40,7 +40,25 @@ export default function Bag() {
           </div>
           <strong className="mc-line-total" dir="ltr">{formatMoney(product.price * quantity, product.currency)}</strong>
         </li>)}
+        {rawMaterialCart.map((line) => <li key={`raw-${line.id}`} className="mc-line" data-testid={`line-raw-material-${line.id}`}>
+          <div className="mc-line-img">{line.image_url ? <img src={line.image_url} alt={line.name}/> : <FlaskConical size={24}/>}</div>
+          <div className="mc-line-copy">
+            <strong>{line.name}</strong>
+            <span>{line.category} · Hillen99 #{line.source_id}</span>
+            <span dir="ltr">{line.quantity} {line.unit === 'g' ? 'g' : 'item(s)'} · {formatMoney(line.price, line.currency)} / {line.unit === 'g' ? 'g' : 'item'}</span>
+            <div className="mc-line-actions">
+              <div className="mc-qty is-small">
+                <button onClick={() => changeRawMaterialQty(line.id, -1)} aria-label={`Decrease ${line.name} quantity`} data-testid={`button-minus-raw-${line.id}`}><Minus size={14}/></button>
+                <span>{line.quantity}</span>
+                <button onClick={() => changeRawMaterialQty(line.id, 1)} aria-label={`Increase ${line.name} quantity`} data-testid={`button-plus-raw-${line.id}`}><Plus size={14}/></button>
+              </div>
+              <button className="mc-remove" onClick={() => removeRawMaterial(line.id)} aria-label={`${t('remove')} ${line.name}`} data-testid={`button-remove-raw-${line.id}`}><Trash2 size={16}/></button>
+            </div>
+          </div>
+          <strong className="mc-line-total" dir="ltr">{formatMoney(line.price * line.quantity, line.currency)}</strong>
+        </li>)}
       </ul>
+      {!!rawMaterialCart.length && <p className="mc-fine">Raw-material totals are estimates; Maya confirms availability and final prices.</p>}
       <aside className="mc-bag-side">
         <BagSummary/>
         <button className="mc-teal-btn is-block" onClick={() => navigate('/checkout')} data-testid="button-proceed-checkout">{t('proceed')} <ArrowRight size={17} className="mc-flip"/></button>

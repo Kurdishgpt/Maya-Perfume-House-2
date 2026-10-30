@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation } from 'wouter';
-import { Check, MessageCircle, Pencil } from 'lucide-react';
+import { Check, FlaskConical, MessageCircle, Pencil } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { PageBar } from '@/components/store/header';
 import { whatsappNumber } from '@/lib/store';
@@ -13,7 +13,7 @@ type Details = { name: string; phone: string; city: string; address: string; not
 type Step = 'details' | 'review' | 'done';
 
 export default function Checkout() {
-  const { t, cart, subtotal, clearCart } = useStore();
+  const { t, cart, rawMaterialCart, subtotal, clearCart } = useStore();
   const [, navigate] = useLocation();
   const [step, setStep] = useState<Step>('details');
   const [d, setD] = useState<Details>(() => { try { return { name: '', phone: '', city: '', address: '', notes: '', ...JSON.parse(localStorage.getItem('maya-checkout') || '{}') }; } catch { return { name: '', phone: '', city: '', address: '', notes: '' }; } });
@@ -32,8 +32,14 @@ export default function Checkout() {
     setStep('review'); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const send = () => {
-    const rows = cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`).join('\n');
-    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatTotals(subtotal)}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
+    const rows = [
+      ...cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`),
+      ...rawMaterialCart.map((line) => `- Raw material: ${line.name} (Hillen99 #${line.source_id}) - ${line.quantity} ${line.unit === 'g' ? 'g' : 'item(s)'} x ${formatMoney(line.price, line.currency)} per ${line.unit === 'g' ? 'g' : 'item'} = ${formatMoney(line.price * line.quantity, line.currency)} (estimate)`),
+    ].join('\n');
+    const rawMaterialNote = rawMaterialCart.length
+      ? '\n\nMaya will confirm raw-material availability and final prices before the order is finalized.'
+      : '';
+    const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatTotals(subtotal)}${rawMaterialNote}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     setLink(url);
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -50,7 +56,7 @@ export default function Checkout() {
     </section>
   </div>;
 
-  if (!cart.length) return <div className="mc-page"><PageBar title={t('checkoutTitle')} onBack={() => navigate('/bag')}/><EmptyState icon="bag" text={t('emptyBag')} action={t('browse')}/></div>;
+  if (!cart.length && !rawMaterialCart.length) return <div className="mc-page"><PageBar title={t('checkoutTitle')} onBack={() => navigate('/bag')}/><EmptyState icon="bag" text={t('emptyBag')} action={t('browse')}/></div>;
 
   const steps: Step[] = ['details', 'review', 'done'];
   return <div className="mc-page mc-checkout">
@@ -76,7 +82,14 @@ export default function Checkout() {
       </section>}
       <aside className="mc-bag-side">
         <div className="mc-review-card"><h3>{t('orderSummary')}</h3>
-          <ul className="mc-mini-lines">{cart.map((l) => <li key={`${l.product.id}-${l.size}`}><img src={l.product.image_url || '/images/hero-fragrance.png'} alt=""/><span><strong>{l.product.title}</strong><small dir="ltr">{l.size ? `${l.size} ml` : t('sizeUnknown')} x {l.quantity}</small></span><em dir="ltr">{formatMoney(l.product.price * l.quantity, l.product.currency)}</em></li>)}</ul>
+           <ul className="mc-mini-lines">
+             {cart.map((l) => <li key={`${l.product.id}-${l.size}`}><img src={l.product.image_url || '/images/hero-fragrance.png'} alt=""/><span><strong>{l.product.title}</strong><small dir="ltr">{l.size ? `${l.size} ml` : t('sizeUnknown')} x {l.quantity}</small></span><em dir="ltr">{formatMoney(l.product.price * l.quantity, l.product.currency)}</em></li>)}
+             {rawMaterialCart.map((line) => <li key={`raw-${line.id}`}>
+               {line.image_url ? <img src={line.image_url} alt=""/> : <span className="mc-mini-material-icon"><FlaskConical size={18}/></span>}
+               <span><strong>{line.name}</strong><small dir="ltr">{line.quantity} {line.unit === 'g' ? 'g' : 'item(s)'} · estimate</small></span>
+               <em dir="ltr">{formatMoney(line.price * line.quantity, line.currency)}</em>
+             </li>)}
+           </ul>
           <BagSummary compact/>
         </div>
       </aside>
