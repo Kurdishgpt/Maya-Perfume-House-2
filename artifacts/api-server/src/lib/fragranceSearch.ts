@@ -25,7 +25,7 @@ export function publicHttps(value: unknown): string {
 async function search(path: string, query: URLSearchParams): Promise<unknown> {
   const response = await braveFetch(`${path}?${query}`, {
     method: "GET",
-    signal: AbortSignal.timeout(18_000),
+    signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) {
     throw new Error(response.status === 429
