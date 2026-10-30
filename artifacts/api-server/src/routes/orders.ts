@@ -1,34 +1,18 @@
+import { enforceRateLimit } from "../lib/rateLimit";
 import { createHash, randomBytes } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { CreateStoreOrderBody, CreateStoreOrderResponse } from "@workspace/api-zod";
-import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
+import { createStoreOrder } from "../lib/checkout";
+import { getStoreDatabase } from "../lib/storeDatabase";
 
 const router: IRouter = Router();
-const attemptsByIp = new Map<string, { startedAt: number; count: number }>();
-const windowMs = 60_000;
-const maxOrdersPerWindow = 8;
-
 router.post("/orders", async (req, res): Promise<void> => {
-  const now = Date.now();
-  const ip = req.ip ?? "unknown";
-  const current = attemptsByIp.get(ip);
-  if (current && now - current.startedAt < windowMs && current.count >= maxOrdersPerWindow) {
-    res.status(429).json({ error: "Too many checkout attempts. Please wait a minute and try again." });
-    return;
-  }
-  if (attemptsByIp.size > 1000) {
-    for (const [key, value] of attemptsByIp) if (now - value.startedAt >= windowMs) attemptsByIp.delete(key);
-  }
-
   const input = CreateStoreOrderBody.safeParse(req.body);
   if (!input.success) {
     res.status(400).json({ error: "Check the customer details and product quantities, then try again." });
     return;
   }
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Checkout is temporarily unavailable while the store database is configured." });
-    return;
-  }
+  
 
   const combined = new Map<string, number>();
   for (const item of input.data.items) {
@@ -44,29 +28,21 @@ router.post("/orders", async (req, res): Promise<void> => {
     return;
   }
 
-  const attempts = current && now - current.startedAt < windowMs
-    ? current
-    : { startedAt: now, count: 0 };
-  attempts.count += 1;
-  attemptsByIp.set(ip, attempts);
+  if (!await enforceRateLimit(req, res, "checkout", 8, 60_000)) return;
 
   const guestToken = randomBytes(32).toString("hex");
   const guestTokenHash = createHash("sha256").update(guestToken).digest("hex");
   const items = [...combined].map(([product_id, quantity]) => ({ product_id, quantity }));
   try {
-    const supabase = getSupabaseAdmin();
-    const { data: orderId, error: createError } = await supabase.rpc("create_store_order", {
-      p_user_id: null,
-      p_guest_access_token_hash: guestTokenHash,
-      p_customer_name: input.data.customer_name,
-      p_phone: input.data.phone,
-      p_email: input.data.email ?? null,
-      p_shipping_address: input.data.shipping_address,
-      p_city: input.data.city,
-      p_notes: input.data.notes ?? "",
-      p_payment_method: input.data.payment_method,
-      p_items: items,
-    });
+    const storeDatabase = getStoreDatabase();
+    let orderId: string | null = null;
+    let createError: { code?: string; message: string } | null = null;
+    try {
+      orderId = await createStoreOrder(input.data, items, guestTokenHash);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      createError = { message: ["MIXED_CURRENCIES", "INSUFFICIENT_STOCK", "PRODUCT_UNAVAILABLE"].includes(message) ? message : "Checkout failed" };
+    }
     if (createError || typeof orderId !== "string") {
       const reason = createError?.message ?? "";
       req.log.warn({ code: createError?.code }, "Secure checkout order creation failed");
@@ -83,7 +59,7 @@ router.post("/orders", async (req, res): Promise<void> => {
       return;
     }
 
-    const { data: order, error: readError } = await supabase
+    const { data: order, error: readError } = await storeDatabase
       .from("orders")
       .select("id,subtotal,shipping_fee,total,currency,order_status,payment_status,created_at")
       .eq("id", orderId)
@@ -93,7 +69,7 @@ router.post("/orders", async (req, res): Promise<void> => {
       res.status(503).json({ error: "The order was received, but its confirmation could not be loaded. Contact Maya before submitting again." });
       return;
     }
-    const { data: orderItems, error: itemsError } = await supabase
+    const { data: orderItems, error: itemsError } = await storeDatabase
       .from("order_items")
       .select("product_name,unit_price,quantity,line_total")
       .eq("order_id", orderId);

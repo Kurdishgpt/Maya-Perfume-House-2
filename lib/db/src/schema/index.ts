@@ -20,3 +20,4 @@ export * from "./rawMaterials";
 
 export * from "./products";
 export * from "./contact";
+export * from "./store";

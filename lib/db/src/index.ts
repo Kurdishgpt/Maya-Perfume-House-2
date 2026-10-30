@@ -1,22 +1,27 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { getDatabase, getConnectionString } from "@netlify/database";
+import { drizzle } from "drizzle-orm/netlify-db";
 import * as schema from "./schema";
 
-const { Pool } = pg;
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl && process.env.NETLIFY !== "true") {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// The platform supplies the connection for each deployment context.
+let client: ReturnType<typeof createClient> | undefined;
+let clientConnection: string | undefined;
+function createClient() {
+  return drizzle({ client: getDatabase(), schema });
 }
-
-// Supabase-backed Netlify functions do not need the legacy Replit DB pool.
-// Legacy-only routes still require DATABASE_URL when they are used.
-export const pool = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
-  : new Pool();
-export const db = drizzle(pool, { schema });
-
+export function getDb() {
+  const connection = getConnectionString();
+  if (!client || connection !== clientConnection) {
+    client = createClient();
+    clientConnection = connection;
+  }
+  return client;
+}
+// Keep initialization lazy: the admin status endpoint needs no database connection.
+export const db = new Proxy({} as ReturnType<typeof getDb>, {
+  get(_target, property) {
+    const client = getDb();
+    const value = Reflect.get(client, property);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
 export * from "./schema";

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
+import { getStoreDatabase } from "../lib/storeDatabase";
 
 const router: IRouter = Router();
 const cookieName = "maya_guest_cart";
@@ -23,9 +23,9 @@ async function getCart(req: Request, res: Response) {
       path: "/api/cart",
     });
   }
-  const supabase = getSupabaseAdmin();
+  const storeDatabase = getStoreDatabase();
   const guestHash = tokenHash(safeToken);
-  const { data: existing, error: readError } = await supabase
+  const { data: existing, error: readError } = await storeDatabase
     .from("carts")
     .select("id")
     .eq("guest_token_hash", guestHash)
@@ -33,9 +33,9 @@ async function getCart(req: Request, res: Response) {
     .maybeSingle();
   if (readError) throw new Error("The saved bag could not be read.");
   if (existing) return { id: existing.id as string, token: safeToken };
-  const { data: created, error: createError } = await supabase
+  const { data: created, error: createError } = await storeDatabase
     .from("carts")
-    .insert({ guest_token_hash: guestHash, status: "active" })
+    .upsert({ guest_token_hash: guestHash, status: "active" }, { onConflict: "guest_token_hash" })
     .select("id")
     .single();
   if (createError || !created) throw new Error("A saved bag could not be created.");
@@ -43,21 +43,18 @@ async function getCart(req: Request, res: Response) {
 }
 
 router.get("/cart", async (req, res): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Saved bags are not available until Supabase is configured." });
-    return;
-  }
+  
   try {
     const cart = await getCart(req, res);
-    const supabase = getSupabaseAdmin();
-    const { data: items, error } = await supabase
+    const storeDatabase = getStoreDatabase();
+    const { data: items, error } = await storeDatabase
       .from("cart_items")
       .select("id,product_id,quantity,created_at,updated_at")
       .eq("cart_id", cart.id);
     if (error) throw new Error("The saved bag could not be read.");
     const productIds = (items ?? []).map((item) => item.product_id);
     const { data: products, error: productError } = productIds.length
-      ? await supabase.from("products").select("id,name,price,currency,image_url,stock_quantity,is_active,product_type").in("id", productIds)
+      ? await storeDatabase.from("products").select("id,name,price,currency,image_url,stock_quantity,is_active,product_type").in("id", productIds)
       : { data: [], error: null };
     if (productError) throw new Error("The saved bag products could not be loaded.");
     const byId = new Map((products ?? []).map((product) => [product.id, product]));
@@ -74,10 +71,7 @@ router.get("/cart", async (req, res): Promise<void> => {
 });
 
 router.put("/cart", async (req, res): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Saved bags are not available until Supabase is configured." });
-    return;
-  }
+  
   const rawItems: unknown = req.body?.items;
   if (!Array.isArray(rawItems) || rawItems.length > 100) {
     res.status(400).json({ error: "A bag must contain no more than 100 products." });
@@ -100,10 +94,10 @@ router.put("/cart", async (req, res): Promise<void> => {
   }
   try {
     const cart = await getCart(req, res);
-    const supabase = getSupabaseAdmin();
+    const storeDatabase = getStoreDatabase();
     const productIds = [...combined.keys()];
     if (productIds.length) {
-      const { data: products, error } = await supabase
+      const { data: products, error } = await storeDatabase
         .from("products")
         .select("id,is_active")
         .in("id", productIds);
@@ -113,19 +107,19 @@ router.put("/cart", async (req, res): Promise<void> => {
         res.status(409).json({ error: "One or more products are no longer available." });
         return;
       }
-      const { error: upsertError } = await supabase.from("cart_items").upsert(
+      const { error: upsertError } = await storeDatabase.from("cart_items").upsert(
         productIds.map((product_id) => ({ cart_id: cart.id, product_id, quantity: combined.get(product_id)! })),
         { onConflict: "cart_id,product_id" },
       );
       if (upsertError) throw new Error("The bag could not be saved.");
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await storeDatabase
         .from("cart_items")
         .delete()
         .eq("cart_id", cart.id)
-        .not("product_id", "in", `(${productIds.join(",")})`);
+        .notIn("product_id", productIds);
       if (deleteError) throw new Error("Removed products could not be cleared from the saved bag.");
     } else {
-      const { error: clearError } = await supabase.from("cart_items").delete().eq("cart_id", cart.id);
+      const { error: clearError } = await storeDatabase.from("cart_items").delete().eq("cart_id", cart.id);
       if (clearError) throw new Error("The bag could not be cleared.");
     }
     res.json({ saved: true, item_count: productIds.length });
@@ -136,13 +130,10 @@ router.put("/cart", async (req, res): Promise<void> => {
 });
 
 router.delete("/cart", async (req, res): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Saved bags are not available until Supabase is configured." });
-    return;
-  }
+  
   try {
     const cart = await getCart(req, res);
-    const { error } = await getSupabaseAdmin().from("cart_items").delete().eq("cart_id", cart.id);
+    const { error } = await getStoreDatabase().from("cart_items").delete().eq("cart_id", cart.id);
     if (error) throw new Error();
     res.json({ cleared: true });
   } catch (error) {

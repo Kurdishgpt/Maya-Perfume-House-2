@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getSupabaseAdmin, isSupabaseConfigured } from "../lib/supabase";
+import { getStoreDatabase } from "../lib/storeDatabase";
 import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -185,15 +185,12 @@ function toCsv(rows: Record<string, unknown>[]): string {
 router.use("/admin/products", requireAdmin);
 
 router.get("/admin/products/export.csv", async (req, res): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Supabase must be configured before exporting the production catalog." });
-    return;
-  }
+  
   try {
-    const supabase = getSupabaseAdmin();
+    const storeDatabase = getStoreDatabase();
     const rows: Record<string, unknown>[] = [];
     for (let offset = 0; ; offset += batchSize) {
-      const { data, error } = await supabase
+      const { data, error } = await storeDatabase
         .from("products")
         .select(headers.join(","))
         .order("created_at", { ascending: true })
@@ -216,10 +213,7 @@ router.get("/admin/products/export.csv", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/products/import.csv", async (req, res): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    res.status(503).json({ error: "Supabase must be configured before importing catalog rows." });
-    return;
-  }
+  
   const csv = req.body?.csv;
   if (typeof csv !== "string" || !csv.trim() || csv.length > maxCsvCharacters) {
     res.status(400).json({ error: "Choose a non-empty CSV file smaller than 10 MB." });
@@ -267,13 +261,13 @@ router.post("/admin/products/import.csv", async (req, res): Promise<void> => {
     parsed.push(item.value);
   }
 
-  const supabase = getSupabaseAdmin();
+  const storeDatabase = getStoreDatabase();
   let inserted = 0;
   let updated = 0;
   for (let offset = 0; offset < parsed.length; offset += batchSize) {
     const batch = parsed.slice(offset, offset + batchSize);
     const slugs = batch.map((row) => row.slug);
-    const { data: existing, error: lookupError } = await supabase
+    const { data: existing, error: lookupError } = await storeDatabase
       .from("products")
       .select("slug")
       .in("slug", slugs);
@@ -283,7 +277,7 @@ router.post("/admin/products/import.csv", async (req, res): Promise<void> => {
       continue;
     }
     const existingSlugs = new Set((existing ?? []).map((row) => row.slug));
-    const { error } = await supabase.from("products").upsert(batch, { onConflict: "slug" });
+    const { error } = await storeDatabase.from("products").upsert(batch, { onConflict: "slug" });
     if (!error) {
       for (const row of batch) {
         if (existingSlugs.has(row.slug)) updated += 1;
@@ -295,7 +289,7 @@ router.post("/admin/products/import.csv", async (req, res): Promise<void> => {
     req.log.warn({ code: error.code }, "CSV import batch failed; retrying row by row");
     for (let index = 0; index < batch.length; index += 1) {
       const item = batch[index];
-      const { error: rowError } = await supabase.from("products").upsert(item, { onConflict: "slug" });
+      const { error: rowError } = await storeDatabase.from("products").upsert(item, { onConflict: "slug" });
       if (rowError) {
         errors.push({ row: offset + index + 2, reason: rowError.code === "23505" ? "SKU is already assigned to another product." : "This row could not be saved." });
       } else if (existingSlugs.has(item.slug)) {
