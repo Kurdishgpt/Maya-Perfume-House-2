@@ -26,6 +26,3 @@ ADMIN_EMAIL = "rahandayub0@gmail.com"
 
 [nix]
 channel = "stable-25_05"
-
-[objectStorage]
-defaultBucketID = "replit-objstore-4d934a9d-1410-42f9-9d11-07ac9aaa0231"
