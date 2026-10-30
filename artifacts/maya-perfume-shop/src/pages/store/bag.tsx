@@ -58,7 +58,7 @@ export default function Bag() {
           <strong className="mc-line-total" dir="ltr">{formatMoney(line.price * line.quantity, line.currency)}</strong>
         </li>)}
       </ul>
-      {!!rawMaterialCart.length && <p className="mc-fine">Raw-material totals are estimates; Maya confirms availability and final prices.</p>}
+      {!!rawMaterialCart.length && <p className="mc-fine">{t('rawBagNote')}</p>}
       <aside className="mc-bag-side">
         <BagSummary/>
         <button className="mc-teal-btn is-block" onClick={() => navigate('/checkout')} data-testid="button-proceed-checkout">{t('proceed')} <ArrowRight size={17} className="mc-flip"/></button>

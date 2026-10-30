@@ -22,7 +22,7 @@ export function Footer() {
           <div className="mc-foot-langs">{languages.map((l) => <button key={l.code} onClick={() => setLanguage(l.code)} className={l.code === language ? 'is-active' : ''} aria-pressed={l.code === language} data-testid={`footer-language-${l.code}`}>{l.label}</button>)}</div>
         </Section>
         <Section title={t('pages')} id="pages">
-          <Link href="/">{t('home')}</Link><Link href="/welcome" data-testid="link-footer-welcome">{t('welcomePage')}</Link><Link href="/collection">{t('collection')}</Link>
+          <Link href="/">{t('home')}</Link><Link href="/welcome" data-testid="link-footer-welcome">{t('welcomePage')}</Link>
           <Link href="/contact">{t('contact')}</Link><Link href="/privacy">{t('privacy')}</Link><Link href="/terms">{t('terms')}</Link>
           <Link href="/admin" data-testid="link-admin">{t('admin')}</Link>
         </Section>
@@ -38,7 +38,7 @@ export function Footer() {
     </div>
     <div className="mc-foot-follow">
       <div><span>{t('followUs')}</span>
-        <nav aria-label="Social">
+        <nav aria-label={t('followUs')}>
           <a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="WhatsApp" data-testid="footer-whatsapp"><FaWhatsapp/></a>
           <a href={instagramLink} target="_blank" rel="noopener noreferrer" aria-label="Instagram" data-testid="footer-instagram"><FaInstagram/></a>
         </nav>

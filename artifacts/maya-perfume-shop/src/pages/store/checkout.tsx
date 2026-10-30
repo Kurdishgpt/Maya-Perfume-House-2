@@ -34,10 +34,10 @@ export default function Checkout() {
   const send = () => {
     const rows = [
       ...cart.map((l) => `- ${l.product.title} (${l.product.sku}) - ${l.size ? `${l.size} ml` : t('sizeUnknown')} x ${l.quantity} = ${formatMoney(l.product.price * l.quantity, l.product.currency)}`),
-      ...rawMaterialCart.map((line) => `- Raw material: ${line.name} (${line.category}) - ${line.quantity} ${line.unit === 'g' ? 'g' : 'item(s)'} x ${formatMoney(line.price, line.currency)} per ${line.unit === 'g' ? 'g' : 'item'} = ${formatMoney(line.price * line.quantity, line.currency)} (estimate)`),
+      ...rawMaterialCart.map((line) => `- ${t('rawMaterialLabel')}: ${line.name} (${line.category}) - ${line.quantity} ${line.unit === 'g' ? t('rawUnitGram') : t('rawUnitItemPlural')} x ${formatMoney(line.price, line.currency)} ${t('rawPer')} ${line.unit === 'g' ? t('rawUnitGram') : t('rawUnitItem')} = ${formatMoney(line.price * line.quantity, line.currency)} (${t('estimateLabel')})`),
     ].join('\n');
     const rawMaterialNote = rawMaterialCart.length
-      ? '\n\nMaya will confirm raw-material availability and final prices before the order is finalized.'
+      ? `\n\n${t('rawAvailability')}`
       : '';
     const message = `${t('order')}\n\n${rows}\n\n${t('subtotal')}: ${formatTotals(subtotal)}${rawMaterialNote}\n${t('delivery')}: ${t('deliveryValue')}\n${t('payment')}: ${t('payWhatsapp')}\n\n${t('customer')}: ${d.name}\n${t('phone')}: ${d.phone}\n${t('city')}: ${d.city}\n${t('deliveryAddr')}: ${d.address}${d.notes.trim() ? `\n${t('notesField')}: ${d.notes}` : ''}`;
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;

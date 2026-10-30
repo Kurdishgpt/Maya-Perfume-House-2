@@ -11,7 +11,7 @@ export function BottomNav() {
     { href: '/wishlist', key: 'wishlist', icon: Heart, active: path === '/wishlist', badge: wishlist.length },
     { href: '/bag', key: 'bags', icon: ShoppingBag, active: path === '/bag' || path === '/checkout', badge: count, pulse: bagPulse },
   ];
-  return <nav className="mc-bottomnav" aria-label="Shop navigation">
+  return <nav className="mc-bottomnav" aria-label={t('mainNavigation')}>
     <div className="mc-bottomnav-inner">
       {items.map(({ href, key, icon: Icon, active, badge, pulse }) => <Link key={key} href={href} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} data-testid={`bottomnav-${key}`}>
         <span className="mc-bottomnav-icon" key={pulse}><Icon/>{!!badge && <em data-testid={`text-${key}-count`}>{badge}</em>}</span>

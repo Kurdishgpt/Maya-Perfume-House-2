@@ -8,7 +8,6 @@ import { useStore } from '@/lib/store-context';
 import { storePhone, storePhoneHref, whatsappLink } from '@/lib/store';
 
 const menuLinks = [
-  { href: '/collection', key: 'collection' },
   { href: '/contact', key: 'contact' }, { href: '/admin', key: 'admin' },
 ] as const;
 
@@ -24,13 +23,13 @@ export function Header() {
     {!isHome && !isContact && <div className="mc-announce" data-testid="announcement-delivery">{t('banner')}</div>}
       <header className={`mc-header${isHome ? ' is-home' : ''}${isContact ? ' is-contact' : ''}`}>
       <button className="mc-header-btn" onClick={() => setOpen(true)} aria-label={t('menu')} aria-expanded={open} data-testid="button-header-menu"><Menu/></button>
-      {isHome ? <span/> : <Wordmark compact/>}
+      <Wordmark compact/>
         <div className="mc-header-tools">
           <LanguageMenu/>
         </div>
     </header>
     {open && <div className="mc-sheet-overlay" onClick={() => setOpen(false)} role="presentation">
-      <nav className="mc-sheet" onClick={(e) => e.stopPropagation()} aria-label="Main navigation">
+      <nav className="mc-sheet" onClick={(e) => e.stopPropagation()} aria-label={t('mainNavigation')}>
         <div className="mc-sheet-head"><Wordmark compact/><button className="mc-header-btn" onClick={() => setOpen(false)} aria-label={t('closeMenu')} data-testid="button-close-menu"><X/></button></div>
         <div className="mc-sheet-links">
           {menuLinks.map((l, i) => <Link key={l.href} href={l.href} onClick={() => setOpen(false)} style={{ animationDelay: `${i * 35}ms` }} data-testid={`mobile-nav-${l.key}`}><span>{t(l.key)}</span><ArrowRight size={15}/></Link>)}

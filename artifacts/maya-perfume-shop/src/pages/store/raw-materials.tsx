@@ -11,12 +11,13 @@ import { useBack } from '@/pages/store/use-back';
 import './raw-materials.css';
 
 function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
-  const { addRawMaterial } = useStore();
+  const { t, addRawMaterial } = useStore();
   const [quantity, setQuantity] = useState(m.unit === 'g' ? 10 : 1);
   const [imageFailed, setImageFailed] = useState(false);
   const [added, setAdded] = useState(false);
   const safe = Math.max(1, Math.round(quantity) || 1);
-  const unitLabel = m.unit === 'g' ? 'gram' : 'item';
+  const unitLabel = m.unit === 'g' ? t('rawUnitGram') : t('rawUnitItem');
+  const quantityLabel = m.unit === 'g' ? t('rawGrams') : t('rawItems');
   const customerDescription = (value?: string | null) => (value ?? '')
     .replace(/\b(?:listed by|by|from)\s+Hillen99(?:\s+as a set)?/gi, '')
     .replace(/\bHillen99\b/gi, '')
@@ -36,23 +37,23 @@ function MaterialCard({ m, index }: { m: RawMaterial; index: number }) {
     </div>
     {m.description && <p className="mc-raw-desc">{customerDescription(m.description)}</p>}
     <details className="mc-raw-details" data-testid={`details-raw-material-${m.id}`}>
-      <summary>Specifications and description</summary>
+      <summary>{t('rawSpecDescription')}</summary>
       <div className="mc-raw-detail-copy">
-        {m.source_sku && <p><strong>SKU:</strong> {m.source_sku}</p>}
-        {m.source_category && <p><strong>Category:</strong> {m.source_category}</p>}
-        <p><strong>Unit:</strong> per {unitLabel}</p>
-        {m.quantity_options.length > 0 && <p><strong>Supplier options:</strong> {m.quantity_options.map((option) =>
+        {m.source_sku && <p><strong>{t('sku')}:</strong> {m.source_sku}</p>}
+        {m.source_category && <p><strong>{t('category')}:</strong> {m.source_category}</p>}
+        <p><strong>{t('rawUnitLabel')}:</strong> {t('rawPer')} {unitLabel}</p>
+        {m.quantity_options.length > 0 && <p><strong>{t('rawPackageOptions')}:</strong> {m.quantity_options.map((option) =>
           `${option.label}: ${option.value}${option.price != null ? ` (${formatMoney(option.price, option.currency === 'IQD' ? 'IQD' : 'USD')})` : ''}`,
         ).join(' · ')}</p>}
         <p className="mc-raw-original">{customerDescription(m.source_description || m.description)}</p>
       </div>
     </details>
     <div className="mc-raw-ask">
-      <label>{m.unit === 'g' ? 'Grams' : 'Items'}<input type="number" min={1} step={1} value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)); setAdded(false); }} aria-label={`${m.unit === 'g' ? 'Grams' : 'Items'} of ${m.name}`} data-testid={`input-raw-grams-${m.id}`}/></label>
-      <button className="mc-raw-wa" type="button" onClick={addToBag} data-testid={`button-add-raw-bag-${m.id}`}><ShoppingBag size={16}/>{added ? 'Added to Bag' : 'Add to Bag'}</button>
+      <label>{quantityLabel}<input type="number" min={1} step={1} value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)); setAdded(false); }} aria-label={`${quantityLabel} ${m.name}`} data-testid={`input-raw-grams-${m.id}`}/></label>
+      <button className="mc-raw-wa" type="button" onClick={addToBag} data-testid={`button-add-raw-bag-${m.id}`}><ShoppingBag size={16}/>{added ? t('rawAdded') : t('add')}</button>
     </div>
-    {added && <p className="mc-raw-added" role="status">Added to your bag. <Link href="/bag">View bag</Link></p>}
-    <div className="mc-raw-note">Estimate for {safe} {m.unit === 'g' ? 'g' : 'item(s)'}: <span dir="ltr">{formatMoney(m.price * safe, m.currency)}</span>. Availability and final price are confirmed personally by Maya.</div>
+    {added && <p className="mc-raw-added" role="status">{t('rawAddedToBag')} <Link href="/bag">{t('viewBag')}</Link></p>}
+    <div className="mc-raw-note">{t('rawEstimate').replace('{quantity}', String(safe)).replace('{unit}', m.unit === 'g' ? t('rawUnitGram') : t('rawUnitItemPlural'))} <span dir="ltr">{formatMoney(m.price * safe, m.currency)}</span>. {t('rawAvailability')}</div>
   </article>;
 }
 
@@ -82,27 +83,27 @@ export default function RawMaterialsPage() {
   return <div className="mc-page" data-testid="page-raw-materials">
     <PageBar title={t('rawMaterials')} onBack={back}/>
     <section className="mc-raw-intro">
-      <span className="mc-kicker" dir="ltr">MAYA COLLECTION · RAW MATERIALS</span>
-      <h2>Perfumery ingredients and sets, at supplier prices.</h2>
-      <p>Ingredient prices are per gram; sets are priced per item. Add materials to your bag; Maya confirms availability and the final price at checkout. Nothing is ordered automatically.</p>
+      <span className="mc-kicker" dir="ltr">MAYA COLLECTION · {t('rawMaterialsKicker')}</span>
+      <h2>{t('rawIntroTitle')}</h2>
+      <p>{t('rawIntroBody')}</p>
     </section>
     <div className="mc-raw-tools">
-      <label className="mc-raw-search"><Search size={16}/><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, CAS, SKU or keywords" aria-label="Search name, CAS number, or keywords" data-testid="input-raw-search"/></label>
-      {cats.length > 2 && <div className="mc-raw-chips" role="group" aria-label="Filter by category">{cats.map((c) => <button key={c} className={`mc-raw-chip${cat === c ? ' is-on' : ''}`} onClick={() => { setCat(c); setPage(1); }} aria-pressed={cat === c} data-testid={`chip-raw-category-${c}`}>{c}</button>)}</div>}
-      <label className="mc-raw-sort">Sort by price
-        <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Sort materials by price" data-testid="select-raw-sort">
-          <option value="featured">Featured</option><option value="low">Low to high within currency</option><option value="high">High to low within currency</option>
+      <label className="mc-raw-search"><Search size={16}/><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('rawSearchPlaceholder')} aria-label={t('rawSearchAria')} data-testid="input-raw-search"/></label>
+      {cats.length > 2 && <div className="mc-raw-chips" role="group" aria-label={t('rawFilterCategory')}>{cats.map((c) => <button key={c} className={`mc-raw-chip${cat === c ? ' is-on' : ''}`} onClick={() => { setCat(c); setPage(1); }} aria-pressed={cat === c} data-testid={`chip-raw-category-${c}`}>{c === 'All' ? t('fam_all') : c}</button>)}</div>}
+      <label className="mc-raw-sort">{t('rawSortBy')}
+        <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label={t('rawSortAria')} data-testid="select-raw-sort">
+          <option value="featured">{t('rawSortFeatured')}</option><option value="low">{t('rawSortLow')}</option><option value="high">{t('rawSortHigh')}</option>
         </select>
       </label>
     </div>
-    {q.isLoading ? <div className="mc-raw-list" data-testid="state-raw-loading">{[1, 2, 3, 4].map((n) => <div key={n} className="mc-raw-skel"/>)}</div>
-      : q.isError ? <div className="mc-state" role="alert" data-testid="state-raw-error"><p>Raw materials could not be loaded.</p><button className="mc-ghost-btn" onClick={() => void q.refetch()} data-testid="button-raw-retry"><RefreshCw size={15}/> {t('retry')}</button></div>
-      : items.length === 0 ? <div className="mc-state" data-testid="state-raw-empty"><p>No raw materials are listed yet.</p></div>
-      : list.length === 0 ? <div className="mc-state" data-testid="state-raw-no-results"><p>No materials match your search.</p><button className="mc-ghost-btn" onClick={() => { setSearch(''); setCat('All'); }} data-testid="button-raw-clear">Clear search</button></div>
+    {q.isLoading ? <div className="mc-raw-list" aria-label={t('rawLoading')} data-testid="state-raw-loading">{[1, 2, 3, 4].map((n) => <div key={n} className="mc-raw-skel"/>)}</div>
+      : q.isError ? <div className="mc-state" role="alert" data-testid="state-raw-error"><p>{t('rawLoadFailed')}</p><button className="mc-ghost-btn" onClick={() => void q.refetch()} data-testid="button-raw-retry"><RefreshCw size={15}/> {t('retry')}</button></div>
+      : items.length === 0 ? <div className="mc-state" data-testid="state-raw-empty"><p>{t('rawEmpty')}</p></div>
+      : list.length === 0 ? <div className="mc-state" data-testid="state-raw-no-results"><p>{t('rawNoMatches')}</p><button className="mc-ghost-btn" onClick={() => { setSearch(''); setCat('All'); }} data-testid="button-raw-clear">{t('clearSearch')}</button></div>
       : <>
-         <p className="mc-raw-count" data-testid="text-raw-count">{list.length} materials · page {currentPage} of {totalPages}</p>
+         <p className="mc-raw-count" data-testid="text-raw-count">{t('rawCount').replace('{count}', String(list.length)).replace('{page}', String(currentPage)).replace('{pages}', String(totalPages))}</p>
          <div className="mc-raw-list">{shown.map((m, i) => <MaterialCard key={m.id} m={m} index={i}/>)}</div>
-         {totalPages > 1 && <nav className="mc-raw-pages" aria-label="Raw material pages"><button onClick={() => { setPage((old) => Math.max(1, old - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage <= 1} aria-label="Previous page"><ChevronLeft size={16}/>Previous</button><span>Page {currentPage} of {totalPages}</span><button onClick={() => { setPage((old) => Math.min(totalPages, old + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage >= totalPages} aria-label="Next page">Next<ChevronRight size={16}/></button></nav>}
+         {totalPages > 1 && <nav className="mc-raw-pages" aria-label={t('rawPageNav')}><button onClick={() => { setPage((old) => Math.max(1, old - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage <= 1} aria-label={t('rawPagePreviousAria')}><ChevronLeft size={16}/>{t('rawPrevious')}</button><span>{t('rawPageSummary').replace('{page}', String(currentPage)).replace('{pages}', String(totalPages))}</span><button onClick={() => { setPage((old) => Math.min(totalPages, old + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage >= totalPages} aria-label={t('rawPageNextAria')}>{t('rawNext')}<ChevronRight size={16}/></button></nav>}
       </>}
   </div>;
 }

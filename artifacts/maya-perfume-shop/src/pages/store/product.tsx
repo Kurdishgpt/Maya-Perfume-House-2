@@ -33,7 +33,7 @@ export default function ProductPage() {
         {images.length > 1 && <div className="mc-thumbs">{images.map((src, i) => <button key={src + i} onClick={() => setActive(i)} className={active === i ? 'is-active' : ''} aria-label={`${product.title} ${i + 1}`} data-testid={`button-gallery-${i + 1}`}><img src={src} alt=""/></button>)}</div>}
       </div>
       <div className="mc-info">
-        <span className="mc-kicker">{[product.brand, product.category].filter(Boolean).join(' · ')}</span>
+        <span className="mc-kicker">{[product.brand, product.category && /(unisex|perfect|shared|everyone)/i.test(product.category) ? t('unisex') : product.category].filter(Boolean).join(' · ')}</span>
         <h2 className="mc-product-title" data-testid="text-product-title">{product.title}</h2>
         <div className="mc-price-row"><strong dir="ltr" data-testid="text-product-price">{formatMoney(product.price, product.currency)}</strong>
           <span className={`mc-stock ${product.stock > 0 ? '' : 'is-out'}`} data-testid="text-product-stock">{product.stock > 0 ? `${t('stock')} · ${product.stock}` : t('soldOut')}</span></div>

@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store-context';
 const cats = [
   { key: 'women', href: '/collection?cat=women', img: 'women' },
   { key: 'men', href: '/collection?cat=men', img: 'men' },
-  { key: 'unisex', href: '/collection?cat=perfect', img: 'unisex' },
+  { key: 'unisex', href: '/collection?cat=unisex', img: 'unisex' },
   { key: 'rawMaterials', href: '/raw-material', img: 'materials' },
 ] as const;
 
