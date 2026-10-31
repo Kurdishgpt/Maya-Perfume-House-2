@@ -9,6 +9,9 @@ function getHandler(): Promise<ServerlessHandler> {
   // runtimes. Set it before importing routes, because @workspace/db checks it
   // during module initialization when DATABASE_URL is intentionally absent.
   process.env.NETLIFY = "true";
+  // Netlify functions don't set NODE_ENV. Default to production so secure
+  // cookies, the Clerk proxy and JSON logging behave like the deployed server.
+  process.env.NODE_ENV ??= "production";
 
   handlerPromise ??= import("./app").then(({ default: app }) =>
     serverless(app, {
