@@ -27,6 +27,61 @@ import { recordNavigation } from '@/pages/store/use-back';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const canonicalOrigin = 'https://mayacolllection.com';
+const indexablePaths = new Set([
+  '/',
+  '/welcome',
+  '/collection',
+  '/raw-material',
+  '/contact',
+  '/faq',
+  '/shipping',
+  '/returns',
+  '/privacy',
+  '/terms',
+]);
+
+function SeoMetadata() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    const pathname = new URL(location, window.location.origin).pathname;
+    const normalizedPath = pathname === '/'
+      ? '/'
+      : `/${pathname.split('/').filter(Boolean).join('/')}`;
+    const isProductPage = /^\/product\/[^/]+$/.test(normalizedPath);
+    const isIndexable = indexablePaths.has(normalizedPath) || isProductPage;
+
+    let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.name = 'robots';
+      document.head.appendChild(robots);
+    }
+    robots.content = isIndexable ? 'index, follow' : 'noindex, nofollow';
+
+    const existingCanonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const existingOgUrl = document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]');
+    if (!isIndexable) {
+      existingCanonical?.remove();
+      existingOgUrl?.remove();
+      return;
+    }
+
+    const canonicalUrl = `${canonicalOrigin}${normalizedPath}`;
+    const canonical = existingCanonical ?? document.createElement('link');
+    canonical.rel = 'canonical';
+    canonical.href = canonicalUrl;
+    if (!existingCanonical) document.head.appendChild(canonical);
+
+    const ogUrl = existingOgUrl ?? document.createElement('meta');
+    ogUrl.setAttribute('property', 'og:url');
+    ogUrl.content = canonicalUrl;
+    if (!existingOgUrl) document.head.appendChild(ogUrl);
+  }, [location]);
+
+  return null;
+}
 
 function StoreShell() {
   const [path] = useLocation();
@@ -82,7 +137,7 @@ function AdminGate() {
 }
 
 function App() {
-  return <TooltipProvider><WouterRouter base={basePath}><ErrorBoundary><QueryClientProvider client={queryClient}>
+  return <TooltipProvider><WouterRouter base={basePath}><SeoMetadata/><ErrorBoundary><QueryClientProvider client={queryClient}>
     <Switch>
       <Route path="/admin" component={AdminGate}/>
       <Route><StoreProvider><StoreShell/></StoreProvider></Route>
