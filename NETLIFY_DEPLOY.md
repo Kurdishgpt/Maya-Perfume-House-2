@@ -10,6 +10,19 @@ The repository is configured for a static Netlify site with the existing Express
 4. Trigger a deploy. The build command checks shared libraries and the API before building the storefront. Netlify bundles the function with esbuild.
 5. Test `/api/healthz`, `/api/supabase/status`, catalog reads, admin unlock, image upload, cart, and checkout before sharing the site.
 
+## Netlify monorepo build settings
+
+On the Build settings screen, choose **Other (configure manually)** for **Project to deploy**. Do not select only `artifacts/maya-perfume-shop`; the API function and shared workspace packages are outside that folder. Keep this as one Netlify site using the repository root:
+
+- Branch to deploy: `main`
+- Base directory: `.`
+- Install command: `pnpm install --frozen-lockfile`
+- Build command: use the command in `netlify.toml`
+- Publish directory: `artifacts/maya-perfume-shop/dist/public`
+- Functions directory: `artifacts/api-server/netlify/functions`
+
+These paths are relative to the repository root. If the dashboard has values that conflict with `netlify.toml`, clear the overrides or set them to the values above.
+
 ## Environment variables
 
 Required for the Supabase-backed production paths:
